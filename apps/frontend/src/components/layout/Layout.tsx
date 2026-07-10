@@ -7,15 +7,17 @@ import Footer from "./Footer";
 export default function Layout() {
     return (
         <>
-            <Header />
+            <div className="container">
+                <Header />
 
-            <Navigation />
+                <Navigation />
 
-            <main>
-                <Outlet />
-            </main>
+                <main className="page">
+                    <Outlet />
+                </main>
 
-            <Footer />
+                <Footer />
+            </div>
         </>
     );
 }

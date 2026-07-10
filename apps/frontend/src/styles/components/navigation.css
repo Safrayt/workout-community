@@ -1,0 +1,28 @@
+.app-navigation {
+    display: flex;
+    gap: var(--space-5);
+
+    padding: var(--space-4) 0;
+
+    border-bottom: 1px solid var(--color-border);
+
+    margin-bottom: var(--space-6);
+}
+
+.app-navigation a {
+    color: var(--color-text-secondary);
+
+    font-weight: 500;
+
+    transition: color var(--transition-fast);
+}
+
+.app-navigation a:hover {
+    color: var(--color-primary);
+}
+
+.app-navigation a.active {
+    color: var(--color-primary);
+
+    font-weight: 700;
+}

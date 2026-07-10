@@ -1,13 +1,17 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export default function Navigation() {
     return (
-        <nav>
-            <Link to="/">Главная</Link>{" "}
-            <Link to="/events">Тренировки</Link>{" "}
-            <Link to="/map">Карта</Link>{" "}
-            <Link to="/programs">Программы</Link>{" "}
-            <Link to="/profile">Профиль</Link>
+        <nav className="app-navigation">
+            <NavLink to="/" end>Главная</NavLink>
+
+            <NavLink to="/events">Тренировки</NavLink>
+
+            <NavLink to="/map">Карта</NavLink>
+
+            <NavLink to="/programs">Программы</NavLink>
+
+            <NavLink to="/profile">Профиль</NavLink>
         </nav>
     );
 }
