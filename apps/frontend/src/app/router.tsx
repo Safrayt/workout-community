@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import Layout from "../components/layout/Layout";
+
 import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
 import Events from "../pages/Events/Events";
@@ -9,22 +11,28 @@ import Map from "../pages/Map/Map";
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
-  },
-  {
-    path: "/profile",
-    element: <Profile />,
-  },
-  {
-    path: "/events",
-    element: <Events />,
-  },
-  {
-    path: "/programs",
-    element: <Programs />,
-  },
-  {
-    path: "/map",
-    element: <Map />,
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <Home />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
+      },
+      {
+        path: "events",
+        element: <Events />,
+      },
+      {
+        path: "programs",
+        element: <Programs />,
+      },
+      {
+        path: "map",
+        element: <Map />,
+      },
+    ],
   },
 ]);
