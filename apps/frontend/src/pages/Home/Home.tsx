@@ -1,11 +1,16 @@
-export default function Home() {
-  return (
-    <main>
-      <h1>Workout Community Portal</h1>
+import Card from "../../components/ui/Card/Card";
 
-      <p>
-        Современный портал для уличного воркаут-сообщества.
-      </p>
-    </main>
-  );
+export default function Home() {
+    return (
+        <Card>
+            <h2>Добро пожаловать!</h2>
+
+            <p>
+                Workout Community — это портал для участников сообщества
+                уличных тренировок, где можно вести собственные тренировки,
+                участвовать в мероприятиях, проходить программы и получать
+                достижения.
+            </p>
+        </Card>
+    );
 }
