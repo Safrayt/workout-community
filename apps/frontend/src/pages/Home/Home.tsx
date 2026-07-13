@@ -1,6 +1,7 @@
 import Button from "../../components/ui/Button/Button";
 import Card from "../../components/ui/Card/Card";
 import Section from "../../components/ui/Section/Section";
+import Badge from "../../components/ui/Badge/Badge";
 
 export default function Home() {
     return (
@@ -21,9 +22,12 @@ export default function Home() {
 
             <Section title="Сегодня для тебя">
                 <Card>
+                    <Badge variant="success">
+                        Совет дня
+                    </Badge>
+
                     <p>
-                        Самое сложное — начать. Всё остальное становится легче
-                        после первого подхода.
+                        Самое сложное — начать. Всё остальное становится легче после первого подхода.
                     </p>
                 </Card>
             </Section>
