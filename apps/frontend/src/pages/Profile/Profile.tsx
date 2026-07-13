@@ -5,6 +5,7 @@
 import Section from "../../components/ui/Section/Section";
 import Input from "../../components/ui/Input/Input";
 import Button from "../../components/ui/Button/Button";
+import Select from "../../components/ui/Select/Select";
 
 export default function Profile() {
     return (
@@ -20,6 +21,16 @@ export default function Profile() {
                 label="Город"
                 placeholder="Например, Минск"
             />
+            
+            <Select
+                id="level"
+                label="Уровень подготовки"
+                options={[
+                    { value: "beginner", label: "Новичок" },
+                    { value: "intermediate", label: "Средний" },
+                    { value: "advanced", label: "Продвинутый" },
+                ]}
+            />            
 
             <Button>
                 Сохранить
