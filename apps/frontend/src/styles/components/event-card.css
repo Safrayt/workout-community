@@ -1,0 +1,18 @@
+.event-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.event-card__title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.event-card__meta {
+    color: var(--color-text-secondary);
+}
+
+.event-card__actions {
+    margin-top: var(--space-2);
+}
