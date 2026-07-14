@@ -32,7 +32,7 @@ export default function Home() {
                 </Card>
             </Section>
 
-            <Section title="Ближайшие тренировки">
+            <Section title="Ближайшие события">
                 <Card>
                     <p>Пока нет запланированных тренировок.</p>
                 </Card>
