@@ -42,10 +42,25 @@ import { currentUser } from "../../data/currentUser";
 
 import { getUserLevel } from "../../utils/level";
 
+import { events } from "../../data/events";
+
+import { useRegistration } from "../../context/RegistrationContext";
+
+import { getUserEvents } from "../../utils/events";
+
 
 export default function Profile() {
     const user = currentUser;
-    
+
+    const {
+        registrations
+    } = useRegistration();
+
+    const userEvents = getUserEvents(
+        events,
+        registrations,
+        user.id
+);
 
     return (
         <Section title="Профиль">
@@ -64,6 +79,24 @@ export default function Profile() {
             </p>
 
             <p> Опыт: {user.experience} XP </p>
+
+            <h3> Мои события </h3>
+
+                {
+                    userEvents.length === 0 ? (
+                        <p>
+                            Вы пока не записаны ни на одно событие
+                        </p>
+                    ) : (
+                        <ul>
+                            {userEvents.map((event) => (
+                                <li key={event.id}>
+                                    {event.title}
+                                </li>
+                            ))}
+                        </ul>
+                    )
+                }
 
             {user.socialLinks.telegram && (
                 <p>

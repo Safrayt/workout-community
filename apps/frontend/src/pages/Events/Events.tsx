@@ -4,7 +4,9 @@ import EventCard from "../../components/EventCard/EventCard";
 import { events } from "../../data/events";
 import { getExpectedParticipants } from "../../utils/registration";
 
-import { useEventRegistration } from "../../hooks/useEventRegistration";
+import {
+    useRegistration,
+} from "../../context/RegistrationContext";
 
 
 
@@ -15,7 +17,7 @@ export default function Events() {
         register,
         cancel,
         checkRegistration,
-    } = useEventRegistration();
+    } = useRegistration();
 
     return (
         <Section title="События">
