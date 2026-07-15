@@ -11,7 +11,9 @@ type EventCardProps = {
     date: string;
     expectedParticipants: number;
     weather?: string;
+    isRegistered?: boolean;
     onRegister?: () => void;
+    onCancelRegistration?: () => void;
 };
 
 export default function EventCard({
@@ -22,7 +24,9 @@ export default function EventCard({
     date,
     expectedParticipants,
     weather,
+    isRegistered = false,
     onRegister,
+    onCancelRegistration,
 }: EventCardProps) {
     return (
         <Card className="event-card">
@@ -47,8 +51,16 @@ export default function EventCard({
             <p className="event-card__meta">Погода: {weather ?? "—"}</p>
 
             <div className="event-card__actions">
-                <Button variant="primary" onClick={onRegister}>
-                    Записаться
+                <Button variant={isRegistered ? "secondary" : "primary"}
+                    onClick={
+                        isRegistered
+                            ? onCancelRegistration
+                            : onRegister
+                    }
+                >
+                    {isRegistered
+                        ? "Отменить участие"
+                        : "Записаться"}
                 </Button>
 
                 <Button variant="secondary">
