@@ -38,12 +38,14 @@
 
 import Section from "../../components/ui/Section/Section";
 
-import { users } from "../../data/users";
+import { currentUser } from "../../data/currentUser";
 
 import { getUserLevel } from "../../utils/level";
 
+
 export default function Profile() {
-    const user = users[0];
+    const user = currentUser;
+    
 
     return (
         <Section title="Профиль">
@@ -55,9 +57,25 @@ export default function Profile() {
 
             <p>{user.bio}</p>
 
-            <p>Уровень: {getUserLevel(user.experience)}</p>
+            <p>Уровень:{" "}
+                <strong>
+                    {getUserLevel(user.experience)}
+                </strong>
+            </p>
 
-            <p>Опыт: {user.experience} XP</p>
+            <p> Опыт: {user.experience} XP </p>
+
+            {user.socialLinks.telegram && (
+                <p>
+                    Telegram: {user.socialLinks.telegram}
+                </p>
+            )}
+
+            {user.socialLinks.vk && (
+                <p>
+                    VK: {user.socialLinks.vk}
+                </p>
+            )}
         </Section>
     );
 }

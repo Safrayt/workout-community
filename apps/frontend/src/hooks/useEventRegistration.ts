@@ -12,6 +12,8 @@ import {
     registrations as initialRegistrations,
 } from "../data/registrations";
 
+import { currentUser } from "../data/currentUser";
+
 
 export function useEventRegistration() {
     const [registrations, setRegistrations] =
@@ -20,7 +22,7 @@ export function useEventRegistration() {
         );
 
 
-    const currentUserId = "1";
+    const currentUserId = currentUser.id;
 
 
     function register(eventId: string) {

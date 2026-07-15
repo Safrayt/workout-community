@@ -1,6 +1,8 @@
 export type SocialLinks = {
     telegram?: string;
 
+    vk?: string;
+
     whatsapp?: string;
 
     signal?: string;
