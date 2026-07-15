@@ -48,6 +48,8 @@ import { useRegistration } from "../../context/RegistrationContext";
 
 import { getUserEvents } from "../../utils/events";
 
+import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
+
 
 export default function Profile() {
     const user = currentUser;
@@ -60,7 +62,19 @@ export default function Profile() {
         events,
         registrations,
         user.id
-);
+    );
+
+    const upcomingEvents =
+    userEvents.filter(
+        isUpcomingEvent
+    );
+
+
+    const completedEvents =
+        userEvents.filter(
+            isCompletedEvent
+        );
+
 
     return (
         <Section title="Профиль">
@@ -80,23 +94,42 @@ export default function Profile() {
 
             <p> Опыт: {user.experience} XP </p>
 
-            <h3> Мои события </h3>
-
+            <h3> Предстоящие события </h3>
                 {
-                    userEvents.length === 0 ? (
+                    upcomingEvents.length === 0 ? (
                         <p>
-                            Вы пока не записаны ни на одно событие
+                            Нет предстоящих событий
                         </p>
                     ) : (
                         <ul>
-                            {userEvents.map((event) => (
-                                <li key={event.id}>
-                                    {event.title}
-                                </li>
-                            ))}
+                            {upcomingEvents.map(
+                                (event) => (
+                                    <li key={event.id}>
+                                        {event.title}
+                                    </li>
+                                )
+                            )}
                         </ul>
                     )
                 }
+            <h3> Завершённые события </h3>
+            {
+                completedEvents.length === 0 ? (
+                    <p>
+                        Нет завершённых событий
+                    </p>
+                ) : (
+                    <ul>
+                        {completedEvents.map(
+                            (event) => (
+                                <li key={event.id}>
+                                    {event.title}
+                                </li>
+                            )
+                        )}
+                    </ul>
+                )
+            }
 
             {user.socialLinks.telegram && (
                 <p>

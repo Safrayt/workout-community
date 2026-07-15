@@ -11,6 +11,8 @@ export type Event = {
 
     date: string;
 
+    startDate: string;
+
     expectedParticipants: number;
 
     weather?: string;
