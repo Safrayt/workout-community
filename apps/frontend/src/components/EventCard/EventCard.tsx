@@ -1,6 +1,7 @@
 import Badge from "../ui/Badge/Badge";
 import Button from "../ui/Button/Button";
 import Card from "../ui/Card/Card";
+import { formatParticipants } from "../../utils/format";
 
 type EventCardProps = {
     title: string;
@@ -10,6 +11,7 @@ type EventCardProps = {
     date: string;
     expectedParticipants: number;
     weather?: string;
+    onRegister?: () => void;
 };
 
 export default function EventCard({
@@ -20,6 +22,7 @@ export default function EventCard({
     date,
     expectedParticipants,
     weather,
+    onRegister,
 }: EventCardProps) {
     return (
         <Card className="event-card">
@@ -39,11 +42,15 @@ export default function EventCard({
 
             <p className="event-card__meta">{date}</p>
 
-            <p className="event-card__meta">Ожидается {expectedParticipants} участников</p>
+            <p className="event-card__meta">Ожидается {formatParticipants(expectedParticipants)}</p>
 
             <p className="event-card__meta">Погода: {weather ?? "—"}</p>
 
             <div className="event-card__actions">
+                <Button variant="primary" onClick={onRegister}>
+                    Записаться
+                </Button>
+
                 <Button variant="secondary">
                     Подробнее
                 </Button>
