@@ -50,6 +50,8 @@ import { getUserEvents } from "../../utils/events";
 
 import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
 
+import EventSummary from "../../components/EventSummary/EventSummary";
+
 
 export default function Profile() {
     const user = currentUser;
@@ -101,15 +103,17 @@ export default function Profile() {
                             Нет предстоящих событий
                         </p>
                     ) : (
-                        <ul>
+                        <div>
                             {upcomingEvents.map(
                                 (event) => (
-                                    <li key={event.id}>
-                                        {event.title}
-                                    </li>
+                                    <EventSummary
+                                        key={event.id}
+                                        event={event}
+                                        registrations={registrations}
+                                    />
                                 )
                             )}
-                        </ul>
+                        </div>
                     )
                 }
             <h3> Завершённые события </h3>
@@ -119,15 +123,17 @@ export default function Profile() {
                         Нет завершённых событий
                     </p>
                 ) : (
-                    <ul>
+                    <div>
                         {completedEvents.map(
                             (event) => (
-                                <li key={event.id}>
-                                    {event.title}
-                                </li>
+                                <EventSummary
+                                    key={event.id}
+                                    event={event}
+                                    registrations={registrations}
+                                />
                             )
                         )}
-                    </ul>
+                    </div>
                 )
             }
 

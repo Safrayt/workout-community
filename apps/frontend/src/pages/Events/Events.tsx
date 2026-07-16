@@ -2,7 +2,7 @@ import Section from "../../components/ui/Section/Section";
 import EventCard from "../../components/EventCard/EventCard";
 
 import { events } from "../../data/events";
-import { getExpectedParticipants } from "../../utils/registration";
+import { getParticipantCount } from "../../utils/eventParticipants";
 
 import {
     useRegistration,
@@ -24,7 +24,7 @@ export default function Events() {
             <div className="events-list">
                 {events.map((event) => {
                     const participants =
-                        getExpectedParticipants(
+                        getParticipantCount(
                             registrations,
                             event.id
                         );

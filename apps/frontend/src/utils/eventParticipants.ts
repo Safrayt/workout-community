@@ -1,14 +1,12 @@
 import type { EventRegistration } from "../types/eventRegistration";
 
-export function isUserRegistered(
+export function getParticipantCount(
     registrations: EventRegistration[],
-    userId: string,
     eventId: string
 ) {
-    return registrations.some(
+    return registrations.filter(
         (registration) =>
-            registration.userId === userId &&
             registration.eventId === eventId &&
             registration.status === "registered"
-    );
+    ).length;
 }
