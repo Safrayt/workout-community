@@ -3,6 +3,7 @@ import "../../styles/components/event-summary.css";
 
 import type { EventRegistration } from "../../types/eventRegistration";
 import { getParticipantCount } from "../../utils/eventParticipants";
+import { formatEventDate } from "../../utils/formatEventDate";
 
 type EventSummaryProps = {
     event: Event;
@@ -26,7 +27,7 @@ export default function EventSummary({
 
             <p>{event.location}</p>
 
-            <p>{event.date}</p>
+            <p>{formatEventDate(event.startDate)}</p>
 
             <p>
                  Записано участников: {participantCount}

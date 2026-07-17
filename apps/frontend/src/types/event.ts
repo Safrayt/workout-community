@@ -9,8 +9,6 @@ export type Event = {
 
     location: string;
 
-    date: string;
-
     startDate: string;
 
     expectedParticipants: number;

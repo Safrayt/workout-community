@@ -11,8 +11,6 @@ export const events: Event[] = [
 
         location: "Площадка у Глобуса",
 
-        date: "Суббота, 10:00",
-
         startDate:
             "2026-07-18T10:00:00",
 
@@ -30,8 +28,6 @@ export const events: Event[] = [
         city: "Москва",
 
         location: "Площадка в Парке Победы",
-
-        date: "Воскресенье, 11:00",
 
         startDate:
             "2026-09-19T11:00:00",
