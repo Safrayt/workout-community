@@ -7,6 +7,7 @@ import Profile from "../pages/Profile/Profile";
 import Events from "../pages/Events/Events";
 import Programs from "../pages/Programs/Programs";
 import Map from "../pages/Map/Map";
+import EventDetails from "../pages/EventDetails/EventDetails";
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: "events",
         element: <Events />,
+      },
+      {
+        path: "events/:id",
+        element: <EventDetails />,
       },
       {
         path: "programs",

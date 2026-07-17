@@ -3,8 +3,10 @@ import Button from "../ui/Button/Button";
 import Card from "../ui/Card/Card";
 import { formatParticipants } from "../../utils/format";
 import { formatEventDate } from "../../utils/formatEventDate";
+import { Link } from "react-router-dom";
 
 type EventCardProps = {
+    id: string;
     title: string;
     description: string;
     city: string;
@@ -18,6 +20,7 @@ type EventCardProps = {
 };
 
 export default function EventCard({
+    id,
     title,
     description,
     city,
@@ -64,9 +67,11 @@ export default function EventCard({
                         : "Записаться"}
                 </Button>
 
-                <Button variant="secondary">
-                    Подробнее
-                </Button>
+                <Link to={`/events/${id}`}>
+                    <Button variant="secondary">
+                        Подробнее
+                    </Button>
+                </Link>
             </div>
         </Card>
     );
