@@ -6,6 +6,11 @@ import { events } from "../../data/events";
 
 import { formatEventDate } from "../../utils/formatEventDate";
 
+import { getPlaygroundById } from "../../utils/playgrounds";
+
+import { Link } from "react-router-dom";
+
+
 export default function EventDetails() {
     const { id } = useParams();
 
@@ -21,18 +26,28 @@ export default function EventDetails() {
         );
     }
 
+     const playground =
+    getPlaygroundById(
+        event.playgroundId
+    );
+
     return (
         <Section title={event.title}>
             <p>{event.description}</p>
 
             <p>
                 <strong>Населённый пункт:</strong>{" "}
-                {event.city}
+                {playground?.locality ?? "—"}
             </p>
 
             <p>
-                <strong>Место проведения:</strong>{" "}
-                {event.location}
+                <strong>Площадка:</strong>{" "}
+                {playground?.name ?? "—"}
+            </p>
+
+            <p>
+                <strong>Адрес:</strong>{" "}
+                {playground?.address ?? "—"}
             </p>
 
             <p>
@@ -44,6 +59,10 @@ export default function EventDetails() {
                 <strong>Погода:</strong>{" "}
                 {event.weather ?? "—"}
             </p>
+
+            <Link to={`/playgrounds/${playground?.id}`}>
+                Открыть страницу площадки
+            </Link>
         </Section>
     );
 }

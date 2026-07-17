@@ -9,6 +9,8 @@ export type Event = {
 
     location: string;
 
+    playgroundId: string;
+
     startDate: string;
 
     expectedParticipants: number;

@@ -8,6 +8,7 @@ import Events from "../pages/Events/Events";
 import Programs from "../pages/Programs/Programs";
 import Map from "../pages/Map/Map";
 import EventDetails from "../pages/EventDetails/EventDetails";
+import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
 
 export const router = createBrowserRouter([
   {
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: "map",
         element: <Map />,
+      },
+      {
+          path: "playgrounds/:id",
+          element: <PlaygroundDetails />,
       },
     ],
   },
