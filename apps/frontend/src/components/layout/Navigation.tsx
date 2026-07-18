@@ -7,7 +7,7 @@ export default function Navigation() {
 
             <NavLink to="/events">События</NavLink>
 
-            <NavLink to="/map">Карта</NavLink>
+            <NavLink to="/playgrounds">Площадки</NavLink>
 
             <NavLink to="/programs">Программы</NavLink>
 

@@ -6,7 +6,7 @@ import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
 import Events from "../pages/Events/Events";
 import Programs from "../pages/Programs/Programs";
-import Map from "../pages/Map/Map";
+import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
 
@@ -36,8 +36,8 @@ export const router = createBrowserRouter([
         element: <Programs />,
       },
       {
-        path: "map",
-        element: <Map />,
+        path: "playgrounds",
+        element: <Playgrounds />,
       },
       {
           path: "playgrounds/:id",
