@@ -1,12 +1,16 @@
 import Section from "../../components/ui/Section/Section";
+import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
 
 import { playgrounds } from "../../data/playgrounds";
+import { events } from "../../data/events";
 
-import { Link } from "react-router-dom";
+import { getEventsCount } from "../../utils/playgroundStatistics";
+import { getNextPlaygroundEvent } from "../../utils/getNextPlaygroundEvent";
 
 export default function Playgrounds() {
     return (
         <Section title="Площадки">
+
             <h3>Карта</h3>
 
             <p>
@@ -17,23 +21,39 @@ export default function Playgrounds() {
 
             <h3>Все площадки</h3>
 
-            <ul>
-                {playgrounds.map((playground) => (
-                    <li key={playground.id}>
-                        <Link
-                            to={`/playgrounds/${playground.id}`}
-                        >
-                            <strong>
-                                {playground.name}
-                            </strong>
-                        </Link>
+            <div className="playgrounds-list">
+                {
+                    playgrounds.map((playground) => {
 
-                        <br />
+                        const eventsCount =
+                            getEventsCount(
+                                events,
+                                playground.id
+                            );
 
-                        {playground.locality}
-                    </li>
-                ))}
-            </ul>
+                        const nextEvent =
+                            getNextPlaygroundEvent(
+                                events,
+                                playground.id
+                            );
+
+                        return (
+                            <PlaygroundCard
+                                key={playground.id}
+
+                                {...playground}
+
+                                eventsCount={eventsCount}
+
+                                nextEvent={
+                                    nextEvent?.startDate
+                                }
+                            />
+                        );
+                    })
+                }
+            </div>
+
         </Section>
     );
 }
