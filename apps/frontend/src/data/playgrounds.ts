@@ -2,44 +2,93 @@ import type { Playground } from "../types/playground";
 
 export const playgrounds: Playground[] = [
     {
-        id: "globus",
+        id: "1",
 
         name: "Площадка у Глобуса",
 
         locality: "Балашиха",
 
-        address: "Шоссе Энтузиастов",
+        address: "ш. Энтузиастов, 54А",
 
-        latitude: 55.796,
+        coordinates: {
+            latitude: 55.8092,
+            longitude: 37.9638,
+        },
 
-        longitude: 37.938,
+        size: "large",
+
+        amenities: {
+            lighting: true,
+            covered: false,
+            changingRoom: false,
+            toilet: false,
+            drinkingWater: false,
+            shower: false,
+            parking: true,
+            bicycleParking: true,
+        },
+
+        surface: "rubber",
+
+        equipment: [
+            "highPullBar",
+            "mediumPullBar",
+            "widePullBar",
+            "highParallelBars",
+            "wideMonkeyBars",
+            "rings",
+        ],
+
+        photos: [],
+
+        openingHours: "Круглосуточно",
 
         description:
-            "Уличная воркаут-площадка возле гипермаркета.",
-
-        lighting: true,
-
-        covered: false,
+            "Современная воркаут-площадка с резиновым покрытием."
     },
+        {
+        id: "2",
 
-    {
-        id: "victory-park",
+        name: "Площадка у Глобуса",
 
-        name: "Площадка в Парке Победы",
+        locality: "Балашиха",
 
-        locality: "Москва",
+        address: "ш. Энтузиастов, 54А",
 
-        address: "Парк Победы",
+        coordinates: {
+            latitude: 55.8092,
+            longitude: 37.9638,
+        },
 
-        latitude: 55.731,
+        size: "large",
 
-        longitude: 37.503,
+        amenities: {
+            lighting: true,
+            covered: false,
+            changingRoom: false,
+            toilet: false,
+            drinkingWater: false,
+            shower: false,
+            parking: true,
+            bicycleParking: true,
+        },
+
+        surface: "rubber",
+
+        equipment: [
+            "highPullBar",
+            "mediumPullBar",
+            "widePullBar",
+            "highParallelBars",
+            "wideMonkeyBars",
+            "rings",
+        ],
+
+        photos: [],
+
+        openingHours: "Круглосуточно",
 
         description:
-            "Большая современная площадка.",
-
-        lighting: true,
-
-        covered: false,
+            "Современная воркаут-площадка с резиновым покрытием."
     },
 ];

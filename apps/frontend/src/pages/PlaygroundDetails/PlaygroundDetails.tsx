@@ -4,6 +4,10 @@ import Section from "../../components/ui/Section/Section";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 
+import {
+    getPlaygroundSizeName,
+} from "../../utils/playgrounds";
+
 import { events } from "../../data/events";
 
 import { getPlaygroundEvents } from "../../utils/playgroundEvents";
@@ -43,20 +47,14 @@ export default function PlaygroundDetails() {
                 {playground.address}
             </p>
 
-            <p>{playground.description}</p>
-
             <p>
-                Освещение:{" "}
-                {playground.lighting
-                    ? "Есть"
-                    : "Нет"}
+                <strong>Время работы:</strong>{" "}
+                {playground.openingHours}
             </p>
 
             <p>
-                Навес:{" "}
-                {playground.covered
-                    ? "Есть"
-                    : "Нет"}
+                <strong>Размер:</strong>{" "}
+                {getPlaygroundSizeName(playground.size)}
             </p>
 
             <h3>Предстоящие события</h3>

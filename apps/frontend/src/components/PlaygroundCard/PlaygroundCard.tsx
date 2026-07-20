@@ -17,6 +17,8 @@ type PlaygroundCardProps = {
 
     covered: boolean;
 
+    equipment: string[];
+
     eventsCount: number;
 
     nextEvent?: string;
@@ -29,6 +31,7 @@ export default function PlaygroundCard({
     description,
     lighting,
     covered,
+    equipment,
     eventsCount,
     nextEvent,
 }: PlaygroundCardProps) {
@@ -57,6 +60,20 @@ export default function PlaygroundCard({
                 {" "}
                 {covered ? "Есть" : "Нет"}
             </p>
+
+            <h4>Оборудование</h4>
+
+            <ul>
+                {
+                    equipment.map(
+                        (item) => (
+                            <li key={item}>
+                                {item}
+                            </li>
+                        )
+                    )
+                }
+            </ul>
 
             <p>
                 Событий:
