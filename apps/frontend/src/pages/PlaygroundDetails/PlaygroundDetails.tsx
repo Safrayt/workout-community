@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
+import InfoRow from "../../components/ui/InfoRow/InfoRow";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 
@@ -15,6 +16,10 @@ import {
 import { events } from "../../data/events";
 
 import { getPlaygroundEvents } from "../../utils/playgroundEvents";
+
+import {
+    getYandexMapsUrl,
+} from "../../utils/maps";
 
 import { Link } from "react-router-dom";
 
@@ -51,30 +56,46 @@ export default function PlaygroundDetails() {
 
     return (
         <Section title={playground.name}>
-            <p>
-                <strong>Населённый пункт:</strong>{" "}
-                {playground.locality}
-            </p>
+            <InfoSection title="Основная информация">
+                <InfoRow label="Населённый пункт">
+                    {playground.locality}
+                </InfoRow>
 
-            <p>
-                <strong>Адрес:</strong>{" "}
-                {playground.address}
-            </p>
+                <InfoRow label="Адрес">
+                    {playground.address}
+                </InfoRow>
 
-            <p>
-                <strong>Время работы:</strong>{" "}
-                {playground.openingHours}
-            </p>
+                <InfoRow label="Координаты">
+                    {playground.coordinates.latitude.toFixed(6)}
+                    {" , "}
+                    {playground.coordinates.longitude.toFixed(6)}
+                </InfoRow>
 
-            <p>
-                <strong>Размер:</strong>{" "}
-                {getPlaygroundSizeName(playground.size)}
-            </p>
+                <InfoRow label="Карта">
+                    <a
+                        href={getYandexMapsUrl(
+                            playground.coordinates.latitude,
+                            playground.coordinates.longitude
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        Открыть в Яндекс Картах
+                    </a>
+                </InfoRow>
 
-            <p>
-                <strong>Покрытие:</strong>{" "}
-                {getSurfaceName(playground.surface)}
-            </p>
+                <InfoRow label="Время работы">
+                    {playground.openingHours}
+                </InfoRow>
+
+                <InfoRow label="Размер">
+                    {getPlaygroundSizeName(playground.size)}
+                </InfoRow>
+
+                <InfoRow label="Покрытие">
+                    {getSurfaceName(playground.surface)}
+                </InfoRow>
+            </InfoSection>
 
             <InfoSection title="Удобства">
                 {
@@ -98,7 +119,7 @@ export default function PlaygroundDetails() {
                 }
             </InfoSection>
                 
-            <h3>Оборудование</h3>
+            <InfoSection title="Оборудование">
                 {
                     equipment.length === 0 ? (
                         <p>
@@ -118,30 +139,31 @@ export default function PlaygroundDetails() {
                         </ul>
                     )
                 }    
+            </InfoSection>
 
-
-            <h3>Предстоящие события</h3>
-            {
-                playgroundEvents.length === 0 ? (
-                    <p>
-                        Для этой площадки пока нет событий.
-                    </p>
-                ) : (
-                    <ul>
-                        {
-                            playgroundEvents.map(
-                                (event) => (
-                                    <li key={event.id}>
-                                        <Link to={`/events/${event.id}`}>
-                                            {event.title}
-                                        </Link>
-                                    </li>
+            <InfoSection title="Предстоящие события">
+                {
+                    playgroundEvents.length === 0 ? (
+                        <p>
+                            Для этой площадки пока нет событий.
+                        </p>
+                    ) : (
+                        <ul>
+                            {
+                                playgroundEvents.map(
+                                    (event) => (
+                                        <li key={event.id}>
+                                            <Link to={`/events/${event.id}`}>
+                                                {event.title}
+                                            </Link>
+                                        </li>
+                                    )
                                 )
-                            )
-                        }
-                    </ul>
-                )
-            }
+                            }
+                        </ul>
+                    )
+                }
+            </InfoSection>    
 
         </Section>
     );
