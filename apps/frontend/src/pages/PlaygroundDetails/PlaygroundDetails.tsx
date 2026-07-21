@@ -1,11 +1,15 @@
 import { useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
+import InfoSection from "../../components/ui/InfoSection/InfoSection";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 
 import {
     getPlaygroundSizeName,
+    getSurfaceName,
+    getAmenitiesList,
+    getEquipmentName,
 } from "../../utils/playgrounds";
 
 import { events } from "../../data/events";
@@ -35,6 +39,16 @@ export default function PlaygroundDetails() {
         playground.id
     );
 
+    const amenities =
+    getAmenitiesList(
+        playground.amenities
+    );
+
+    const equipment =
+    playground.equipment.map(
+        getEquipmentName
+    );
+
     return (
         <Section title={playground.name}>
             <p>
@@ -56,6 +70,55 @@ export default function PlaygroundDetails() {
                 <strong>Размер:</strong>{" "}
                 {getPlaygroundSizeName(playground.size)}
             </p>
+
+            <p>
+                <strong>Покрытие:</strong>{" "}
+                {getSurfaceName(playground.surface)}
+            </p>
+
+            <InfoSection title="Удобства">
+                {
+                    amenities.length === 0 ? (
+                        <p>
+                            Удобства не указаны.
+                        </p>
+                    ) : (
+                        <ul>
+                            {
+                                amenities.map(
+                                    (amenity) => (
+                                        <li key={amenity}>
+                                            {amenity}
+                                        </li>
+                                    )
+                                )
+                            }
+                        </ul>
+                    )
+                }
+            </InfoSection>
+                
+            <h3>Оборудование</h3>
+                {
+                    equipment.length === 0 ? (
+                        <p>
+                            Оборудование не указано.
+                        </p>
+                    ) : (
+                        <ul>
+                            {
+                                equipment.map(
+                                    (item) => (
+                                        <li key={item}>
+                                            {item}
+                                        </li>
+                                    )
+                                )
+                            }
+                        </ul>
+                    )
+                }    
+
 
             <h3>Предстоящие события</h3>
             {
