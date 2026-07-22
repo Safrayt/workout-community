@@ -4,6 +4,11 @@ import Card from "../ui/Card/Card";
 import Button from "../ui/Button/Button";
 import "../../styles/components/PlaygroundCard.css";
 
+import type {
+    PlaygroundAmenities,
+    PlaygroundEquipment,
+} from "../../types/playground";
+
 type PlaygroundCardProps = {
     id: string;
 
@@ -13,11 +18,9 @@ type PlaygroundCardProps = {
 
     description: string;
 
-    lighting: boolean;
+    amenities: PlaygroundAmenities;
 
-    covered: boolean;
-
-    equipment: string[];
+    equipment: PlaygroundEquipment[];
 
     eventsCount: number;
 
@@ -29,8 +32,7 @@ export default function PlaygroundCard({
     name,
     locality,
     description,
-    lighting,
-    covered,
+    amenities,
     equipment,
     eventsCount,
     nextEvent,
@@ -52,13 +54,13 @@ export default function PlaygroundCard({
             <p>
                 Освещение:
                 {" "}
-                {lighting ? "Есть" : "Нет"}
+                {amenities.lighting ? "Есть" : "Нет"}
             </p>
 
             <p>
                 Навес:
                 {" "}
-                {covered ? "Есть" : "Нет"}
+                {amenities.covered ? "Есть" : "Нет"}
             </p>
 
             <h4>Оборудование</h4>

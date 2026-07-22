@@ -24,3 +24,25 @@ export function getUserEvents(
             userEventIds.includes(event.id)
     );
 }
+
+export function getEventById(
+    events: Event[],
+    id: string
+) {
+    return events.find(
+        (event) =>
+            event.id === id
+    );
+}
+
+
+export function getRegisteredParticipantsCount(
+    registrations: EventRegistration[],
+    eventId: string
+) {
+    return registrations.filter(
+        (registration) =>
+            registration.eventId === eventId &&
+            registration.status === "registered"
+    ).length;
+}

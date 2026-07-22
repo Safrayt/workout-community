@@ -5,18 +5,34 @@ import Section from "../../components/ui/Section/Section";
 import { events } from "../../data/events";
 
 import { formatEventDate } from "../../utils/formatEventDate";
+import { formatParticipants } from "../../utils/format";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 
 import { Link } from "react-router-dom";
 
+import InfoSection from "../../components/ui/InfoSection/InfoSection";
+import InfoRow from "../../components/ui/InfoRow/InfoRow";
+import {
+    getEventById,
+    getRegisteredParticipantsCount,
+} from "../../utils/events";
+
+import {
+    useRegistration,
+} from "../../context/RegistrationContext";
+
 
 export default function EventDetails() {
     const { id } = useParams();
 
-    const event = events.find(
-        (event) => event.id === id
-    );
+    const event =
+    id
+        ? getEventById(
+            events,
+            id
+        )
+        : undefined;
 
     if (!event) {
         return (
@@ -31,38 +47,72 @@ export default function EventDetails() {
         event.playgroundId
     );
 
+    const {
+        registrations,
+    } = useRegistration();
+
+    const participantsCount =
+    getRegisteredParticipantsCount(
+        registrations,
+        event.id
+    );
+
     return (
         <Section title={event.title}>
-            <p>{event.description}</p>
+            <InfoSection title="Основная информация">
 
-            <p>
-                <strong>Населённый пункт:</strong>{" "}
-                {playground?.locality ?? "—"}
-            </p>
+                <p>
+                    {event.description}
+                </p>
 
-            <p>
-                <strong>Площадка:</strong>{" "}
-                {playground?.name ?? "—"}
-            </p>
+                <InfoRow label="Населённый пункт">
+                    {playground?.locality ?? "—"}
+                </InfoRow>
 
-            <p>
-                <strong>Адрес:</strong>{" "}
-                {playground?.address ?? "—"}
-            </p>
+                <InfoRow label="Площадка">
+                    {playground?.name ?? "—"}
+                </InfoRow>
 
-            <p>
-                <strong>Дата:</strong>{" "}
-                {formatEventDate(event.startDate)}
-            </p>
+                <InfoRow label="Адрес">
+                    {playground?.address ?? "—"}
+                </InfoRow>
 
-            <p>
-                <strong>Погода:</strong>{" "}
-                {event.weather ?? "—"}
-            </p>
+                <InfoRow label="Дата">
+                    {formatEventDate(event.startDate)}
+                </InfoRow>
 
-            <Link to={`/playgrounds/${playground?.id}`}>
-                Открыть страницу площадки
-            </Link>
+                <InfoRow label="Погода">
+                    {event.weather ?? "—"}
+                </InfoRow>
+
+            </InfoSection>
+
+            <InfoSection title="Участники">
+
+                <InfoRow label="Записалось">
+                    {formatParticipants(participantsCount)}
+                </InfoRow>
+
+            </InfoSection>
+
+            <InfoSection title="Место проведения">
+
+                {
+                    playground ? (
+                        <Link
+                            to={`/playgrounds/${playground.id}`}
+                        >
+                            Открыть страницу площадки
+                        </Link>
+                    ) : (
+                        <p>
+                            Площадка не найдена.
+                        </p>
+                    )
+                }
+
+            </InfoSection>
+
         </Section>
     );
 }

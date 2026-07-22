@@ -11,7 +11,7 @@ export const events: Event[] = [
 
         location: "Площадка у Глобуса",
 
-        playgroundId: "globus",
+        playgroundId: "1",
 
         startDate:
             "2026-07-18T10:00:00",
@@ -31,7 +31,7 @@ export const events: Event[] = [
 
         location: "Площадка в Парке Победы",
 
-        playgroundId: "victory-park",
+        playgroundId: "2",
 
         startDate:
             "2026-09-19T11:00:00",
