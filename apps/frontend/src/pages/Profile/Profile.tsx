@@ -46,11 +46,14 @@ import { events } from "../../data/events";
 
 import { useRegistration } from "../../context/RegistrationContext";
 
-import { getUserEvents } from "../../utils/events";
+import { getUserEvents, getCreatedEvents,} from "../../utils/events";
 
 import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
 
 import EventSummary from "../../components/EventSummary/EventSummary";
+
+import InfoSection from "../../components/ui/InfoSection/InfoSection";
+import InfoRow from "../../components/ui/InfoRow/InfoRow";
 
 
 export default function Profile() {
@@ -63,6 +66,12 @@ export default function Profile() {
     const userEvents = getUserEvents(
         events,
         registrations,
+        user.id
+    );
+
+    const createdEvents =
+    getCreatedEvents(
+        events,
         user.id
     );
 
@@ -80,23 +89,48 @@ export default function Profile() {
 
     return (
         <Section title="Профиль">
-            <h2>{user.name}</h2>
+            <InfoSection title="Основная информация">
 
-            <p>{user.nickname}</p>
+                <h2>
+                    {user.name}
+                </h2>
 
-            <p>Населённый пункт: {user.locality}</p>
+                <p>
+                    {user.nickname}
+                </p>
 
-            <p>{user.bio}</p>
+                    {
+                        user.bio && (
+                            <p>
+                                {user.bio}
+                            </p>
+                        )
+                    }
 
-            <p>Уровень:{" "}
-                <strong>
+                <InfoRow label="Населённый пункт">
+                    {user.locality}
+                </InfoRow>
+
+                <InfoRow label="Уровень">
                     {getUserLevel(user.experience)}
-                </strong>
-            </p>
+                </InfoRow>
 
-            <p> Опыт: {user.experience} XP </p>
+                <InfoRow label="Опыт">
+                    {user.experience} XP
+                </InfoRow>
+            </InfoSection>    
 
-            <h3> Предстоящие события </h3>
+            <InfoSection title="Мой вклад в сообщество">
+                <InfoRow label="Созданные события">
+                    {createdEvents.length}
+                </InfoRow>
+
+                <InfoRow label="Добавленные площадки">
+                    Пока нет
+                </InfoRow>
+            </InfoSection>
+
+            <InfoSection title="Предстоящие события">
                 {
                     upcomingEvents.length === 0 ? (
                         <p>
@@ -116,38 +150,48 @@ export default function Profile() {
                         </div>
                     )
                 }
-            <h3> Завершённые события </h3>
-            {
-                completedEvents.length === 0 ? (
-                    <p>
-                        Нет завершённых событий
-                    </p>
-                ) : (
-                    <div>
-                        {completedEvents.map(
-                            (event) => (
-                                <EventSummary
-                                    key={event.id}
-                                    event={event}
-                                    registrations={registrations}
-                                />
-                            )
-                        )}
-                    </div>
-                )
-            }
 
-            {user.socialLinks.telegram && (
-                <p>
-                    Telegram: {user.socialLinks.telegram}
-                </p>
-            )}
+            </InfoSection>
+            
+            <InfoSection title="Завершённые события">
+                {
+                    completedEvents.length === 0 ? (
+                        <p>
+                            Нет завершённых событий
+                        </p>
+                    ) : (
+                        <div>
+                            {completedEvents.map(
+                                (event) => (
+                                    <EventSummary
+                                        key={event.id}
+                                        event={event}
+                                        registrations={registrations}
+                                    />
+                                )
+                            )}
+                        </div>
+                    )
+                }                
+            </InfoSection>
 
-            {user.socialLinks.vk && (
-                <p>
-                    VK: {user.socialLinks.vk}
-                </p>
-            )}
+            <InfoSection title="Социальные сети">
+                {
+                    user.socialLinks.telegram && (
+                        <InfoRow label="Telegram">
+                            {user.socialLinks.telegram}
+                        </InfoRow>
+                    )
+                }
+
+                {
+                    user.socialLinks.vk && (
+                        <InfoRow label="VK">
+                            {user.socialLinks.vk}
+                        </InfoRow>
+                    )
+                }
+            </InfoSection>
         </Section>
     );
 }

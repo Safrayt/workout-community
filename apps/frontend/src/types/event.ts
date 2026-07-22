@@ -11,6 +11,8 @@ export type Event = {
 
     playgroundId: string;
 
+    creatorId: string;
+
     startDate: string;
 
     expectedParticipants: number;

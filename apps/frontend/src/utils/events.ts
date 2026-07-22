@@ -46,3 +46,13 @@ export function getRegisteredParticipantsCount(
             registration.status === "registered"
     ).length;
 }
+
+export function getCreatedEvents(
+    events: Event[],
+    userId: string
+) {
+    return events.filter(
+        (event) =>
+            event.creatorId === userId
+    );
+}
