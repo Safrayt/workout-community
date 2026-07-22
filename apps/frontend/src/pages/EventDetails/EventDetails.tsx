@@ -22,6 +22,8 @@ import {
     useRegistration,
 } from "../../context/RegistrationContext";
 
+import Button from "../../components/ui/Button/Button";
+
 
 export default function EventDetails() {
     const { id } = useParams();
@@ -49,11 +51,19 @@ export default function EventDetails() {
 
     const {
         registrations,
+        register,
+        cancel,
+        checkRegistration,
     } = useRegistration();
 
     const participantsCount =
     getRegisteredParticipantsCount(
         registrations,
+        event.id
+    );
+
+    const isRegistered =
+    checkRegistration(
         event.id
     );
 
@@ -92,6 +102,29 @@ export default function EventDetails() {
                 <InfoRow label="Записалось">
                     {formatParticipants(participantsCount)}
                 </InfoRow>
+
+            </InfoSection>
+
+            <InfoSection title="Участие">
+
+                <Button
+                    variant={
+                        isRegistered
+                            ? "secondary"
+                            : "primary"
+                    }
+                    onClick={
+                        isRegistered
+                            ? () => cancel(event.id)
+                            : () => register(event.id)
+                    }
+                >
+                    {
+                        isRegistered
+                            ? "Отменить участие"
+                            : "Записаться"
+                    }
+                </Button>
 
             </InfoSection>
 
