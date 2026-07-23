@@ -54,6 +54,9 @@ import EventSummary from "../../components/EventSummary/EventSummary";
 
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
 import InfoRow from "../../components/ui/InfoRow/InfoRow";
+import Button from "../../components/ui/Button/Button";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import { Link } from "react-router-dom";
 
 
 export default function Profile() {
@@ -128,6 +131,23 @@ export default function Profile() {
                 <InfoRow label="Добавленные площадки">
                     Пока нет
                 </InfoRow>
+            </InfoSection>
+
+            <InfoSection title="Действия">
+                <ActionGroup>
+                    <Link to="/events/create">
+                        <Button variant="primary">
+                            Создать событие
+                        </Button>
+                    </Link>
+
+                    <Link to="/playgrounds/add">
+                        <Button variant="secondary">
+                            Добавить площадку
+                        </Button>
+                    </Link>
+
+                </ActionGroup>
             </InfoSection>
 
             <InfoSection title="Предстоящие события">

@@ -7,9 +7,21 @@ import { events } from "../../data/events";
 import { getEventsCount } from "../../utils/playgroundStatistics";
 import { getNextPlaygroundEvent } from "../../utils/getNextPlaygroundEvent";
 
+import { Link } from "react-router-dom";
+
+import Button from "../../components/ui/Button/Button";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+
 export default function Playgrounds() {
     return (
         <Section title="Площадки">
+            <ActionGroup>
+                <Link to="/playgrounds/add">
+                    <Button variant="secondary">
+                        Добавить площадку
+                    </Button>
+                </Link>
+            </ActionGroup>
 
             <h3>Карта</h3>
 

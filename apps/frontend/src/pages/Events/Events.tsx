@@ -8,6 +8,11 @@ import {
     useRegistration,
 } from "../../context/RegistrationContext";
 
+import { Link } from "react-router-dom";
+
+import Button from "../../components/ui/Button/Button";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+
 
 
 
@@ -21,6 +26,13 @@ export default function Events() {
 
     return (
         <Section title="События">
+             <ActionGroup>
+                <Link to="/events/create">
+                    <Button variant="primary">
+                        Создать событие
+                    </Button>
+                </Link>
+            </ActionGroup>
             <div className="events-list">
                 {events.map((event) => {
                     const participants =
