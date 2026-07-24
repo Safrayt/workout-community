@@ -8,6 +8,9 @@ import { formatEventDate } from "../../utils/formatEventDate";
 import { formatParticipants } from "../../utils/format";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
+import {
+    usePlaygrounds,
+} from "../../context/PlaygroundContext";
 
 import { Link } from "react-router-dom";
 
@@ -25,8 +28,14 @@ import {
 import Button from "../../components/ui/Button/Button";
 
 
+
+
 export default function EventDetails() {
     const { id } = useParams();
+
+    const {
+        playgrounds,
+    } = usePlaygrounds();
 
     const event =
     id
@@ -44,10 +53,11 @@ export default function EventDetails() {
         );
     }
 
-     const playground =
-    getPlaygroundById(
-        event.playgroundId
-    );
+    const playground =
+        getPlaygroundById(
+            playgrounds,
+            event.playgroundId
+        );
 
     const {
         registrations,

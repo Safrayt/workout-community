@@ -1,5 +1,6 @@
 import type { Event } from "../types/event";
 import type { EventRegistration } from "../types/eventRegistration";
+import { findById } from "./collections";
 
 
 export function getUserEvents(
@@ -29,9 +30,9 @@ export function getEventById(
     events: Event[],
     id: string
 ) {
-    return events.find(
-        (event) =>
-            event.id === id
+    return findById(
+        events,
+        id
     );
 }
 

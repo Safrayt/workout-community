@@ -1,24 +1,20 @@
 import type {
+    Playground,
     PlaygroundSize,
     PlaygroundSurface,
-} from "../types/playground";
-
-import { playgrounds } from "../data/playgrounds";
-
-import type {
     PlaygroundAmenities,
-} from "../types/playground";
-
-import type {
     PlaygroundEquipment,
 } from "../types/playground";
+import { findById } from "./collections";
 
 
 export function getPlaygroundById(
+    playgrounds: Playground[],
     id: string
 ) {
-    return playgrounds.find(
-        (playground) => playground.id === id
+    return findById(
+        playgrounds,
+        id
     );
 }
 

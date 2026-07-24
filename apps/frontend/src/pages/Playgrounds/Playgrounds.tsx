@@ -1,7 +1,7 @@
 import Section from "../../components/ui/Section/Section";
 import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
 
-import { playgrounds } from "../../data/playgrounds";
+import { usePlaygrounds } from "../../context/PlaygroundContext";
 import { events } from "../../data/events";
 
 import { getEventsCount } from "../../utils/playgroundStatistics";
@@ -13,6 +13,8 @@ import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 
 export default function Playgrounds() {
+    const { playgrounds } =
+        usePlaygrounds();
     return (
         <Section title="Площадки">
             <ActionGroup>

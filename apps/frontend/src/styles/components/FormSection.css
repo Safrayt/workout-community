@@ -1,0 +1,13 @@
+.form-section {
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    margin-bottom: 12px;
+}
+
+.form-section-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}

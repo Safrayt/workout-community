@@ -5,6 +5,7 @@ import InfoSection from "../../components/ui/InfoSection/InfoSection";
 import InfoRow from "../../components/ui/InfoRow/InfoRow";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
+import { usePlaygrounds } from "../../context/PlaygroundContext";
 
 import {
     getPlaygroundSizeName,
@@ -25,9 +26,13 @@ import { Link } from "react-router-dom";
 
 export default function PlaygroundDetails() {
     const { id } = useParams();
+    const { playgrounds } = usePlaygrounds();
 
     const playground = id
-        ? getPlaygroundById(id)
+        ? getPlaygroundById(
+            playgrounds,
+            id
+        )
         : undefined;
 
     if (!playground) {
