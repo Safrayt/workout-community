@@ -160,3 +160,14 @@ export function getEquipmentName(
             return "Канат";
     }
 }
+
+export function getPlaygroundOptions(
+    playgrounds: Playground[]
+) {
+    return playgrounds.map(
+        (playground) => ({
+            value: playground.id,
+            label: `${playground.name} • ${playground.locality} • ${playground.address}`,
+        })
+    );
+}

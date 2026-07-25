@@ -7,12 +7,14 @@ type Option = {
 
 type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
     label?: string;
+    placeholder?: string;
     options: Option[];
 };
 
 export default function Select({
     id,
     label,
+    placeholder,
     options,
     className = "",
     ...props
@@ -33,6 +35,20 @@ export default function Select({
                 className={`select__field ${className}`.trim()}
                 {...props}
             >
+                <option value="">
+                    Выберите...
+                </option>
+                {
+                    placeholder && (
+                        <option
+                            value=""
+                            disabled
+                        >
+                            {placeholder}
+                        </option>
+                    )
+                }
+
                 {options.map((option) => (
                     <option
                         key={option.value}
