@@ -1,7 +1,9 @@
 import Section from "../../components/ui/Section/Section";
 import EventCard from "../../components/EventCard/EventCard";
 
-import { events } from "../../data/events";
+import {
+    useEvents,
+} from "../../context/EventContext";
 import { getParticipantCount } from "../../utils/eventParticipants";
 
 import {
@@ -23,6 +25,10 @@ export default function Events() {
         cancel,
         checkRegistration,
     } = useRegistration();
+
+    const {
+        events,
+    } = useEvents();
 
     return (
         <Section title="События">

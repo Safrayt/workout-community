@@ -6,17 +6,18 @@ import {
 import {
     PlaygroundProvider,
 } from "./context/PlaygroundContext";
+import {
+    EventProvider,
+} from "./context/EventContext";
 
 export default function App() {
     return (
         <RegistrationProvider>
-
             <PlaygroundProvider>
-
-                <RouterProvider router={router} />
-
+                <EventProvider>
+                    <RouterProvider router={router} />
+                </EventProvider>
             </PlaygroundProvider>
-
         </RegistrationProvider>
     );
 }

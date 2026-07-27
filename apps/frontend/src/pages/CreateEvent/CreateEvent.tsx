@@ -7,6 +7,7 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import type {
     NewEvent,
@@ -15,6 +16,9 @@ import type {
 import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
+import {
+    useEvents,
+} from "../../context/EventContext";
 
 import {
     getPlaygroundOptions,
@@ -36,6 +40,13 @@ export default function CreateEvent() {
         playgrounds,
     } = usePlaygrounds();
 
+    const {
+    addEvent,
+    } = useEvents();
+
+    const navigate =
+        useNavigate();
+
     const playgroundOptions =
         getPlaygroundOptions(
             playgrounds
@@ -54,6 +65,15 @@ export default function CreateEvent() {
             })
         );
     }
+    function handleSubmit() {
+        const createdEvent =
+            addEvent(event);
+
+        navigate(
+            `/events/${createdEvent.id}`
+        );
+    }
+
     return (
         <Section title="Создание мероприятия">
             <Input
@@ -105,7 +125,9 @@ export default function CreateEvent() {
                 }
             />
             <ActionGroup>
-                <Button>
+                <Button
+                    onClick={handleSubmit}
+                >
                     Создать мероприятие
                 </Button>
             </ActionGroup>

@@ -64,7 +64,7 @@ export function EventProvider({
         const newEvent: Event = {
             id: crypto.randomUUID(),
 
-            creatorId: "current-user-id",
+            creatorId: "1",
 
             title: event.title,
 

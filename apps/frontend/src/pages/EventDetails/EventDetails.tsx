@@ -2,7 +2,9 @@ import { useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
 
-import { events } from "../../data/events";
+import {
+    useEvents,
+} from "../../context/EventContext";
 
 import { formatEventDate } from "../../utils/formatEventDate";
 import { formatParticipants } from "../../utils/format";
@@ -32,6 +34,10 @@ import Button from "../../components/ui/Button/Button";
 
 export default function EventDetails() {
     const { id } = useParams();
+
+    const {
+        events,
+    } = useEvents();
 
     const {
         playgrounds,

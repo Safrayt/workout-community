@@ -45,6 +45,8 @@ export function PlaygroundProvider({
         const newPlayground: Playground = {
             id: crypto.randomUUID(),
 
+            creatorId: "1",
+
             name: playground.name,
 
             locality: playground.locality,

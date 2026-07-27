@@ -42,11 +42,21 @@ import { currentUser } from "../../data/currentUser";
 
 import { getUserLevel } from "../../utils/level";
 
-import { events } from "../../data/events";
-
 import { useRegistration } from "../../context/RegistrationContext";
 
+import {
+    usePlaygrounds,
+} from "../../context/PlaygroundContext";
+
+import {
+    useEvents,
+} from "../../context/EventContext";
+
 import { getUserEvents, getCreatedEvents,} from "../../utils/events";
+
+import {
+    getCreatedPlaygrounds,
+} from "../../utils/playgrounds";
 
 import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
 
@@ -66,6 +76,14 @@ export default function Profile() {
         registrations
     } = useRegistration();
 
+    const {
+        playgrounds,
+    } = usePlaygrounds();
+
+    const {
+        events,
+    } = useEvents();
+
     const userEvents = getUserEvents(
         events,
         registrations,
@@ -75,6 +93,12 @@ export default function Profile() {
     const createdEvents =
     getCreatedEvents(
         events,
+        user.id
+    );
+
+    const createdPlaygrounds =
+    getCreatedPlaygrounds(
+        playgrounds,
         user.id
     );
 
@@ -129,7 +153,7 @@ export default function Profile() {
                 </InfoRow>
 
                 <InfoRow label="Добавленные площадки">
-                    Пока нет
+                    {createdPlaygrounds.length}
                 </InfoRow>
             </InfoSection>
 

@@ -64,6 +64,8 @@ export type Playground = {
 
     id: string;
 
+    creatorId: string;
+
     name: string;
 
     locality: string;

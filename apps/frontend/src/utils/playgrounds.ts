@@ -171,3 +171,13 @@ export function getPlaygroundOptions(
         })
     );
 }
+
+export function getCreatedPlaygrounds(
+    playgrounds: Playground[],
+    creatorId: string
+) {
+    return playgrounds.filter(
+        (playground) =>
+            playground.creatorId === creatorId
+    );
+}
