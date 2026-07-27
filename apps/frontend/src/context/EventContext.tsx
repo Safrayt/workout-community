@@ -17,8 +17,8 @@ import {
 } from "../data/events";
 
 import {
-    playgrounds,
-} from "../data/playgrounds";
+    usePlaygrounds,
+} from "./PlaygroundContext";
 
 type EventContextType = {
     events: Event[];
@@ -45,6 +45,10 @@ export function EventProvider({
     ] = useState(
         initialEvents
     );
+
+    const {
+        playgrounds,
+    } = usePlaygrounds();
 
     function addEvent(
         event: NewEvent

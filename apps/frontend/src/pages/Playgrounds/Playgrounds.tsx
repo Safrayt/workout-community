@@ -2,7 +2,9 @@ import Section from "../../components/ui/Section/Section";
 import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
-import { events } from "../../data/events";
+import {
+    useEvents,
+} from "../../context/EventContext";
 
 import { getEventsCount } from "../../utils/playgroundStatistics";
 import { getNextPlaygroundEvent } from "../../utils/getNextPlaygroundEvent";
@@ -12,9 +14,25 @@ import { Link } from "react-router-dom";
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 
+import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
+import {
+    getPlaygroundMarkers,
+} from "../../utils/maps";
+
+
 export default function Playgrounds() {
-    const { playgrounds } =
-        usePlaygrounds();
+    const {
+        playgrounds,
+    } = usePlaygrounds();
+
+    const markers =
+        getPlaygroundMarkers(
+            playgrounds
+        );
+
+    const {
+        events,
+    } = useEvents();
     return (
         <Section title="Площадки">
             <ActionGroup>
@@ -27,9 +45,9 @@ export default function Playgrounds() {
 
             <h3>Карта</h3>
 
-            <p>
-                Здесь позже появится интерактивная карта.
-            </p>
+            <PlaygroundsMap
+                markers={markers}
+            />
 
             <hr />
 

@@ -14,7 +14,9 @@ import {
     getEquipmentName,
 } from "../../utils/playgrounds";
 
-import { events } from "../../data/events";
+import {
+    useEvents,
+} from "../../context/EventContext";
 
 import { getPlaygroundEvents } from "../../utils/playgroundEvents";
 
@@ -26,7 +28,14 @@ import { Link } from "react-router-dom";
 
 export default function PlaygroundDetails() {
     const { id } = useParams();
-    const { playgrounds } = usePlaygrounds();
+
+    const {
+        playgrounds,
+    } = usePlaygrounds();
+
+    const {
+        events,
+    } = useEvents();
 
     const playground = id
         ? getPlaygroundById(

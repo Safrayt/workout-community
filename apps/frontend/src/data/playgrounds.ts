@@ -4,14 +4,16 @@ export const playgrounds: Playground[] = [
     {
         id: "1",
 
-        name: "Площадка у Глобуса",
+        creatorId: "1",
+
+        name: "Площадка в парке",
 
         locality: "Балашиха",
 
         address: "ш. Энтузиастов, 54А",
 
         coordinates: {
-            latitude: 55.8092,
+            latitude: 56.8092,
             longitude: 37.9638,
         },
 
@@ -48,6 +50,8 @@ export const playgrounds: Playground[] = [
     },
         {
         id: "2",
+
+        creatorId: "1",
 
         name: "Площадка у Глобуса",
 
