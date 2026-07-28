@@ -6,4 +6,6 @@ export type MapMarker = {
     latitude: number;
 
     longitude: number;
+
+    url: string;
 };

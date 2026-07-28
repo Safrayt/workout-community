@@ -30,6 +30,8 @@ export function getPlaygroundMarkers(
 
             longitude:
                 playground.coordinates.longitude,
+            
+            url: `/playgrounds/${playground.id}`,
         })
     );
 }

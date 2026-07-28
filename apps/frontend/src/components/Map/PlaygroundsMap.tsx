@@ -12,6 +12,8 @@ import {
     Popup,
 } from "react-leaflet";
 
+import { useNavigate } from "react-router-dom";
+
 
 type PlaygroundsMapProps = {
     markers: MapMarker[];
@@ -24,6 +26,7 @@ export default function PlaygroundsMap({
     markers,
     height = 500,
 }: PlaygroundsMapProps) {
+    const navigate = useNavigate();
     return (
         <MapContainer
             center={[53.9, 27.5667]}
@@ -45,6 +48,11 @@ export default function PlaygroundsMap({
                         marker.latitude,
                         marker.longitude,
                     ]}
+                    eventHandlers={{
+                        click: () => {
+                            navigate(marker.url);
+                        },
+                    }}
                 >
                     <Popup>
                         {marker.title}
