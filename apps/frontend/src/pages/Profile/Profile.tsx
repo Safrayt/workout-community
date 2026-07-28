@@ -68,6 +68,10 @@ import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import { Link } from "react-router-dom";
 
+import {
+    getUnlockedAchievements,
+} from "../../utils/achievements";
+
 
 export default function Profile() {
     const user = currentUser;
@@ -113,6 +117,14 @@ export default function Profile() {
             isCompletedEvent
         );
 
+    const unlockedAchievements =
+        getUnlockedAchievements(
+            user.id,
+            events,
+            playgrounds,
+            registrations
+        );    
+
 
     return (
         <Section title="Профиль">
@@ -155,6 +167,39 @@ export default function Profile() {
                 <InfoRow label="Добавленные площадки">
                     {createdPlaygrounds.length}
                 </InfoRow>
+            </InfoSection>
+
+            <InfoSection title="Достижения">
+                {
+                    unlockedAchievements.length === 0
+                        ? (
+                            <p>
+                                Пока нет достижений.
+                            </p>
+                        )
+                        : (
+                            <ul>
+                                {
+                                    unlockedAchievements.map(
+                                        (achievement) => (
+                                            <li
+                                                key={achievement.id}
+                                            >
+                                                {achievement.icon}
+                                                {" "}
+                                                <strong>
+                                                    {achievement.title}
+                                                </strong>
+                                                {" — "}
+                                                {achievement.description}
+                                            </li>
+                                        )
+                                    )
+                                }
+                            </ul>
+                        )
+                }
+
             </InfoSection>
 
             <InfoSection title="Действия">
