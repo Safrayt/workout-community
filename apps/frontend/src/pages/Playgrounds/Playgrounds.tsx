@@ -47,6 +47,12 @@ export default function Playgrounds() {
 
             <PlaygroundsMap
                 markers={markers}
+                onMapClick={(latitude, longitude) => {
+                    console.log(
+                        latitude,
+                        longitude
+                    );
+                }}
             />
 
             <hr />

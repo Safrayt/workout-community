@@ -9,6 +9,12 @@ import { usePlaygrounds } from "../../context/PlaygroundContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
+import { getPlaygroundMarkers } from "../../utils/maps";
+import {
+    reverseGeocode,
+} from "../../services/geocoding";
+
 import type {
     NewPlayground,
 } from "../../types/newPlayground";
@@ -23,8 +29,19 @@ export default function AddPlayground() {
         address: "",
         description: "",
     });
-    const { addPlayground } =
-    usePlaygrounds();
+
+    const [
+        selectedCoordinates,
+        setSelectedCoordinates,
+    ] = useState<{
+        latitude?: number;
+        longitude?: number;
+    }>({});
+
+    const {
+        playgrounds,
+        addPlayground,
+    } = usePlaygrounds();
 
     const navigate =
         useNavigate();
@@ -56,6 +73,51 @@ export default function AddPlayground() {
     return (
         <Section title="Добавление площадки">
             <FormSection title="Основная информация">
+                <PlaygroundsMap
+                    markers={getPlaygroundMarkers(playgrounds)}
+                    selectedLatitude={
+                        selectedCoordinates.latitude
+                    }
+                    selectedLongitude={
+                        selectedCoordinates.longitude
+                    }
+                    onMapClick={async (
+                        latitude,
+                        longitude
+                    ) => {
+
+                        setSelectedCoordinates({
+                            latitude,
+                            longitude,
+                        });
+
+                        try {
+
+                            const result =
+                                await reverseGeocode(
+                                    latitude,
+                                    longitude
+                                );
+
+                            updateField(
+                                "locality",
+                                result.locality
+                            );
+
+                            updateField(
+                                "address",
+                                result.address
+                            );
+
+                        } catch (error) {
+
+                            console.error(
+                                error
+                            );
+
+                        }
+                    }}
+                />
                 <Input
                     id="name"
                     label="Название"

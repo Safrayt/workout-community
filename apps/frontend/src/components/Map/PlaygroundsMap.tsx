@@ -1,15 +1,15 @@
-import {
-    MapContainer,
-    TileLayer,
-} from "react-leaflet";
-
 import type {
     MapMarker,
 } from "../../types/map";
 
+import MapPicker from "./MapPicker";
+
 import {
+    MapContainer,
+    TileLayer,
     Marker,
     Popup,
+    useMapEvents,
 } from "react-leaflet";
 
 import { useNavigate } from "react-router-dom";
@@ -18,13 +18,49 @@ import { useNavigate } from "react-router-dom";
 type PlaygroundsMapProps = {
     markers: MapMarker[];
 
-    height?: number;
+    height?: string;
+
+    onMapClick?: (
+        latitude: number,
+        longitude: number
+    ) => void;
+
+    selectedLatitude?: number;
+
+    selectedLongitude?: number;
 };
+
+function MapClickHandler({
+    onMapClick,
+    }: {
+        onMapClick?: (
+            latitude: number,
+            longitude: number
+        ) => void;
+    }) {
+        useMapEvents({
+            click(event) {
+                if (!onMapClick) {
+                    return;
+                }
+
+                onMapClick(
+                    event.latlng.lat,
+                    event.latlng.lng
+                );
+            },
+        });
+
+        return null;
+    }
 
 
 export default function PlaygroundsMap({
     markers,
-    height = 500,
+    height = "500px",
+    onMapClick,
+    selectedLatitude,
+    selectedLongitude,
 }: PlaygroundsMapProps) {
     const navigate = useNavigate();
     return (
@@ -40,6 +76,19 @@ export default function PlaygroundsMap({
             <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapPicker
+                latitude={selectedLatitude}
+                longitude={selectedLongitude}
+                onChange={(latitude, longitude) => {
+                    onMapClick?.(
+                        latitude,
+                        longitude
+                    );
+                }}
+            />
+            <MapClickHandler
+                onMapClick={onMapClick}
             />
             {markers.map((marker) => (
                 <Marker
