@@ -27,9 +27,13 @@ import {
     useRegistration,
 } from "../../context/RegistrationContext";
 
-import Button from "../../components/ui/Button/Button";
+import {
+    getEventRegistrations,
+} from "../../utils/eventRegistrations";
 
-
+import EventParticipants from "../../components/EventParticipants/EventParticipants";
+import EventRegistration from "../../components/EventRegistration/EventRegistration";
+import EventInfo from "../../components/EventInfo/EventInfo";
 
 
 export default function EventDetails() {
@@ -67,80 +71,45 @@ export default function EventDetails() {
 
     const {
         registrations,
-        register,
-        cancel,
-        checkRegistration,
     } = useRegistration();
 
-    const participantsCount =
-    getRegisteredParticipantsCount(
-        registrations,
-        event.id
-    );
+    const participants =
+        getEventRegistrations(
+            registrations,
+            event.id
+        );
 
-    const isRegistered =
-    checkRegistration(
-        event.id
-    );
+    const participantsCount =
+        participants.length;
 
     return (
         <Section title={event.title}>
-            <InfoSection title="Основная информация">
-
-                <p>
-                    {event.description}
-                </p>
-
-                <InfoRow label="Населённый пункт">
-                    {playground?.locality ?? "—"}
-                </InfoRow>
-
-                <InfoRow label="Площадка">
-                    {playground?.name ?? "—"}
-                </InfoRow>
-
-                <InfoRow label="Адрес">
-                    {playground?.address ?? "—"}
-                </InfoRow>
-
-                <InfoRow label="Дата">
-                    {formatEventDate(event.startDate)}
-                </InfoRow>
-
-                <InfoRow label="Погода">
-                    {event.weather ?? "—"}
-                </InfoRow>
-
-            </InfoSection>
+            <EventInfo
+                event={event}
+                playground={playground}
+            />
 
             <InfoSection title="Участники">
 
                 <InfoRow label="Записалось">
-                    {formatParticipants(participantsCount)}
+                    {formatParticipants(
+                        participantsCount
+                    )}
                 </InfoRow>
+
+                <EventParticipants
+                    participants={
+                        participants
+                    }
+                />
 
             </InfoSection>
 
             <InfoSection title="Участие">
 
-                <Button
-                    variant={
-                        isRegistered
-                            ? "secondary"
-                            : "primary"
-                    }
-                    onClick={
-                        isRegistered
-                            ? () => cancel(event.id)
-                            : () => register(event.id)
-                    }
-                >
-                    {
-                        isRegistered
-                            ? "Отменить участие"
-                            : "Записаться"
-                    }
-                </Button>
+                <EventRegistration
+                    eventId={event.id}
+                />
 
             </InfoSection>
 
