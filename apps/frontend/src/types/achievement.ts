@@ -8,4 +8,8 @@ export type Achievement = {
     icon: string;
 
     experience: number;
+
+    condition: string;
+
+    target: number;
 };

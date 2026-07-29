@@ -1,0 +1,42 @@
+.achievement-card {
+    display: flex;
+    gap: 16px;
+
+    padding: 16px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 12px;
+
+    background: white;
+
+    margin-bottom: 12px;
+}
+
+.achievement-icon {
+    font-size: 32px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 56px;
+}
+
+.achievement-content {
+    flex: 1;
+}
+
+.achievement-content h3 {
+    margin: 0 0 8px;
+}
+
+.achievement-content p {
+    margin: 0 0 8px;
+}
+
+.achievement-content small {
+    color: #777;
+}

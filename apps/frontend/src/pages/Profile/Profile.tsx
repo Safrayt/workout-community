@@ -69,8 +69,9 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import { Link } from "react-router-dom";
 
 import {
-    getUnlockedAchievements,
+    getAchievementsProgress,
 } from "../../utils/achievements";
+import AchievementCard from "../../components/AchievementCard/AchievementCard";
 
 
 export default function Profile() {
@@ -117,13 +118,18 @@ export default function Profile() {
             isCompletedEvent
         );
 
-    const unlockedAchievements =
-        getUnlockedAchievements(
+    const achievementsProgress =
+        getAchievementsProgress(
             user.id,
             events,
             playgrounds,
             registrations
-        );    
+        );
+
+    const unlockedAchievements =
+    achievementsProgress.filter(
+        (item) => item.unlocked
+    );    
 
 
     return (
@@ -171,33 +177,14 @@ export default function Profile() {
 
             <InfoSection title="Достижения">
                 {
-                    unlockedAchievements.length === 0
-                        ? (
-                            <p>
-                                Пока нет достижений.
-                            </p>
+                    unlockedAchievements.map(
+                        (item) => (
+                            <AchievementCard
+                                key={item.achievement.id}
+                                achievement={item.achievement}
+                            />
                         )
-                        : (
-                            <ul>
-                                {
-                                    unlockedAchievements.map(
-                                        (achievement) => (
-                                            <li
-                                                key={achievement.id}
-                                            >
-                                                {achievement.icon}
-                                                {" "}
-                                                <strong>
-                                                    {achievement.title}
-                                                </strong>
-                                                {" — "}
-                                                {achievement.description}
-                                            </li>
-                                        )
-                                    )
-                                }
-                            </ul>
-                        )
+                    )
                 }
 
             </InfoSection>

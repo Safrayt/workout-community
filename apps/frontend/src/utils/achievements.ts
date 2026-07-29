@@ -18,7 +18,11 @@ import {
     achievements,
 } from "../data/achievements";
 
-export function getUnlockedAchievements(
+import type {
+    AchievementProgress,
+} from "../types/achievementProgress";
+
+export function getAchievementsProgress(
     userId: string,
 
     events: Event[],
@@ -26,9 +30,9 @@ export function getUnlockedAchievements(
     playgrounds: Playground[],
 
     registrations: EventRegistration[]
-): Achievement[] {
+): AchievementProgress[] {
 
-    const unlocked: Achievement[] = [];
+    const progressList: AchievementProgress[] = [];
 
     const createdEvents =
         events.filter(
@@ -36,16 +40,60 @@ export function getUnlockedAchievements(
                 event.creatorId === userId
         );
 
-    if (createdEvents.length > 0) {
-
-        unlocked.push(
-            achievements.find(
-                (item) =>
-                    item.id === "first-event"
-            )!
+    const createdPlaygrounds =
+        playgrounds.filter(
+            (playground) =>
+                playground.creatorId === userId
         );
+
+    const userRegistrations =
+        registrations.filter(
+            (registration) =>
+                registration.userId === userId
+        );
+
+    const attendedEvents =
+        userRegistrations.filter(
+            (registration) =>
+                registration.status === "attended"
+        );
+
+    const statistics = {
+
+        "created-events":
+            createdEvents.length,
+
+        "created-playgrounds":
+            createdPlaygrounds.length,
+
+        registrations:
+            userRegistrations.length,
+
+        "attended-events":
+            attendedEvents.length,
+
+    };
+
+    for (const achievement of achievements) {
+
+        const progress =
+            statistics[
+                achievement.condition as keyof typeof statistics
+            ];
+
+        progressList.push({
+
+            achievement,
+
+            progress,
+
+            unlocked:
+                progress >=
+                achievement.target,
+
+        });
 
     }
 
-    return unlocked;
+    return progressList;
 }
