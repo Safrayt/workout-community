@@ -6,10 +6,12 @@ export type PlaygroundSize =
 export type PlaygroundSurface =
     | "rubber"
     | "asphalt"
+    | "concrete"
     | "gravel"
     | "mulch"
     | "sand"
-    | "ground";
+    | "ground"
+    | "mixed";
 
 export type PlaygroundEquipment =
     | "widePullBar"
@@ -26,6 +28,7 @@ export type PlaygroundEquipment =
     | "wideMonkeyBars"
     | "narrowMonkeyBars"
     | "swedishWall"
+    | "Bench"
     | "inclineBench"
     | "posts"
     | "rings"
