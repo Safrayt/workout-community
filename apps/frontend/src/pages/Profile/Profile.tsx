@@ -176,16 +176,75 @@ export default function Profile() {
             </InfoSection>
 
             <InfoSection title="Достижения">
+
                 {
-                    unlockedAchievements.map(
-                        (item) => (
-                            <AchievementCard
-                                key={item.achievement.id}
-                                achievement={item.achievement}
-                            />
+                    achievementsProgress.filter(
+                        (item) => item.unlocked
+                    ).length === 0
+
+                        ? (
+
+                            <p>
+                                Пока нет достижений.
+                            </p>
+
                         )
-                    )
+
+                        : (
+
+                            <ul>
+
+                                {
+                                    achievementsProgress
+
+                                        .filter(
+                                            (item) => item.unlocked
+                                        )
+
+                                        .slice(0, 3)
+
+                                        .map(
+                                            (item) => (
+
+                                                <AchievementCard
+
+                                                    key={
+                                                        item.achievement.id
+                                                    }
+
+                                                    achievement={
+                                                        item.achievement
+                                                    }
+
+                                                />
+
+                                            )
+                                        )
+                                }
+
+                            </ul>
+
+                        )
+
                 }
+
+                <ActionGroup>
+
+                    <Link
+                        to="/achievements"
+                    >
+
+                        <Button
+                            variant="secondary"
+                        >
+
+                            Все достижения
+
+                        </Button>
+
+                    </Link>
+
+                </ActionGroup>
 
             </InfoSection>
 

@@ -5,36 +5,59 @@ import type {
 import "../../styles/components/AchievementCard.css";
 
 type Props = {
+
     achievement: Achievement;
+
 };
 
 export default function AchievementCard({
+
     achievement,
+
 }: Props) {
 
     return (
-        <div className="achievement-card">
 
-            <div className="achievement-icon">
-                {achievement.icon}
+        <article className="achievement-card">
+
+            <div className="achievement-header">
+
+                <div className="achievement-icon">
+
+                    {achievement.icon}
+
+                </div>
+
             </div>
 
-            <div className="achievement-content">
+            <div className="achievement-body">
 
-                <h3>
+                <h3 className="achievement-title">
+
                     {achievement.title}
+
                 </h3>
 
-                <p>
-                    {achievement.description}
-                </p>
+                <p className="achievement-description">
 
-                <small>
-                    +{achievement.experience} XP
-                </small>
+                    {achievement.description}
+
+                </p>
 
             </div>
 
-        </div>
+            <div className="achievement-footer">
+
+                <span className="achievement-xp">
+
+                    +{achievement.experience} XP
+
+                </span>
+
+            </div>
+
+        </article>
+
     );
+
 }

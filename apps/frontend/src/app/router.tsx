@@ -11,6 +11,7 @@ import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
 import AddPlayground from "../pages/AddPlayground/AddPlayground";
+import Achievements from "../pages/Achievements/Achievements";
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "achievements",
+        element: <Achievements />,
       },
       {
         path: "events",

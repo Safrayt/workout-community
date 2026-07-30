@@ -1,4 +1,24 @@
+export type AchievementCategory =
+    | "community"
+    | "events"
+    | "playgrounds"
+    | "training"
+    | "collection";
+
+export type AchievementRarity =
+    | "common"
+    | "rare"
+    | "epic"
+    | "legendary";
+
+export type AchievementCondition =
+    | "created-events"
+    | "created-playgrounds"
+    | "registrations"
+    | "attended-events";
+
 export type Achievement = {
+
     id: string;
 
     title: string;
@@ -7,9 +27,16 @@ export type Achievement = {
 
     icon: string;
 
+    image?: string;
+
+    category: AchievementCategory;
+
+    rarity: AchievementRarity;
+
     experience: number;
 
-    condition: string;
+    condition: AchievementCondition;
 
     target: number;
+
 };
