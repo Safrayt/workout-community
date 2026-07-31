@@ -6,6 +6,18 @@ import Select from "../../components/ui/Select/Select";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 
+import type {
+    ValidationError,
+} from "../../validation";
+import {
+    validateEvent,
+} from "../../validation/event";
+
+import {
+    getFieldError,
+} from "../../utils/validation.ts";
+
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +38,9 @@ import {
 
 
 export default function CreateEvent() {
+    const [errors, setErrors] =
+    useState<ValidationError[]>([]);
+
     const [
         event,
         setEvent,
@@ -54,18 +69,37 @@ export default function CreateEvent() {
 
     function updateField<
         K extends keyof NewEvent
-    >(
-        field: K,
-        value: NewEvent[K]
-    ) {
-        setEvent(
-            (current) => ({
-                ...current,
-                [field]: value,
-            })
-        );
-    }
+            >(
+                field: K,
+                value: NewEvent[K]
+            ) {
+                setEvent(
+                    (current) => ({
+                        ...current,
+                        [field]: value,
+                    })
+                );
+
+                setErrors(
+                    (current) =>
+                        current.filter(
+                            (error) =>
+                                error.field !== field
+                        )
+                );
+            }
     function handleSubmit() {
+        const result =
+            validateEvent(event);
+        if (!result.valid) {
+            setErrors(
+                result.errors
+            );
+
+            return;
+
+        }
+        setErrors([]);
         const createdEvent =
             addEvent(event);
 
@@ -81,6 +115,12 @@ export default function CreateEvent() {
                 label="Название"
                 placeholder="Например, Общая тренировка"
                 value={event.title}
+                error={
+                    getFieldError(
+                        errors,
+                        "title"
+                    )
+                }
                 onChange={(e) =>
                     updateField(
                         "title",
@@ -93,6 +133,12 @@ export default function CreateEvent() {
                 label="Площадка"
                 options={playgroundOptions}
                 value={event.playgroundId}
+                error={
+                    getFieldError(
+                        errors,
+                        "playgroundId"
+                    )
+                }
                 onChange={(e) =>
                     updateField(
                         "playgroundId",
@@ -105,6 +151,12 @@ export default function CreateEvent() {
                 label="Дата"
                 type="datetime-local"
                 value={event.startDate}
+                error={
+                    getFieldError(
+                        errors,
+                        "startDate"
+                    )
+                }
                 onChange={(e) =>
                     updateField(
                         "startDate",
@@ -117,6 +169,12 @@ export default function CreateEvent() {
                 label="Описание"
                 placeholder="Расскажите, что будет на тренировке"
                 value={event.description}
+                error={
+                    getFieldError(
+                        errors,
+                        "description"
+                    )
+                }
                 onChange={(e) =>
                     updateField(
                         "description",

@@ -22,3 +22,14 @@
     outline: none;
     border-color: var(--color-primary);
 }
+
+.select__field--error {
+    border-color: #d33;
+}
+
+.select__error {
+    display: block;
+    margin-top: 4px;
+    color: #d33;
+    font-size: 0.85rem;
+}

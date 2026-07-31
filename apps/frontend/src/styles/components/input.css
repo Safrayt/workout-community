@@ -22,3 +22,19 @@
     outline: none;
     border-color: var(--color-primary);
 }
+
+.input__field--error {
+
+    border-color: #d33;
+
+}
+
+.input__error {
+
+    margin-top: 4px;
+
+    font-size: 0.85rem;
+
+    color: #d33;
+
+}

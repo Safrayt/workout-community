@@ -16,3 +16,19 @@
     font: inherit;
     resize: vertical;
 }
+
+.textarea-input--error {
+
+    border-color: #d33;
+
+}
+
+.textarea-error {
+
+    color: #d33;
+
+    font-size: .85rem;
+
+    margin-top: 4px;
+
+}
