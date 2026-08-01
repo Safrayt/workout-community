@@ -5,58 +5,62 @@ import Select from "../../components/ui/Select/Select";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import type {
     ValidationError,
 } from "../../validation";
 import {
-    validateEvent,
-} from "../../validation/event";
+    validateWorkoutEntry,
+} from "../../validation/workoutEntry";
 
 import {
     getFieldError,
 } from "../../utils/validation.ts";
 
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-
 import type {
-    NewEvent,
-} from "../../types/newEvent";
+    NewWorkoutEntry,
+} from "../../types/newWorkoutEntry";
+
+import {
+    useWorkoutDiary,
+} from "../../context/WorkoutDiaryContext";
 
 import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
-import {
-    useEvents,
-} from "../../context/EventContext";
 
 import {
     getPlaygroundOptions,
 } from "../../utils/playgrounds";
 
+import {
+    timeOfDayOptions,
+} from "../../utils/timeOfDay";
 
-export default function CreateEvent() {
+export default function AddWorkoutEntry() {
     const [errors, setErrors] =
-    useState<ValidationError[]>([]);
+        useState<ValidationError[]>([]);
 
     const [
-        event,
-        setEvent,
-    ] = useState<NewEvent>({
+        entry,
+        setEntry,
+    ] = useState<NewWorkoutEntry>({
+        date: "",
+        timeOfDay: "",
+        playgroundId: "",
         title: "",
         description: "",
-        playgroundId: "",
-        startDate: "",
     });
+
+    const {
+        addEntry,
+    } = useWorkoutDiary();
 
     const {
         playgrounds,
     } = usePlaygrounds();
-
-    const {
-    addEvent,
-    } = useEvents();
 
     const navigate =
         useNavigate();
@@ -66,11 +70,11 @@ export default function CreateEvent() {
             playgrounds
         );
 
-    function updateField<K extends keyof NewEvent>(
+    function updateField<K extends keyof NewWorkoutEntry>(
         field: K,
-        value: NewEvent[K]
+        value: NewWorkoutEntry[K]
     ) {
-        setEvent(
+        setEntry(
             (current) => ({
                 ...current,
                 [field]: value,
@@ -85,33 +89,62 @@ export default function CreateEvent() {
                 )
         );
     }
+
     function handleSubmit() {
         const result =
-            validateEvent(event);
+            validateWorkoutEntry(entry);
+
         if (!result.valid) {
             setErrors(
                 result.errors
             );
 
             return;
-
         }
-        setErrors([]);
-        const createdEvent =
-            addEvent(event);
 
-        navigate(
-            `/events/${createdEvent.id}`
-        );
+        setErrors([]);
+        addEntry(entry);
+
+        navigate("/diary");
     }
 
     return (
-        <Section title="Создание мероприятия">
+        <Section title="Новая запись">
+            <Input
+                id="date"
+                label="Дата"
+                type="date"
+                value={entry.date}
+                error={
+                    getFieldError(
+                        errors,
+                        "date"
+                    )
+                }
+                onChange={(e) =>
+                    updateField(
+                        "date",
+                        e.target.value
+                    )
+                }
+            />
+            <Select
+                id="timeOfDay"
+                label="Время суток (необязательно)"
+                options={timeOfDayOptions}
+                value={entry.timeOfDay}
+                onChange={(e) =>
+                    updateField(
+                        "timeOfDay",
+                        e.target.value
+                    )
+                }
+            />
             <Input
                 id="title"
                 label="Название"
-                placeholder="Например, Общая тренировка"
-                value={event.title}
+                placeholder="Например, Утренняя тренировка"
+                value={entry.title}
                 error={
                     getFieldError(
                         errors,
@@ -127,15 +160,9 @@ export default function CreateEvent() {
             />
             <Select
                 id="playground"
-                label="Площадка"
+                label="Площадка (необязательно)"
                 options={playgroundOptions}
-                value={event.playgroundId}
-                error={
-                    getFieldError(
-                        errors,
-                        "playgroundId"
-                    )
-                }
+                value={entry.playgroundId}
                 onChange={(e) =>
                     updateField(
                         "playgroundId",
@@ -143,35 +170,11 @@ export default function CreateEvent() {
                     )
                 }
             />
-            <Input
-                id="startDate"
-                label="Дата"
-                type="datetime-local"
-                value={event.startDate}
-                error={
-                    getFieldError(
-                        errors,
-                        "startDate"
-                    )
-                }
-                onChange={(e) =>
-                    updateField(
-                        "startDate",
-                        e.target.value
-                    )
-                }
-            />
             <Textarea
                 id="description"
-                label="Описание"
-                placeholder="Расскажите, что будет на тренировке"
-                value={event.description}
-                error={
-                    getFieldError(
-                        errors,
-                        "description"
-                    )
-                }
+                label="Описание (необязательно)"
+                placeholder="Что делал на тренировке"
+                value={entry.description}
                 onChange={(e) =>
                     updateField(
                         "description",
@@ -183,10 +186,9 @@ export default function CreateEvent() {
                 <Button
                     onClick={handleSubmit}
                 >
-                    Создать мероприятие
+                    Сохранить запись
                 </Button>
             </ActionGroup>
-
         </Section>
     );
 }

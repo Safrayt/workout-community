@@ -9,7 +9,7 @@ export default function Navigation() {
 
             <NavLink to="/playgrounds">Площадки</NavLink>
 
-            <NavLink to="/programs">Программы</NavLink>
+            <NavLink to="/diary">Дневник</NavLink>
 
             <NavLink to="/profile">Профиль</NavLink>
         </nav>

@@ -38,7 +38,9 @@
 
 import Section from "../../components/ui/Section/Section";
 
-import { currentUser } from "../../data/currentUser";
+import {
+    useCurrentUser,
+} from "../../context/CurrentUserContext";
 
 import { getUserLevel } from "../../utils/level";
 
@@ -75,10 +77,13 @@ import AchievementCard from "../../components/AchievementCard/AchievementCard";
 
 
 export default function Profile() {
-    const user = currentUser;
 
     const {
-        registrations
+        currentUser: user,
+    } = useCurrentUser();
+
+    const {
+        registrations,
     } = useRegistration();
 
     const {
@@ -178,9 +183,7 @@ export default function Profile() {
             <InfoSection title="Достижения">
 
                 {
-                    achievementsProgress.filter(
-                        (item) => item.unlocked
-                    ).length === 0
+                    unlockedAchievements.length === 0
 
                         ? (
 
@@ -195,11 +198,7 @@ export default function Profile() {
                             <ul>
 
                                 {
-                                    achievementsProgress
-
-                                        .filter(
-                                            (item) => item.unlocked
-                                        )
+                                    unlockedAchievements
 
                                         .slice(0, 3)
 

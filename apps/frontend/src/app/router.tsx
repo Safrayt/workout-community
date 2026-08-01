@@ -6,7 +6,8 @@ import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
 import Events from "../pages/Events/Events";
 import CreateEvent from "../pages/CreateEvent/CreateEvent";
-import Programs from "../pages/Programs/Programs";
+import Diary from "../pages/Diary/Diary";
+import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
 import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
@@ -43,8 +44,12 @@ export const router = createBrowserRouter([
           element: <CreateEvent />,
       },
       {
-        path: "programs",
-        element: <Programs />,
+        path: "diary",
+        element: <Diary />,
+      },
+      {
+        path: "diary/create",
+        element: <AddWorkoutEntry />,
       },
       {
         path: "playgrounds",

@@ -12,6 +12,9 @@ import {
 import {
     CurrentUserProvider,
 } from "./context/CurrentUserContext";
+import {
+    WorkoutDiaryProvider,
+} from "./context/WorkoutDiaryContext";
 
 export default function App() {
     return (
@@ -23,9 +26,13 @@ export default function App() {
 
                     <EventProvider>
 
-                        <RouterProvider
-                            router={router}
-                        />
+                        <WorkoutDiaryProvider>
+
+                            <RouterProvider
+                                router={router}
+                            />
+
+                        </WorkoutDiaryProvider>
 
                     </EventProvider>
 

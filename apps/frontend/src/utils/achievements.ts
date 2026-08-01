@@ -1,8 +1,4 @@
 import type {
-    Achievement,
-} from "../types/achievement";
-
-import type {
     Event,
 } from "../types/event";
 

@@ -14,6 +14,10 @@ export const achievements: Achievement[] = [
 
         icon: "📅",
 
+        category: "events",
+
+        rarity: "common",
+
         experience: 50,
 
         condition: "created-events",
@@ -30,6 +34,10 @@ export const achievements: Achievement[] = [
             "Добавить первую найденную площадку.",
 
         icon: "🗺️",
+
+        category: "playgrounds",
+
+        rarity: "common",
 
         experience: 50,
 
@@ -48,6 +56,10 @@ export const achievements: Achievement[] = [
 
         icon: "🤝",
 
+        category: "community",
+
+        rarity: "common",
+
         experience: 25,
 
         condition: "registrations",
@@ -64,6 +76,10 @@ export const achievements: Achievement[] = [
             "Посетить пять мероприятий.",
 
         icon: "🏆",
+
+        category: "events",
+
+        rarity: "rare",
 
         experience: 100,
 

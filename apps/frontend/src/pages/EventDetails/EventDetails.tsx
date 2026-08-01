@@ -6,7 +6,6 @@ import {
     useEvents,
 } from "../../context/EventContext";
 
-import { formatEventDate } from "../../utils/formatEventDate";
 import { formatParticipants } from "../../utils/format";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
@@ -20,7 +19,6 @@ import InfoSection from "../../components/ui/InfoSection/InfoSection";
 import InfoRow from "../../components/ui/InfoRow/InfoRow";
 import {
     getEventById,
-    getRegisteredParticipantsCount,
 } from "../../utils/events";
 
 import {
@@ -47,6 +45,10 @@ export default function EventDetails() {
         playgrounds,
     } = usePlaygrounds();
 
+    const {
+        registrations,
+    } = useRegistration();
+
     const event =
     id
         ? getEventById(
@@ -68,10 +70,6 @@ export default function EventDetails() {
             playgrounds,
             event.playgroundId
         );
-
-    const {
-        registrations,
-    } = useRegistration();
 
     const participants =
         getEventRegistrations(

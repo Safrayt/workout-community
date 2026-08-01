@@ -3,7 +3,9 @@ import InfoSection from "../../components/ui/InfoSection/InfoSection";
 
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 
-import { currentUser } from "../../data/currentUser";
+import {
+    useCurrentUser,
+} from "../../context/CurrentUserContext";
 
 import {
     useEvents,
@@ -22,6 +24,10 @@ import {
 } from "../../utils/achievements";
 
 export default function Achievements() {
+
+    const {
+        currentUser,
+    } = useCurrentUser();
 
     const {
         events,

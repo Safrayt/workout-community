@@ -1,11 +1,11 @@
-import { currentUser } from "../data/currentUser";
+import { users } from "../data/users";
 
 export function getUserName(
     userId: string
 ) {
-    if (userId === currentUser.id) {
-        return currentUser.name;
-    }
+    const user = users.find(
+        (user) => user.id === userId
+    );
 
-    return "Неизвестный пользователь";
+    return user ? user.name : "Неизвестный пользователь";
 }
