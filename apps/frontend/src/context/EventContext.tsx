@@ -20,6 +20,10 @@ import {
     usePlaygrounds,
 } from "./PlaygroundContext";
 
+import {
+    useCurrentUser,
+} from "./CurrentUserContext";
+
 type EventContextType = {
     events: Event[];
 
@@ -47,6 +51,10 @@ export function EventProvider({
     );
 
     const {
+    currentUser,
+} = useCurrentUser();
+
+    const {
         playgrounds,
     } = usePlaygrounds();
 
@@ -68,7 +76,7 @@ export function EventProvider({
         const newEvent: Event = {
             id: crypto.randomUUID(),
 
-            creatorId: "1",
+            creatorId: currentUser.id,
 
             title: event.title,
 

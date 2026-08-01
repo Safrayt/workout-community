@@ -13,7 +13,9 @@ import {
     registrations as initialRegistrations,
 } from "../data/registrations";
 
-import { currentUser } from "../data/currentUser";
+import {
+    useCurrentUser,
+} from "./CurrentUserContext";
 
 import {
     isUserRegistered,
@@ -56,6 +58,10 @@ export function RegistrationProvider({
         initialRegistrations
     );
 
+
+    const {
+        currentUser,
+    } = useCurrentUser();
 
     const currentUserId =
         currentUser.id;

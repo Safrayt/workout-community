@@ -9,15 +9,30 @@ import {
 import {
     EventProvider,
 } from "./context/EventContext";
+import {
+    CurrentUserProvider,
+} from "./context/CurrentUserContext";
 
 export default function App() {
     return (
-        <RegistrationProvider>
-            <PlaygroundProvider>
-                <EventProvider>
-                    <RouterProvider router={router} />
-                </EventProvider>
-            </PlaygroundProvider>
-        </RegistrationProvider>
+        <CurrentUserProvider>
+
+            <RegistrationProvider>
+
+                <PlaygroundProvider>
+
+                    <EventProvider>
+
+                        <RouterProvider
+                            router={router}
+                        />
+
+                    </EventProvider>
+
+                </PlaygroundProvider>
+
+            </RegistrationProvider>
+
+        </CurrentUserProvider>
     );
 }
