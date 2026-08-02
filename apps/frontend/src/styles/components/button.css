@@ -57,3 +57,12 @@
 .button--outline:hover:not(:disabled) {
     background: rgba(0, 123, 255, 0.08);
 }
+
+.button--danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.button--danger:hover:not(:disabled) {
+    filter: brightness(0.92);
+}

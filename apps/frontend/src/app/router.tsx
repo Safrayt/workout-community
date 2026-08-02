@@ -8,6 +8,7 @@ import Events from "../pages/Events/Events";
 import CreateEvent from "../pages/CreateEvent/CreateEvent";
 import Diary from "../pages/Diary/Diary";
 import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
+import WorkoutEntryDetails from "../pages/WorkoutEntryDetails/WorkoutEntryDetails";
 import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
       {
         path: "diary/create",
         element: <AddWorkoutEntry />,
+      },
+      {
+        path: "diary/:id",
+        element: <WorkoutEntryDetails />,
       },
       {
         path: "playgrounds",

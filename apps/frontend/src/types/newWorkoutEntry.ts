@@ -4,6 +4,8 @@ export type NewWorkoutEntry = {
 
     timeOfDay: string;
 
+    tags: string[];
+
     playgroundId: string;
 
     title: string;

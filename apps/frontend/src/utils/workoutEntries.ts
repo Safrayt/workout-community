@@ -14,3 +14,12 @@ export function getUserWorkoutEntries(
                 b.date.localeCompare(a.date)
         );
 }
+
+export function getWorkoutEntryById(
+    entries: WorkoutEntry[],
+    id: string
+) {
+    return entries.find(
+        (entry) => entry.id === id
+    );
+}

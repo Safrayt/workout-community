@@ -29,6 +29,14 @@
 
 }
 
+.input__field--date {
+    max-width: 220px;
+}
+
+.input__field--datetime {
+    max-width: 260px;
+}
+
 .input__error {
 
     margin-top: 4px;

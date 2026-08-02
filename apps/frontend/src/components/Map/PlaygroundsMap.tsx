@@ -28,6 +28,10 @@ type PlaygroundsMapProps = {
     selectedLatitude?: number;
 
     selectedLongitude?: number;
+
+    onMarkerClick?: (
+        marker: MapMarker
+    ) => void;
 };
 
 function MapClickHandler({
@@ -61,6 +65,7 @@ export default function PlaygroundsMap({
     onMapClick,
     selectedLatitude,
     selectedLongitude,
+    onMarkerClick,
 }: PlaygroundsMapProps) {
     const navigate = useNavigate();
     return (
@@ -99,6 +104,11 @@ export default function PlaygroundsMap({
                     ]}
                     eventHandlers={{
                         click: () => {
+                            if (onMarkerClick) {
+                                onMarkerClick(marker);
+                                return;
+                            }
+
                             navigate(marker.url);
                         },
                     }}

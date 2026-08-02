@@ -3,7 +3,10 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 import { Link } from "react-router-dom";
 
+import { useState } from "react";
+
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
+import TagBadge from "../../components/ui/TagBadge/TagBadge";
 
 import {
     useWorkoutDiary,
@@ -25,6 +28,11 @@ import {
     getPlaygroundById,
 } from "../../utils/playgrounds";
 
+import {
+    getUserTags,
+    filterEntriesByTags,
+} from "../../utils/workoutTags";
+
 export default function Diary() {
     const {
         entries,
@@ -38,11 +46,37 @@ export default function Diary() {
         playgrounds,
     } = usePlaygrounds();
 
+    const [selectedTags, setSelectedTags] =
+        useState<string[]>([]);
+
     const userEntries =
         getUserWorkoutEntries(
             entries,
             currentUser.id
         );
+
+    const userTags =
+        getUserTags(
+            entries,
+            currentUser.id
+        );
+
+    const visibleEntries =
+        filterEntriesByTags(
+            userEntries,
+            selectedTags
+        );
+
+    function toggleTag(tag: string) {
+        setSelectedTags(
+            (current) =>
+                current.includes(tag)
+                    ? current.filter(
+                        (item) => item !== tag
+                    )
+                    : [...current, tag]
+        );
+    }
 
     return (
         <Section title="Дневник тренировок">
@@ -55,14 +89,54 @@ export default function Diary() {
             </ActionGroup>
 
             {
-                userEntries.length === 0 ? (
+                userTags.length > 0 && (
+                    <div className="tag-list">
+
+                        {
+                            userTags.map(
+                                (tag) => (
+                                    <TagBadge
+                                        key={tag}
+                                        label={tag}
+                                        active={
+                                            selectedTags.includes(tag)
+                                        }
+                                        onClick={() =>
+                                            toggleTag(tag)
+                                        }
+                                    />
+                                )
+                            )
+                        }
+
+                        {
+                            selectedTags.length > 0 && (
+                                <TagBadge
+                                    label="Сбросить фильтр"
+                                    onClick={() =>
+                                        setSelectedTags([])
+                                    }
+                                />
+                            )
+                        }
+
+                    </div>
+                )
+            }
+
+            {
+                visibleEntries.length === 0 ? (
                     <p>
-                        Пока нет записей. Отметь свою первую тренировку.
+                        {
+                            userEntries.length === 0
+                                ? "Пока нет записей. Отметь свою первую тренировку."
+                                : "Нет записей с выбранными тегами."
+                        }
                     </p>
                 ) : (
                     <div className="workout-entries-list">
                         {
-                            userEntries.map(
+                            visibleEntries.map(
                                 (entry) => (
                                     <WorkoutEntryCard
                                         key={entry.id}

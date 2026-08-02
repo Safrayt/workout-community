@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-type ButtonVariant = "primary" | "secondary" | "outline";
+type ButtonVariant = "primary" | "secondary" | "outline" | "danger";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
     children: ReactNode;

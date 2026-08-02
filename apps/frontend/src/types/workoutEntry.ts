@@ -16,6 +16,8 @@ export type WorkoutEntry = {
 
     timeOfDay?: TimeOfDay;
 
+    tags?: string[];
+
     title: string;
 
     description?: string;

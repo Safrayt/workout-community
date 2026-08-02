@@ -1,10 +1,17 @@
+import { Link } from "react-router-dom";
+
 import type { WorkoutEntry } from "../../types/workoutEntry";
 import type { Playground } from "../../types/playground";
 
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
+import { getDescriptionPreview } from "../../utils/workoutEntryDescription";
+
+import TagBadge from "../ui/TagBadge/TagBadge";
+import Button from "../ui/Button/Button";
 
 import "../../styles/components/workout-entry-card.css";
+import "../../styles/components/workout-entry-description.css";
 
 type WorkoutEntryCardProps = {
     entry: WorkoutEntry;
@@ -37,9 +44,34 @@ export default function WorkoutEntryCard({
 
             {
                 entry.description && (
-                    <p>{entry.description}</p>
+                    <p className="workout-entry-description__text">
+                        {getDescriptionPreview(entry.description)}
+                    </p>
                 )
             }
+
+            {
+                entry.tags && entry.tags.length > 0 && (
+                    <div className="tag-list">
+                        {
+                            entry.tags.map(
+                                (tag) => (
+                                    <TagBadge
+                                        key={tag}
+                                        label={tag}
+                                    />
+                                )
+                            )
+                        }
+                    </div>
+                )
+            }
+
+            <Link to={`/diary/${entry.id}`}>
+                <Button variant="secondary">
+                    Подробнее
+                </Button>
+            </Link>
         </div>
     );
 }

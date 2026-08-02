@@ -1,0 +1,14 @@
+.workout-entry-description {
+    margin-bottom: var(--space-3);
+}
+
+.workout-entry-description__label {
+    display: block;
+    margin-bottom: var(--space-1);
+}
+
+.workout-entry-description__text {
+    margin: 0;
+
+    white-space: pre-wrap;
+}

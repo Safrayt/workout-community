@@ -7,6 +7,7 @@ export const workoutEntries: WorkoutEntry[] = [
         playgroundId: "1",
         date: "2026-07-20",
         timeOfDay: "morning",
+        tags: ["турник", "утро"],
         title: "Утренняя тренировка",
         description:
             "Подтягивания, отжимания, лёгкая растяжка.",

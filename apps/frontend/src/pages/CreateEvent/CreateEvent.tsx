@@ -147,6 +147,7 @@ export default function CreateEvent() {
                 id="startDate"
                 label="Дата"
                 type="datetime-local"
+                className="input__field--datetime"
                 value={event.startDate}
                 error={
                     getFieldError(
