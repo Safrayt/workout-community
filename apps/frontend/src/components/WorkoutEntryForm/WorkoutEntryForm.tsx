@@ -55,6 +55,10 @@ import {
     MAX_USER_TAGS,
 } from "../../utils/workoutTags";
 
+import {
+    getTodayDateString,
+} from "../../utils/today";
+
 import "../../styles/components/workout-entry-map-picker.css";
 
 import type { ReactNode } from "react";
@@ -217,6 +221,7 @@ export default function WorkoutEntryForm({
                 label="Дата"
                 type="date"
                 className="input__field--date"
+                max={getTodayDateString()}
                 value={entry.date}
                 error={
                     getFieldError(

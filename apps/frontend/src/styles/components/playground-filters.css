@@ -1,0 +1,79 @@
+.playground-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    margin: var(--space-3) 0 var(--space-4);
+}
+
+.playground-filters__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+}
+
+.playground-filters__reset {
+    display: flex;
+    justify-content: center;
+}
+
+/* Scoped override: checkboxes wrap in a compact row instead of
+   stacking one per line (default FormSection behavior elsewhere
+   is untouched). */
+.playground-filters .form-section-content {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+}
+
+.playground-filters__checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    white-space: nowrap;
+}
+
+.playground-filters__group {
+    flex-basis: 100%;
+    margin-bottom: var(--space-2);
+}
+
+.playground-filters__group-title {
+    margin: 0 0 var(--space-1) 0;
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.playground-filters__group-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+}
+
+.playground-filters-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    padding: var(--space-2) 0;
+
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.playground-filters-toggle h3 {
+    margin: 0;
+}
+
+.playground-filters-toggle__icon {
+    color: var(--color-text-secondary);
+}

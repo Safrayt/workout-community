@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import TagBadge from "../../components/ui/TagBadge/TagBadge";
+import Pagination from "../../components/ui/Pagination/Pagination";
 
 import {
     useWorkoutDiary,
@@ -33,6 +34,11 @@ import {
     filterEntriesByTags,
 } from "../../utils/workoutTags";
 
+import {
+    paginate,
+    getTotalPages,
+} from "../../utils/pagination";
+
 export default function Diary() {
     const {
         entries,
@@ -48,6 +54,9 @@ export default function Diary() {
 
     const [selectedTags, setSelectedTags] =
         useState<string[]>([]);
+
+    const [page, setPage] =
+        useState(1);
 
     const userEntries =
         getUserWorkoutEntries(
@@ -67,7 +76,20 @@ export default function Diary() {
             selectedTags
         );
 
+    const totalPages =
+        getTotalPages(
+            visibleEntries.length
+        );
+
+    const pageEntries =
+        paginate(
+            visibleEntries,
+            page
+        );
+
     function toggleTag(tag: string) {
+        setPage(1);
+
         setSelectedTags(
             (current) =>
                 current.includes(tag)
@@ -113,9 +135,10 @@ export default function Diary() {
                             selectedTags.length > 0 && (
                                 <TagBadge
                                     label="Сбросить фильтр"
-                                    onClick={() =>
-                                        setSelectedTags([])
-                                    }
+                                    onClick={() => {
+                                        setSelectedTags([]);
+                                        setPage(1);
+                                    }}
                                 />
                             )
                         }
@@ -134,26 +157,34 @@ export default function Diary() {
                         }
                     </p>
                 ) : (
-                    <div className="workout-entries-list">
-                        {
-                            visibleEntries.map(
-                                (entry) => (
-                                    <WorkoutEntryCard
-                                        key={entry.id}
-                                        entry={entry}
-                                        playground={
-                                            entry.playgroundId
-                                                ? getPlaygroundById(
-                                                    playgrounds,
-                                                    entry.playgroundId
-                                                )
-                                                : undefined
-                                        }
-                                    />
+                    <>
+                        <div className="workout-entries-list">
+                            {
+                                pageEntries.map(
+                                    (entry) => (
+                                        <WorkoutEntryCard
+                                            key={entry.id}
+                                            entry={entry}
+                                            playground={
+                                                entry.playgroundId
+                                                    ? getPlaygroundById(
+                                                        playgrounds,
+                                                        entry.playgroundId
+                                                    )
+                                                    : undefined
+                                            }
+                                        />
+                                    )
                                 )
-                            )
-                        }
-                    </div>
+                            }
+                        </div>
+
+                        <Pagination
+                            page={page}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                        />
+                    </>
                 )
             }
         </Section>

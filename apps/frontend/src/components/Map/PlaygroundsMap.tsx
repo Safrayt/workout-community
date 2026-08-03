@@ -114,6 +114,23 @@ export default function PlaygroundsMap({
                     }}
                 >
                     <Popup>
+                        {
+                            marker.photoUrl && (
+                                <img
+                                    src={marker.photoUrl}
+                                    alt={marker.title}
+                                    style={{
+                                        width: "160px",
+                                        height: "120px",
+                                        objectFit: "cover",
+                                        borderRadius: "8px",
+                                        display: "block",
+                                        marginBottom: "6px",
+                                    }}
+                                />
+                            )
+                        }
+
                         {marker.title}
                     </Popup>
                 </Marker>

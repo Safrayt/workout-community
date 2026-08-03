@@ -2,30 +2,43 @@ import type {
     PlaygroundEquipment,
 } from "../types/playground";
 
+export type PlaygroundEquipmentCategory =
+    | "pullBars"
+    | "parallelBars"
+    | "pushBars"
+    | "climbing"
+    | "accessories";
+
 type PlaygroundEquipmentInfo = {
 
     name: string;
 
     icon: string;
 
-    category:
-        | "pullBars"
-        | "parallelBars"
-        | "pushBars"
-        | "climbing"
-        | "accessories";
+    category: PlaygroundEquipmentCategory;
 
 };
 
-export const playgroundEquipment: Record<
-    PlaygroundEquipment,
-    PlaygroundEquipmentInfo
-> = {
+export const equipmentCategoryLabels: Record<PlaygroundEquipmentCategory, string> = {
+
+    pullBars: "Турники",
+
+    parallelBars: "Параллельные перекладины",
+
+    pushBars: "Перекладины",
+
+    climbing: "Лазательные элементы",
+
+    accessories: "Дополнительно",
+
+};
+
+export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmentInfo> = {
 
     widePullBar: {
 
         name:
-            "Широкий турник",
+            "Широкий турник (>150 см)",
 
         icon:
             "🏋️",
@@ -38,7 +51,7 @@ export const playgroundEquipment: Record<
     highPullBar: {
 
         name:
-            "Высокий турник",
+            "Высокий турник (>200 см)",
 
         icon:
             "🏋️",
@@ -51,7 +64,7 @@ export const playgroundEquipment: Record<
     mediumPullBar: {
 
         name:
-            "Средний турник",
+            "Средний турник (180–200 см)",
 
         icon:
             "🏋️",
@@ -64,7 +77,7 @@ export const playgroundEquipment: Record<
     lowPullBar: {
 
         name:
-            "Низкий турник",
+            "Низкий турник (160–180 см)",
 
         icon:
             "🏋️",
@@ -77,7 +90,7 @@ export const playgroundEquipment: Record<
     middlePushBar: {
 
         name:
-            "Средняя лавка",
+            "Средняя перекладина (50–100 см)",
 
         icon:
             "💪",
@@ -90,7 +103,7 @@ export const playgroundEquipment: Record<
     lowPushBar: {
 
         name:
-            "Низкая лавка",
+            "Низкая перекладина (<50 см)",
 
         icon:
             "💪",
@@ -109,14 +122,14 @@ export const playgroundEquipment: Record<
             "🧗",
 
         category:
-            "climbing",
+            "parallelBars",
 
     },
 
     highParallelBars: {
 
         name:
-            "Высокие брусья",
+            "Высокие брусья (>160 см)",
 
         icon:
             "🤸",
@@ -129,7 +142,7 @@ export const playgroundEquipment: Record<
     mediumParallelBars: {
 
         name:
-            "Средние брусья",
+            "Средние брусья (140–160 см)",
 
         icon:
             "🤸",
@@ -142,7 +155,7 @@ export const playgroundEquipment: Record<
     parallettes: {
 
         name:
-            "Паралетсы",
+            "Паралетсы (30–100 см)",
 
         icon:
             "🤸",
@@ -155,20 +168,20 @@ export const playgroundEquipment: Record<
     pushUpBars: {
 
         name:
-            "Упоры для отжиманий",
+            "Упоры (<30 см)",
 
         icon:
             "💪",
 
         category:
-            "pushBars",
+            "parallelBars",
 
     },
 
     wideMonkeyBars: {
 
         name:
-            "Широкий рукоход",
+            "Рукоход (широкий)",
 
         icon:
             "🐒",
@@ -181,7 +194,7 @@ export const playgroundEquipment: Record<
     narrowMonkeyBars: {
 
         name:
-            "Узкий рукоход",
+            "Рукоход (узкий)",
 
         icon:
             "🐒",
@@ -233,7 +246,7 @@ export const playgroundEquipment: Record<
     posts: {
 
         name:
-            "Столбы",
+            "Столбики",
 
         icon:
             "🪵",

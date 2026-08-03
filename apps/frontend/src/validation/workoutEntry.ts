@@ -11,6 +11,10 @@ import {
     MAX_TAGS_PER_ENTRY,
 } from "../utils/workoutTags";
 
+import {
+    getTodayDateString,
+} from "../utils/today";
+
 export function validateWorkoutEntry(
     entry: NewWorkoutEntry
 ): ValidationResult {
@@ -23,6 +27,13 @@ export function validateWorkoutEntry(
         errors.push({
             field: "date",
             message: "Укажите дату тренировки.",
+        });
+    } else if (
+        entry.date > getTodayDateString()
+    ) {
+        errors.push({
+            field: "date",
+            message: "Нельзя выбрать дату в будущем.",
         });
     }
 

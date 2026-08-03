@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import Section from "../../components/ui/Section/Section";
 
 import PlaygroundInfo from "../../components/PlaygroundInfo/PlaygroundInfo";
+import PlaygroundGallery from "../../components/PlaygroundGallery/PlaygroundGallery";
 import PlaygroundAmenities from "../../components/PlaygroundAmenities/PlaygroundAmenities";
 import PlaygroundEquipment from "../../components/PlaygroundEquipment/PlaygroundEquipment";
 import PlaygroundEvents from "../../components/PlaygroundEvents/PlaygroundEvents";
@@ -77,6 +78,10 @@ export default function PlaygroundDetails() {
 
             <PlaygroundInfo
                 playground={playground}
+            />
+
+            <PlaygroundGallery
+                photos={playground.photos}
             />
 
             <PlaygroundAmenities

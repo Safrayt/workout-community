@@ -4,6 +4,10 @@ import type {
 
 import InfoSection from "../ui/InfoSection/InfoSection";
 
+import {
+    playgroundAmenityLabels,
+} from "../../constants/playgroundAmenities";
+
 type Props = {
 
     playground: Playground;
@@ -14,71 +18,14 @@ export default function PlaygroundAmenities({
     playground,
 }: Props) {
 
-    const amenities = [
-
-        {
-            key: "lighting",
-            label: "Освещение",
-            enabled:
-                playground.amenities.lighting,
-        },
-
-        {
-            key: "covered",
-            label: "Навес",
-            enabled:
-                playground.amenities.covered,
-        },
-
-        {
-            key: "changingRoom",
-            label: "Раздевалка",
-            enabled:
-                playground.amenities.changingRoom,
-        },
-
-        {
-            key: "toilet",
-            label: "Туалет",
-            enabled:
-                playground.amenities.toilet,
-        },
-
-        {
-            key: "drinkingWater",
-            label: "Питьевая вода",
-            enabled:
-                playground.amenities.drinkingWater,
-        },
-
-        {
-            key: "shower",
-            label: "Душ",
-            enabled:
-                playground.amenities.shower,
-        },
-
-        {
-            key: "parking",
-            label: "Парковка",
-            enabled:
-                playground.amenities.parking,
-        },
-
-        {
-            key: "bicycleParking",
-            label: "Велопарковка",
-            enabled:
-                playground.amenities.bicycleParking,
-        },
-
-    ];
-
-    const availableAmenities =
-        amenities.filter(
-            (item) =>
-                item.enabled
-        );
+    const availableAmenities = (
+        Object.entries(playgroundAmenityLabels) as [
+            keyof typeof playgroundAmenityLabels,
+            string,
+        ][]
+    ).filter(
+        ([key]) => playground.amenities[key]
+    );
 
     if (
         availableAmenities.length === 0
@@ -110,12 +57,12 @@ export default function PlaygroundAmenities({
 
                 {
                     availableAmenities.map(
-                        (item) => (
+                        ([key, label]) => (
 
                             <li
-                                key={item.key}
+                                key={key}
                             >
-                                {item.label}
+                                {label}
                             </li>
 
                         )

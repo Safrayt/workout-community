@@ -1,0 +1,1 @@
+export const MAX_PLAYGROUND_PHOTOS = 5;

@@ -4,6 +4,25 @@ export type ReverseGeocodeResult = {
     address: string;
 };
 
+function buildShortAddress(
+    address: Record<string, string | undefined>
+) {
+    const district =
+        address.suburb ??
+        address.city_district ??
+        address.district ??
+        address.neighbourhood;
+
+    return [
+        district,
+        address.road,
+        address.house_number,
+    ]
+        .filter(
+            (part): part is string => Boolean(part)
+        )
+        .join(", ");
+}
 
 export async function reverseGeocode(
     latitude: number,
@@ -44,6 +63,6 @@ export async function reverseGeocode(
             "",
 
         address:
-            data.display_name ?? "",
+            buildShortAddress(data.address ?? {}),
     };
 }

@@ -55,31 +55,28 @@ export function PlaygroundProvider({
 
             description: playground.description,
 
-            coordinates: {
-                latitude: 0,
-                longitude: 0,
-            },
+            coordinates:
+                playground.coordinates ?? {
+                    latitude: 0,
+                    longitude: 0,
+                },
 
-            size: "medium",
+            size:
+                playground.size || "medium",
 
-            amenities: {
-                lighting: false,
-                covered: false,
-                changingRoom: false,
-                toilet: false,
-                drinkingWater: false,
-                shower: false,
-                parking: false,
-                bicycleParking: false,
-            },
+            amenities: playground.amenities,
 
-            surface: "ground",
+            surface:
+                playground.surface || "ground",
 
-            equipment: [],
+            equipment: playground.equipment,
 
-            photos: [],
+            photos: playground.photos,
 
-            openingHours: "Не указано",
+            openingHours:
+                playground.openingHours.trim().length > 0
+                    ? playground.openingHours
+                    : "Не указано",
         };
 
         setPlaygrounds(

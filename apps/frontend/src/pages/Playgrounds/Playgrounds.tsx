@@ -10,6 +10,7 @@ import { getEventsCount } from "../../utils/playgroundStatistics";
 import { getNextPlaygroundEvent } from "../../utils/getNextPlaygroundEvent";
 
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
@@ -19,15 +20,35 @@ import {
     getPlaygroundMarkers,
 } from "../../utils/maps";
 
+import PlaygroundFilters from "../../components/PlaygroundFilters/PlaygroundFilters";
+import {
+    emptyPlaygroundFilters,
+} from "../../types/playgroundFilters";
+import {
+    filterPlaygrounds,
+} from "../../utils/playgroundFilters";
+
 
 export default function Playgrounds() {
     const {
         playgrounds,
     } = usePlaygrounds();
 
+    const [filters, setFilters] =
+        useState(emptyPlaygroundFilters);
+
+    const [filtersOpen, setFiltersOpen] =
+        useState(false);
+
+    const filteredPlaygrounds =
+        filterPlaygrounds(
+            playgrounds,
+            filters
+        );
+
     const markers =
         getPlaygroundMarkers(
-            playgrounds
+            filteredPlaygrounds
         );
 
     const {
@@ -57,40 +78,76 @@ export default function Playgrounds() {
 
             <hr />
 
+            <button
+                type="button"
+                className="playground-filters-toggle"
+                aria-expanded={filtersOpen}
+                onClick={() =>
+                    setFiltersOpen(
+                        (current) => !current
+                    )
+                }
+            >
+                <h3>Фильтры</h3>
+
+                <span className="playground-filters-toggle__icon">
+                    {filtersOpen ? "▲" : "▼"}
+                </span>
+            </button>
+
+            {
+                filtersOpen && (
+                    <PlaygroundFilters
+                        filters={filters}
+                        onChange={setFilters}
+                    />
+                )
+            }
+
+            <hr />
+
             <h3>Все площадки</h3>
 
-            <div className="playgrounds-list">
-                {
-                    playgrounds.map((playground) => {
+            {
+                filteredPlaygrounds.length === 0 ? (
+                    <p>
+                        Нет площадок, подходящих под выбранные фильтры.
+                    </p>
+                ) : (
+                    <div className="playgrounds-list">
+                        {
+                            filteredPlaygrounds.map((playground) => {
 
-                        const eventsCount =
-                            getEventsCount(
-                                events,
-                                playground.id
-                            );
+                                const eventsCount =
+                                    getEventsCount(
+                                        events,
+                                        playground.id
+                                    );
 
-                        const nextEvent =
-                            getNextPlaygroundEvent(
-                                events,
-                                playground.id
-                            );
+                                const nextEvent =
+                                    getNextPlaygroundEvent(
+                                        events,
+                                        playground.id
+                                    );
 
-                        return (
-                            <PlaygroundCard
-                                key={playground.id}
+                                return (
+                                    <PlaygroundCard
+                                        key={playground.id}
 
-                                {...playground}
+                                        {...playground}
 
-                                eventsCount={eventsCount}
+                                        eventsCount={eventsCount}
 
-                                nextEvent={
-                                    nextEvent?.startDate
-                                }
-                            />
-                        );
-                    })
-                }
-            </div>
+                                        nextEvent={
+                                            nextEvent?.startDate
+                                        }
+                                    />
+                                );
+                            })
+                        }
+                    </div>
+                )
+            }
 
         </Section>
     );

@@ -8,4 +8,6 @@ export type MapMarker = {
     longitude: number;
 
     url: string;
+
+    photoUrl?: string;
 };

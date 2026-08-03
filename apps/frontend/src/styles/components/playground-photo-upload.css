@@ -1,0 +1,108 @@
+.photo-upload__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.photo-upload__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    background: var(--color-surface);
+}
+
+.photo-upload__image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.photo-upload__main-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.photo-upload__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.photo-upload__control {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.photo-upload__control:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.photo-upload__control--danger {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.photo-upload__order-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.photo-upload__control--icon {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+}
+
+.photo-upload__order-controls .photo-upload__control--danger {
+    flex: 1;
+}
+
+.photo-upload__add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    aspect-ratio: 4 / 3;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.photo-upload__add:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.photo-upload__add-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.photo-upload__input {
+    display: none;
+}
+
+.photo-upload__hint {
+    margin-top: 8px;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}

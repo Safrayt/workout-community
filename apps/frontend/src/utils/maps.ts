@@ -32,6 +32,12 @@ export function getPlaygroundMarkers(
                 playground.coordinates.longitude,
             
             url: `/playgrounds/${playground.id}`,
+
+            photoUrl:
+                playground.photos.find(
+                    (photo) => photo.isMain
+                )?.url ??
+                playground.photos[0]?.url,
         })
     );
 }

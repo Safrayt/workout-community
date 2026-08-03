@@ -61,6 +61,7 @@ export type PlaygroundPhoto = {
     id: string;
     url: string;
     description?: string;
+    isMain?: boolean;
 };
 
 export type Playground = {
