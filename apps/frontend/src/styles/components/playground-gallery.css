@@ -27,17 +27,6 @@
     transform: scale(1.05);
 }
 
-.playground-gallery__main-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: var(--color-primary);
-    color: #fff;
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-}
-
 .playground-gallery__lightbox {
     position: fixed;
     inset: 0;

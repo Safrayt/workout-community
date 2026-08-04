@@ -88,14 +88,6 @@ export default function PlaygroundGallery({
                                 src={photo.url}
                                 alt={photo.description ?? "Фотография площадки"}
                             />
-
-                            {
-                                photo.isMain && (
-                                    <span className="playground-gallery__main-badge">
-                                        Главная
-                                    </span>
-                                )
-                            }
                         </button>
                     ))
                 }

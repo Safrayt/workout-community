@@ -16,6 +16,15 @@ type PlaygroundContextType = {
     addPlayground: (
         playground: NewPlayground
     ) => Playground;
+
+    updatePlayground: (
+        id: string,
+        playground: NewPlayground
+    ) => void;
+
+    deletePlayground: (
+        id: string
+    ) => void;
 };
 
 
@@ -89,11 +98,70 @@ export function PlaygroundProvider({
     }
 
 
+    function updatePlayground(
+        id: string,
+        playground: NewPlayground
+    ) {
+        setPlaygrounds(
+            (current) =>
+                current.map((existing) =>
+                    existing.id === id
+                        ? {
+                            ...existing,
+
+                            name: playground.name,
+
+                            locality: playground.locality,
+
+                            address: playground.address,
+
+                            description: playground.description,
+
+                            coordinates:
+                                playground.coordinates ?? existing.coordinates,
+
+                            size:
+                                playground.size || existing.size,
+
+                            amenities: playground.amenities,
+
+                            surface:
+                                playground.surface || existing.surface,
+
+                            equipment: playground.equipment,
+
+                            photos: playground.photos,
+
+                            openingHours:
+                                playground.openingHours.trim().length > 0
+                                    ? playground.openingHours
+                                    : existing.openingHours,
+                        }
+                        : existing
+                )
+        );
+    }
+
+
+    function deletePlayground(
+        id: string
+    ) {
+        setPlaygrounds(
+            (current) =>
+                current.filter(
+                    (playground) => playground.id !== id
+                )
+        );
+    }
+
+
     return (
         <PlaygroundContext.Provider
             value={{
                 playgrounds,
                 addPlayground,
+                updatePlayground,
+                deletePlayground,
             }}
         >
             {children}

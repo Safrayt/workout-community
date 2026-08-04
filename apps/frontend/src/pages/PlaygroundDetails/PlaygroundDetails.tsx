@@ -1,8 +1,11 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import Button from "../../components/ui/Button/Button";
 
 import PlaygroundInfo from "../../components/PlaygroundInfo/PlaygroundInfo";
+import PlaygroundMainPhoto from "../../components/PlaygroundMainPhoto/PlaygroundMainPhoto";
 import PlaygroundGallery from "../../components/PlaygroundGallery/PlaygroundGallery";
 import PlaygroundAmenities from "../../components/PlaygroundAmenities/PlaygroundAmenities";
 import PlaygroundEquipment from "../../components/PlaygroundEquipment/PlaygroundEquipment";
@@ -11,6 +14,10 @@ import PlaygroundEvents from "../../components/PlaygroundEvents/PlaygroundEvents
 import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
+
+import {
+    useCurrentUser,
+} from "../../context/CurrentUserContext";
 
 import {
     useEvents,
@@ -32,9 +39,16 @@ export default function PlaygroundDetails() {
 
     const { id } = useParams();
 
+    const navigate = useNavigate();
+
     const {
         playgrounds,
+        deletePlayground,
     } = usePlaygrounds();
+
+    const {
+        currentUser,
+    } = useCurrentUser();
 
     const {
         events,
@@ -72,9 +86,35 @@ export default function PlaygroundDetails() {
             playground.id
         );
 
+    const isOwner =
+        playground.creatorId === currentUser.id;
+
+    function handleDelete() {
+        if (!playground) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Удалить площадку «${playground.name}»? Это действие необратимо.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        deletePlayground(playground.id);
+
+        navigate("/playgrounds");
+    }
+
     return (
 
         <Section title={playground.name}>
+
+            <PlaygroundMainPhoto
+                photos={playground.photos}
+                playgroundName={playground.name}
+            />
 
             <PlaygroundInfo
                 playground={playground}
@@ -96,6 +136,28 @@ export default function PlaygroundDetails() {
                 events={playgroundEvents}
                 registrations={registrations}
             />
+
+            {
+                isOwner && (
+                    <ActionGroup>
+                        <Button
+                            variant="secondary"
+                            onClick={() =>
+                                navigate(`/playgrounds/${playground.id}/edit`)
+                            }
+                        >
+                            Редактировать
+                        </Button>
+
+                        <Button
+                            variant="danger"
+                            onClick={handleDelete}
+                        >
+                            Удалить площадку
+                        </Button>
+                    </ActionGroup>
+                )
+            }
 
         </Section>
 

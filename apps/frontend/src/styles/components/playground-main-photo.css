@@ -1,0 +1,11 @@
+.playground-main-photo {
+    margin-bottom: 16px;
+}
+
+.playground-main-photo__image {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    display: block;
+}

@@ -2,6 +2,8 @@ import type {
     MapMarker,
 } from "../../types/map";
 
+import "../../styles/components/map-popup.css";
+
 import MapPicker from "./MapPicker";
 
 import {
@@ -32,6 +34,8 @@ type PlaygroundsMapProps = {
     onMarkerClick?: (
         marker: MapMarker
     ) => void;
+
+    showDetailsLink?: boolean;
 };
 
 function MapClickHandler({
@@ -66,6 +70,7 @@ export default function PlaygroundsMap({
     selectedLatitude,
     selectedLongitude,
     onMarkerClick,
+    showDetailsLink = true,
 }: PlaygroundsMapProps) {
     const navigate = useNavigate();
     return (
@@ -104,34 +109,38 @@ export default function PlaygroundsMap({
                     ]}
                     eventHandlers={{
                         click: () => {
-                            if (onMarkerClick) {
-                                onMarkerClick(marker);
-                                return;
-                            }
-
-                            navigate(marker.url);
+                            onMarkerClick?.(marker);
                         },
                     }}
                 >
                     <Popup>
-                        {
-                            marker.photoUrl && (
-                                <img
-                                    src={marker.photoUrl}
-                                    alt={marker.title}
-                                    style={{
-                                        width: "160px",
-                                        height: "120px",
-                                        objectFit: "cover",
-                                        borderRadius: "8px",
-                                        display: "block",
-                                        marginBottom: "6px",
-                                    }}
-                                />
-                            )
-                        }
+                        <div className="map-popup">
+                            {
+                                marker.photoUrl && (
+                                    <img
+                                        src={marker.photoUrl}
+                                        alt={marker.title}
+                                        className="map-popup__image"
+                                    />
+                                )
+                            }
 
-                        {marker.title}
+                            <p className="map-popup__title">
+                                {marker.title}
+                            </p>
+
+                            {
+                                showDetailsLink && (
+                                    <button
+                                        type="button"
+                                        className="map-popup__button"
+                                        onClick={() => navigate(marker.url)}
+                                    >
+                                        Подробнее
+                                    </button>
+                                )
+                            }
+                        </div>
                     </Popup>
                 </Marker>
             ))}

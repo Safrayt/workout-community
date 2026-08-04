@@ -2,12 +2,6 @@ import Section from "../../components/ui/Section/Section";
 import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
-import {
-    useEvents,
-} from "../../context/EventContext";
-
-import { getEventsCount } from "../../utils/playgroundStatistics";
-import { getNextPlaygroundEvent } from "../../utils/getNextPlaygroundEvent";
 
 import { Link } from "react-router-dom";
 import { useState } from "react";
@@ -51,9 +45,6 @@ export default function Playgrounds() {
             filteredPlaygrounds
         );
 
-    const {
-        events,
-    } = useEvents();
     return (
         <Section title="Площадки">
             <ActionGroup>
@@ -116,34 +107,13 @@ export default function Playgrounds() {
                 ) : (
                     <div className="playgrounds-list">
                         {
-                            filteredPlaygrounds.map((playground) => {
+                            filteredPlaygrounds.map((playground) => (
+                                <PlaygroundCard
+                                    key={playground.id}
 
-                                const eventsCount =
-                                    getEventsCount(
-                                        events,
-                                        playground.id
-                                    );
-
-                                const nextEvent =
-                                    getNextPlaygroundEvent(
-                                        events,
-                                        playground.id
-                                    );
-
-                                return (
-                                    <PlaygroundCard
-                                        key={playground.id}
-
-                                        {...playground}
-
-                                        eventsCount={eventsCount}
-
-                                        nextEvent={
-                                            nextEvent?.startDate
-                                        }
-                                    />
-                                );
-                            })
+                                    {...playground}
+                                />
+                            ))
                         }
                     </div>
                 )

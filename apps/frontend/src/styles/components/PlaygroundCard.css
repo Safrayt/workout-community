@@ -1,5 +1,52 @@
 .playground-card {
     display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 16px;
+}
+
+.playground-card__photo {
+    width: 180px;
+    height: 140px;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    display: block;
+}
+
+.playground-card__photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-background);
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}
+
+.playground-card__info {
+    display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.playground-card__name {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.playground-card__locality {
+    margin: 4px 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+}
+
+.playground-card__link {
+    margin-top: 12px;
 }

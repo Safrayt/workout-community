@@ -1,0 +1,34 @@
+.map-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 160px;
+}
+
+.map-popup__image {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+
+.map-popup__title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.map-popup__button {
+    border: none;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.map-popup__button:hover {
+    background: var(--color-primary-dark);
+}

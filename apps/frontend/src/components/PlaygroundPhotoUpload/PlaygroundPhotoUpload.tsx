@@ -1,8 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import "../../styles/components/playground-photo-upload.css";
 
-import { readFileAsDataUrl } from "../../utils/files";
+import { compressImageFile } from "../../utils/files";
 
 import type { NewPlaygroundPhoto } from "../../types/newPlayground";
 
@@ -25,6 +25,9 @@ export default function PlaygroundPhotoUpload({
     const inputRef =
         useRef<HTMLInputElement>(null);
 
+    const [isProcessing, setIsProcessing] =
+        useState(false);
+
     const remainingSlots =
         maxPhotos - photos.length;
 
@@ -41,33 +44,39 @@ export default function PlaygroundPhotoUpload({
                 remainingSlots
             );
 
-        const newPhotos = await Promise.all(
-            files.map(async (file) => ({
-                id: crypto.randomUUID(),
-                url: await readFileAsDataUrl(file),
-                isMain: false,
-            }))
-        );
+        setIsProcessing(true);
 
-        const updatedPhotos = [
-            ...photos,
-            ...newPhotos,
-        ];
+        try {
+            const newPhotos = await Promise.all(
+                files.map(async (file) => ({
+                    id: crypto.randomUUID(),
+                    url: await compressImageFile(file),
+                    isMain: false,
+                }))
+            );
 
-        if (
-            !updatedPhotos.some((photo) => photo.isMain) &&
-            updatedPhotos.length > 0
-        ) {
-            updatedPhotos[0] = {
-                ...updatedPhotos[0],
-                isMain: true,
-            };
-        }
+            const updatedPhotos = [
+                ...photos,
+                ...newPhotos,
+            ];
 
-        onChange(updatedPhotos);
+            if (
+                !updatedPhotos.some((photo) => photo.isMain) &&
+                updatedPhotos.length > 0
+            ) {
+                updatedPhotos[0] = {
+                    ...updatedPhotos[0],
+                    isMain: true,
+                };
+            }
 
-        if (inputRef.current) {
-            inputRef.current.value = "";
+            onChange(updatedPhotos);
+        } finally {
+            setIsProcessing(false);
+
+            if (inputRef.current) {
+                inputRef.current.value = "";
+            }
         }
     }
 
@@ -202,12 +211,15 @@ export default function PlaygroundPhotoUpload({
 
                 {
                     remainingSlots > 0 && (
-                        <label className="photo-upload__add">
+                        <label
+                            className={`photo-upload__add ${isProcessing ? "photo-upload__add--disabled" : ""}`}
+                        >
                             <input
                                 ref={inputRef}
                                 type="file"
                                 accept="image/*"
                                 multiple
+                                disabled={isProcessing}
                                 className="photo-upload__input"
                                 onChange={(event) =>
                                     handleFilesSelected(
@@ -217,11 +229,15 @@ export default function PlaygroundPhotoUpload({
                             />
 
                             <span className="photo-upload__add-icon">
-                                +
+                                {isProcessing ? "…" : "+"}
                             </span>
 
                             <span>
-                                Добавить фото
+                                {
+                                    isProcessing
+                                        ? "Обработка фото..."
+                                        : "Добавить фото"
+                                }
                             </span>
                         </label>
                     )

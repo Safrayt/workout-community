@@ -274,6 +274,7 @@ export default function WorkoutEntryForm({
                 <PlaygroundsMap
                     markers={playgroundMarkers}
                     height="350px"
+                    showDetailsLink={false}
                     selectedLatitude={
                         selectedPlayground?.coordinates.latitude
                     }

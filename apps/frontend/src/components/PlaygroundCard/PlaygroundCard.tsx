@@ -5,8 +5,7 @@ import Button from "../ui/Button/Button";
 import "../../styles/components/PlaygroundCard.css";
 
 import type {
-    PlaygroundAmenities,
-    PlaygroundEquipment,
+    PlaygroundPhoto,
 } from "../../types/playground";
 
 type PlaygroundCardProps = {
@@ -16,84 +15,53 @@ type PlaygroundCardProps = {
 
     locality: string;
 
-    description: string;
-
-    amenities: PlaygroundAmenities;
-
-    equipment: PlaygroundEquipment[];
-
-    eventsCount: number;
-
-    nextEvent?: string;
+    photos: PlaygroundPhoto[];
 };
 
 export default function PlaygroundCard({
     id,
     name,
     locality,
-    description,
-    amenities,
-    equipment,
-    eventsCount,
-    nextEvent,
+    photos,
 }: PlaygroundCardProps) {
+    const mainPhoto =
+        photos.find((photo) => photo.isMain) ??
+        photos[0];
+
     return (
         <Card className="playground-card">
-            <h3>
-                {name}
-            </h3>
+            {
+                mainPhoto ? (
+                    <img
+                        src={mainPhoto.url}
+                        alt={name}
+                        className="playground-card__photo"
+                    />
+                ) : (
+                    <div className="playground-card__photo playground-card__photo--placeholder">
+                        Нет фото
+                    </div>
+                )
+            }
 
-            <p>
-                {locality}
-            </p>
+            <div className="playground-card__info">
+                <h3 className="playground-card__name">
+                    {name}
+                </h3>
 
-            <p>
-                {description}
-            </p>
+                <p className="playground-card__locality">
+                    {locality}
+                </p>
 
-            <p>
-                Освещение:
-                {" "}
-                {amenities.lighting ? "Есть" : "Нет"}
-            </p>
-
-            <p>
-                Навес:
-                {" "}
-                {amenities.covered ? "Есть" : "Нет"}
-            </p>
-
-            <h4>Оборудование</h4>
-
-            <ul>
-                {
-                    equipment.map(
-                        (item) => (
-                            <li key={item}>
-                                {item}
-                            </li>
-                        )
-                    )
-                }
-            </ul>
-
-            <p>
-                Событий:
-                {" "}
-                {eventsCount}
-            </p>
-
-            <p>
-                Ближайшая тренировка:
-                {" "}
-                {nextEvent ?? "Не запланирована"}
-            </p>
-
-            <Link to={`/playgrounds/${id}`}>
-                <Button>
-                    Подробнее
-                </Button>
-            </Link>
+                <Link
+                    to={`/playgrounds/${id}`}
+                    className="playground-card__link"
+                >
+                    <Button variant="outline">
+                        Подробнее
+                    </Button>
+                </Link>
+            </div>
         </Card>
     );
 }
