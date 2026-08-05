@@ -4,6 +4,26 @@
     gap: var(--space-3);
 }
 
+.event-card__layout {
+    display: flex;
+    gap: var(--space-4);
+    align-items: stretch;
+}
+
+.event-card__poster {
+    width: 240px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+}
+
+.event-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
 .event-card__title {
     font-size: var(--font-size-lg);
     font-weight: 700;
@@ -11,6 +31,15 @@
 
 .event-card__meta {
     color: var(--color-text-secondary);
+}
+
+.event-card__description {
+    color: var(--color-text-secondary);
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .event-card__actions {

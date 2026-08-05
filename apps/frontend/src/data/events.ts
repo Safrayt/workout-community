@@ -16,11 +16,9 @@ export const events: Event[] = [
         creatorId: "1",
 
         startDate:
-            "2026-07-18T10:00:00",
+            "2026-08-18T10:00:00",
 
         expectedParticipants: 13,
-
-        weather: "—",
     },
 
     {
@@ -41,7 +39,5 @@ export const events: Event[] = [
             "2026-09-19T11:00:00",
 
         expectedParticipants: 8,
-
-        weather: "—",
     },
 ];

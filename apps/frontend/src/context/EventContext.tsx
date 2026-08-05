@@ -30,6 +30,15 @@ type EventContextType = {
     addEvent: (
         event: NewEvent
     ) => Event;
+
+    updateEvent: (
+        id: string,
+        event: NewEvent
+    ) => void;
+
+    deleteEvent: (
+        id: string
+    ) => void;
 };
 
 const EventContext =
@@ -91,6 +100,11 @@ export function EventProvider({
             startDate: event.startDate,
 
             expectedParticipants: 0,
+
+            posterUrl:
+                event.posterUrl.trim().length > 0
+                    ? event.posterUrl
+                    : undefined,
         };
 
         setEvents(
@@ -103,11 +117,69 @@ export function EventProvider({
         return newEvent;
     }
 
+    function updateEvent(
+        id: string,
+        event: NewEvent
+    ) {
+        const playground =
+            playgrounds.find(
+                (item) =>
+                    item.id === event.playgroundId
+            );
+
+        if (!playground) {
+            throw new Error(
+                "Playground not found."
+            );
+        }
+
+        setEvents(
+            (current) =>
+                current.map((existing) =>
+                    existing.id === id
+                        ? {
+                            ...existing,
+
+                            title: event.title,
+
+                            description: event.description,
+
+                            city: playground.locality,
+
+                            location: playground.address,
+
+                            playgroundId: event.playgroundId,
+
+                            startDate: event.startDate,
+
+                            posterUrl:
+                                event.posterUrl.trim().length > 0
+                                    ? event.posterUrl
+                                    : undefined,
+                        }
+                        : existing
+                )
+        );
+    }
+
+    function deleteEvent(
+        id: string
+    ) {
+        setEvents(
+            (current) =>
+                current.filter(
+                    (event) => event.id !== id
+                )
+        );
+    }
+
     return (
         <EventContext.Provider
             value={{
                 events,
                 addEvent,
+                updateEvent,
+                deleteEvent,
             }}
         >
             {children}
@@ -129,5 +201,3 @@ export function useEvents() {
 
     return context;
 }
-
-

@@ -6,12 +6,18 @@ import type {
     Playground,
 } from "../../types/playground";
 
+import { Link } from "react-router-dom";
+
+import "../../styles/components/EventInfo.css";
+
 import InfoSection from "../ui/InfoSection/InfoSection";
 import InfoRow from "../ui/InfoRow/InfoRow";
 
 import {
     formatEventDate,
 } from "../../utils/formatEventDate";
+
+import EventWeather from "../EventWeather/EventWeather";
 
 type Props = {
 
@@ -32,7 +38,7 @@ export default function EventInfo({
             title="Основная информация"
         >
 
-            <p>
+            <p className="event-info__description">
                 {event.description}
             </p>
 
@@ -41,7 +47,17 @@ export default function EventInfo({
             </InfoRow>
 
             <InfoRow label="Площадка">
-                {playground?.name ?? "—"}
+                {
+                    playground ? (
+                        <Link
+                            to={`/playgrounds/${playground.id}`}
+                        >
+                            {playground.name}
+                        </Link>
+                    ) : (
+                        "—"
+                    )
+                }
             </InfoRow>
 
             <InfoRow label="Адрес">
@@ -54,9 +70,10 @@ export default function EventInfo({
                 )}
             </InfoRow>
 
-            <InfoRow label="Погода">
-                {event.weather ?? "—"}
-            </InfoRow>
+            <EventWeather
+                startDate={event.startDate}
+                coordinates={playground?.coordinates}
+            />
 
         </InfoSection>
 

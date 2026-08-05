@@ -7,6 +7,13 @@ import {
 import { getParticipantCount } from "../../utils/eventParticipants";
 
 import {
+    usePlaygrounds,
+} from "../../context/PlaygroundContext";
+import {
+    getPlaygroundById,
+} from "../../utils/playgrounds";
+
+import {
     useRegistration,
 } from "../../context/RegistrationContext";
 
@@ -30,6 +37,10 @@ export default function Events() {
         events,
     } = useEvents();
 
+    const {
+        playgrounds,
+    } = usePlaygrounds();
+
     return (
         <Section title="События">
              <ActionGroup>
@@ -48,10 +59,17 @@ export default function Events() {
                         );
                     const registered = checkRegistration(event.id);
 
+                    const playground =
+                        getPlaygroundById(
+                            playgrounds,
+                            event.playgroundId
+                        );
+
                     return (
                         <EventCard
                             key={event.id}
                             {...event}
+                            playground={playground}
                             expectedParticipants={participants}
                             isRegistered={registered}
                             onRegister={() => register(event.id)}

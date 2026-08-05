@@ -1,0 +1,14 @@
+.event-poster {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.event-poster__image {
+    max-width: 100%;
+    max-height: 420px;
+    width: auto;
+    object-fit: contain;
+    border-radius: var(--radius-lg);
+    display: block;
+}

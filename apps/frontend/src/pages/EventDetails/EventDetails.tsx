@@ -1,10 +1,16 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import Button from "../../components/ui/Button/Button";
 
 import {
     useEvents,
 } from "../../context/EventContext";
+
+import {
+    useCurrentUser,
+} from "../../context/CurrentUserContext";
 
 import { formatParticipants } from "../../utils/format";
 
@@ -12,8 +18,6 @@ import { getPlaygroundById } from "../../utils/playgrounds";
 import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
-
-import { Link } from "react-router-dom";
 
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
 import InfoRow from "../../components/ui/InfoRow/InfoRow";
@@ -32,14 +36,22 @@ import {
 import EventParticipants from "../../components/EventParticipants/EventParticipants";
 import EventRegistration from "../../components/EventRegistration/EventRegistration";
 import EventInfo from "../../components/EventInfo/EventInfo";
+import EventPoster from "../../components/EventPoster/EventPoster";
 
 
 export default function EventDetails() {
     const { id } = useParams();
 
+    const navigate = useNavigate();
+
     const {
         events,
+        deleteEvent,
     } = useEvents();
+
+    const {
+        currentUser,
+    } = useCurrentUser();
 
     const {
         playgrounds,
@@ -65,6 +77,27 @@ export default function EventDetails() {
         );
     }
 
+    const isOwner =
+        event.creatorId === currentUser.id;
+
+    function handleDelete() {
+        if (!event) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Удалить мероприятие «${event.title}»? Это действие необратимо.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        deleteEvent(event.id);
+
+        navigate("/events");
+    }
+
     const playground =
         getPlaygroundById(
             playgrounds,
@@ -82,6 +115,11 @@ export default function EventDetails() {
 
     return (
         <Section title={event.title}>
+            <EventPoster
+                event={event}
+                playground={playground}
+            />
+
             <EventInfo
                 event={event}
                 playground={playground}
@@ -111,23 +149,27 @@ export default function EventDetails() {
 
             </InfoSection>
 
-            <InfoSection title="Место проведения">
-
-                {
-                    playground ? (
-                        <Link
-                            to={`/playgrounds/${playground.id}`}
+            {
+                isOwner && (
+                    <ActionGroup>
+                        <Button
+                            variant="secondary"
+                            onClick={() =>
+                                navigate(`/events/${event.id}/edit`)
+                            }
                         >
-                            Открыть страницу площадки
-                        </Link>
-                    ) : (
-                        <p>
-                            Площадка не найдена.
-                        </p>
-                    )
-                }
+                            Изменить мероприятие
+                        </Button>
 
-            </InfoSection>
+                        <Button
+                            variant="danger"
+                            onClick={handleDelete}
+                        >
+                            Удалить мероприятие
+                        </Button>
+                    </ActionGroup>
+                )
+            }
 
         </Section>
     );

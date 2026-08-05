@@ -17,5 +17,5 @@ export type Event = {
 
     expectedParticipants: number;
 
-    weather?: string;
+    posterUrl?: string;
 };

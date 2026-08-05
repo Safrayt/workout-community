@@ -1,9 +1,24 @@
-import Badge from "../ui/Badge/Badge";
 import Button from "../ui/Button/Button";
 import Card from "../ui/Card/Card";
 import { formatParticipants } from "../../utils/format";
 import { formatEventDate } from "../../utils/formatEventDate";
 import { Link } from "react-router-dom";
+
+import {
+    useEventWeather,
+} from "../../hooks/useEventWeather";
+
+import {
+    formatEventWeather,
+} from "../../utils/formatEventWeather";
+
+import {
+    getEventPosterUrl,
+} from "../../utils/eventPoster";
+
+import type {
+    Playground,
+} from "../../types/playground";
 
 type EventCardProps = {
     id: string;
@@ -13,7 +28,8 @@ type EventCardProps = {
     location: string;
     startDate: string;
     expectedParticipants: number;
-    weather?: string;
+    posterUrl?: string;
+    playground?: Playground;
     isRegistered?: boolean;
     onRegister?: () => void;
     onCancelRegistration?: () => void;
@@ -27,32 +43,55 @@ export default function EventCard({
     location,
     startDate,
     expectedParticipants,
-    weather,
+    posterUrl,
+    playground,
     isRegistered = false,
     onRegister,
     onCancelRegistration,
 }: EventCardProps) {
+    const weatherState = useEventWeather(
+        startDate,
+        playground?.coordinates.latitude,
+        playground?.coordinates.longitude
+    );
+
+    const imageUrl =
+        getEventPosterUrl(
+            posterUrl,
+            playground
+        );
+
     return (
         <Card className="event-card">
-            <Badge>
-                Открытая тренировка
-            </Badge>
+            <div className="event-card__layout">
+                {
+                    imageUrl && (
+                        <img
+                            src={imageUrl}
+                            alt={title}
+                            className="event-card__poster"
+                        />
+                    )
+                }
 
-            <h3 className="event-card__title">
-                {title}
-            </h3>
+                <div className="event-card__content">
+                    <h3 className="event-card__title">
+                        {title}
+                    </h3>
 
-            <p className="event-card__meta">{description}</p>
+                    <p className="event-card__meta">{formatEventDate(startDate)}</p>
 
-            <p className="event-card__meta">{city}</p>
+                    <p className="event-card__meta">{city}</p>
 
-            <p className="event-card__meta">{location}</p>
+                    <p className="event-card__meta">{location}</p>
 
-            <p className="event-card__meta">{formatEventDate(startDate)}</p>
+                    <p className="event-card__description">{description}</p>
 
-            <p className="event-card__meta">Ожидается {formatParticipants(expectedParticipants)}</p>
+                    <p className="event-card__meta">Погода: {formatEventWeather(weatherState)}</p>
 
-            <p className="event-card__meta">Погода: {weather ?? "—"}</p>
+                    <p className="event-card__meta">Ожидается {formatParticipants(expectedParticipants)}</p>
+                </div>
+            </div>
 
             <div className="event-card__actions">
                 <Button variant={isRegistered ? "secondary" : "primary"}

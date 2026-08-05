@@ -247,23 +247,6 @@ export default function Profile() {
 
             </InfoSection>
 
-            <InfoSection title="Действия">
-                <ActionGroup>
-                    <Link to="/events/create">
-                        <Button variant="primary">
-                            Создать событие
-                        </Button>
-                    </Link>
-
-                    <Link to="/playgrounds/add">
-                        <Button variant="secondary">
-                            Добавить площадку
-                        </Button>
-                    </Link>
-
-                </ActionGroup>
-            </InfoSection>
-
             <InfoSection title="Предстоящие события">
                 {
                     upcomingEvents.length === 0 ? (

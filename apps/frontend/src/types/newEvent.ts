@@ -6,4 +6,6 @@ export type NewEvent = {
     playgroundId: string;
 
     startDate: string;
+
+    posterUrl: string;
 };

@@ -18,6 +18,11 @@ export function validateEvent(
             field: "startDate",
             message: "Некорректная дата.",
         });
+    } else if (date.getTime() < Date.now()) {
+        errors.push({
+            field: "startDate",
+            message: "Нельзя выбрать дату в прошлом.",
+        });
     }
 
         if (
@@ -59,4 +64,3 @@ export function validateEvent(
         errors,
     };
 }
-
