@@ -142,13 +142,12 @@ class Playground(PlaygroundBase, table=True):
 
 class PlaygroundCreate(PlaygroundBase):
     """
-    Данные для создания площадки.
-    photos приходят вложенным списком — сервер сам создаст для каждой
-    из них отдельную запись в таблице PlaygroundPhoto.
+    Данные для создания площадки. Фотографии сюда не входят —
+    их добавляют отдельным запросом на /playgrounds/{id}/photos
+    уже после создания самой площадки (см. routers/playgrounds.py).
     """
 
     equipment: List[PlaygroundEquipment] = []
-    photos: List[PlaygroundPhotoCreate] = []
 
 
 class PlaygroundUpdate(SQLModel):

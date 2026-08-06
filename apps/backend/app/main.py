@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.database import create_db_and_tables
+from app.files import UPLOAD_ROOT, ensure_upload_dirs
 from app.routers import auth, events, playgrounds, users
+
+# Папки для загрузок должны существовать ДО того, как StaticFiles
+# попробует их примонтировать (иначе будет ошибка при старте).
+ensure_upload_dirs()
 
 app = FastAPI(
     title="Workout Community API",
@@ -21,6 +27,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Отдаёт загруженные файлы напрямую по ссылке вида
+# http://127.0.0.1:8000/uploads/playgrounds/<файл>.jpg
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_ROOT)), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(users.router)

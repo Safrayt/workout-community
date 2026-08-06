@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
 from app.auth import get_current_user
 from app.database import get_session
+from app.files import delete_image, save_image
 from app.models import User
 from app.models_event import (
     Event,
@@ -226,3 +227,49 @@ def cancel_registration(
 
     session.add(registration)
     session.commit()
+
+
+# --- Афиша мероприятия ---------------------------------------------------
+
+@router.post("/{event_id}/poster", response_model=EventRead)
+async def upload_event_poster(
+    event_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> EventRead:
+    """
+    Загружает афишу мероприятия. Если афиша уже была, старый файл
+    удаляется с диска, чтобы не копились неиспользуемые файлы.
+    """
+    event = _get_event_or_404(event_id, session)
+    _ensure_is_owner(event, current_user)
+
+    delete_image(event.poster_url)
+    event.poster_url = await save_image(file, "events")
+
+    session.add(event)
+    session.commit()
+    session.refresh(event)
+
+    return _to_event_read(event, session)
+
+
+@router.delete("/{event_id}/poster", response_model=EventRead)
+def delete_event_poster(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> EventRead:
+    """Убирает афишу мероприятия (после этого EventCard покажет фото площадки)."""
+    event = _get_event_or_404(event_id, session)
+    _ensure_is_owner(event, current_user)
+
+    delete_image(event.poster_url)
+    event.poster_url = None
+
+    session.add(event)
+    session.commit()
+    session.refresh(event)
+
+    return _to_event_read(event, session)
