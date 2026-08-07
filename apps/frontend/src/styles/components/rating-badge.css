@@ -1,0 +1,25 @@
+.rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 2px 10px;
+
+    background: color-mix(in srgb, var(--rating-color) 12%, white);
+    border: 1px solid var(--rating-color);
+    border-radius: 999px;
+
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+
+    color: var(--rating-color);
+}
+
+.rating-badge__dot {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+
+    background: var(--rating-color);
+    border-radius: 50%;
+}

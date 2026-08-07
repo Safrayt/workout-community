@@ -20,4 +20,32 @@ export const playgroundAmenityLabels: Record<keyof PlaygroundAmenities, string> 
 
     bicycleParking: "Велопарковка",
 
+    trashBins: "Урны",
+
+    shade: "Тень",
+
+};
+
+export const playgroundAmenityIcons: Record<keyof PlaygroundAmenities, string> = {
+
+    lighting: "💡",
+
+    covered: "☂️",
+
+    changingRoom: "🚪",
+
+    toilet: "🚻",
+
+    drinkingWater: "🚰",
+
+    shower: "🚿",
+
+    parking: "🅿️",
+
+    bicycleParking: "🚲",
+
+    trashBins: "🗑️",
+
+    shade: "🌳",
+
 };

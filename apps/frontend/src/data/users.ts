@@ -24,4 +24,44 @@ export const users: User[] = [
             github: "Safrayt",
         },
     },
+    {
+        id: "2",
+
+        name: "Лада",
+
+        nickname: "Lada",
+
+        locality: "Балашиха",
+
+        bio:
+            "Тренируюсь по вечерам, люблю турники и растяжку.",
+
+        avatarUrl: "",
+
+        experience: 210,
+
+        createdAt: "2026-04-01",
+
+        socialLinks: {},
+    },
+    {
+        id: "3",
+
+        name: "Дима",
+
+        nickname: "Dima",
+
+        locality: "Балашиха",
+
+        bio:
+            "Воркаут с 2022 года, стараюсь поддерживать площадки в порядке.",
+
+        avatarUrl: "",
+
+        experience: 890,
+
+        createdAt: "2026-02-20",
+
+        socialLinks: {},
+    },
 ];

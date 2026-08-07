@@ -17,6 +17,12 @@ export function playgroundToFormValue(
 
         surface: playground.surface,
 
+        access: playground.access,
+
+        accessRestrictions: playground.accessRestrictions ?? "",
+
+        condition: playground.condition,
+
         amenities: playground.amenities,
 
         equipment: playground.equipment,

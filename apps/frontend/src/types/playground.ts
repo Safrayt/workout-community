@@ -13,6 +13,15 @@ export type PlaygroundSurface =
     | "ground"
     | "mixed";
 
+export type PlaygroundAccess =
+    | "free"
+    | "limited";
+
+export type PlaygroundCondition =
+    | "acceptable"
+    | "needsRepair"
+    | "unusable";
+
 export type PlaygroundEquipment =
     | "widePullBar"
     | "highPullBar"
@@ -55,6 +64,30 @@ export type PlaygroundAmenities = {
     parking: boolean;
 
     bicycleParking: boolean;
+
+    trashBins: boolean;
+
+    shade: boolean;
+};
+
+export type PlaygroundHistoryEntryType =
+    | "created"
+    | "inspection"
+    | "edit";
+
+export type PlaygroundHistoryEntry = {
+    id: string;
+
+    type: PlaygroundHistoryEntryType;
+
+    date: string;
+
+    userId: string;
+
+    username: string;
+
+    /** Только для type === "edit": какие поля были изменены. */
+    changedFields?: string[];
 };
 
 export type PlaygroundPhoto = {
@@ -84,6 +117,12 @@ export type Playground = {
 
     surface: PlaygroundSurface;
 
+    access: PlaygroundAccess;
+
+    accessRestrictions?: string;
+
+    condition: PlaygroundCondition;
+
     equipment: PlaygroundEquipment[];
 
     photos: PlaygroundPhoto[]
@@ -91,4 +130,10 @@ export type Playground = {
     openingHours: string;
 
     description: string;
+
+    createdAt: string;
+
+    updatedAt: string;
+
+    history: PlaygroundHistoryEntry[];
 };

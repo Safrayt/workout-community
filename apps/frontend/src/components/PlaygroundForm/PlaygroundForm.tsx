@@ -28,6 +28,8 @@ import {
 } from "../../utils/validation.ts";
 
 import {
+    playgroundAccessLabels,
+    playgroundConditionLabels,
     playgroundSizes,
     playgroundSurfaces,
 } from "../../constants/playgroundProperties";
@@ -55,6 +57,14 @@ const sizeOptions = Object.entries(playgroundSizes).map(
 );
 
 const surfaceOptions = Object.entries(playgroundSurfaces).map(
+    ([value, label]) => ({ value, label })
+);
+
+const accessOptions = Object.entries(playgroundAccessLabels).map(
+    ([value, label]) => ({ value, label })
+);
+
+const conditionOptions = Object.entries(playgroundConditionLabels).map(
     ([value, label]) => ({ value, label })
 );
 
@@ -290,6 +300,38 @@ export default function PlaygroundForm({
                     }
                 />
 
+                <Select
+                    id="access"
+                    label="Доступ"
+                    options={accessOptions}
+                    value={playground.access}
+                    error={getFieldError(errors, "access")}
+                    onChange={(event) =>
+                        updateField(
+                            "access",
+                            event.target.value as NewPlayground["access"]
+                        )
+                    }
+                />
+
+                {
+                    playground.access === "limited" && (
+                        <Textarea
+                            id="accessRestrictions"
+                            label="Ограничения доступа"
+                            placeholder="Например, только для жильцов ЖК, по пропускам, в определённые часы"
+                            value={playground.accessRestrictions}
+                            error={getFieldError(errors, "accessRestrictions")}
+                            onChange={(event) =>
+                                updateField(
+                                    "accessRestrictions",
+                                    event.target.value
+                                )
+                            }
+                        />
+                    )
+                }
+
                 <Input
                     id="openingHours"
                     label="Время работы"
@@ -299,6 +341,20 @@ export default function PlaygroundForm({
                         updateField(
                             "openingHours",
                             event.target.value
+                        )
+                    }
+                />
+
+                <Select
+                    id="condition"
+                    label="Состояние"
+                    options={conditionOptions}
+                    value={playground.condition}
+                    error={getFieldError(errors, "condition")}
+                    onChange={(event) =>
+                        updateField(
+                            "condition",
+                            event.target.value as NewPlayground["condition"]
                         )
                     }
                 />

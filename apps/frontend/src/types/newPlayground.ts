@@ -1,5 +1,7 @@
 import type {
+    PlaygroundAccess,
     PlaygroundAmenities,
+    PlaygroundCondition,
     PlaygroundCoordinates,
     PlaygroundEquipment,
     PlaygroundSize,
@@ -26,6 +28,12 @@ export type NewPlayground = {
     size: PlaygroundSize | "";
 
     surface: PlaygroundSurface | "";
+
+    access: PlaygroundAccess | "";
+
+    accessRestrictions: string;
+
+    condition: PlaygroundCondition | "";
 
     amenities: PlaygroundAmenities;
 

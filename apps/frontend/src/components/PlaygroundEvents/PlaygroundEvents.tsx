@@ -33,7 +33,7 @@ export default function PlaygroundEvents({
         return (
 
             <InfoSection
-                title="Мероприятия"
+                title="Все мероприятия"
             >
 
                 <p>
@@ -49,7 +49,7 @@ export default function PlaygroundEvents({
     return (
 
         <InfoSection
-            title="Мероприятия"
+            title="Все мероприятия"
         >
 
             <div>

@@ -7,9 +7,19 @@
     border-bottom: 1px solid var(--color-border);
 
     margin-bottom: var(--space-6);
+
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.app-navigation::-webkit-scrollbar {
+    display: none;
 }
 
 .app-navigation a {
+    flex-shrink: 0;
+
     color: var(--color-text-secondary);
 
     font-weight: 500;

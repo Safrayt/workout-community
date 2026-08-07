@@ -15,6 +15,7 @@ import EditEvent from "../pages/EditEvent/EditEvent";
 import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
 import AddPlayground from "../pages/AddPlayground/AddPlayground";
 import EditPlayground from "../pages/EditPlayground/EditPlayground";
+import PlaygroundHistory from "../pages/PlaygroundHistory/PlaygroundHistory";
 import Achievements from "../pages/Achievements/Achievements";
 
 export const router = createBrowserRouter([
@@ -73,6 +74,10 @@ export const router = createBrowserRouter([
       {
           path: "playgrounds/:id/edit",
           element: <EditPlayground />,
+      },
+      {
+          path: "playgrounds/:id/history",
+          element: <PlaygroundHistory />,
       },
             {
           path: "playgrounds/add",

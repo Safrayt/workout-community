@@ -1,0 +1,24 @@
+.playground-access-note {
+    margin: var(--space-3) 0;
+    padding: var(--space-3) var(--space-4);
+
+    background: #fffaf0;
+    border: 1px solid var(--color-warning);
+    border-left-width: 4px;
+    border-radius: var(--radius-sm);
+}
+
+.playground-access-note__title {
+    display: block;
+    margin-bottom: 4px;
+
+    font-size: var(--font-size-sm);
+
+    color: var(--color-warning);
+}
+
+.playground-access-note__text {
+    margin: 0;
+
+    color: var(--color-text);
+}

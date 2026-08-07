@@ -2,9 +2,12 @@ import type {
     Playground,
 } from "../../types/playground";
 
+import "../../styles/components/playground-amenities.css";
+
 import InfoSection from "../ui/InfoSection/InfoSection";
 
 import {
+    playgroundAmenityIcons,
     playgroundAmenityLabels,
 } from "../../constants/playgroundAmenities";
 
@@ -53,23 +56,28 @@ export default function PlaygroundAmenities({
             title="Удобства"
         >
 
-            <ul>
+            <div className="playground-amenities">
 
                 {
                     availableAmenities.map(
                         ([key, label]) => (
 
-                            <li
+                            <span
                                 key={key}
+                                className="playground-amenities__badge"
                             >
+                                <span className="playground-amenities__icon">
+                                    {playgroundAmenityIcons[key]}
+                                </span>
+
                                 {label}
-                            </li>
+                            </span>
 
                         )
                     )
                 }
 
-            </ul>
+            </div>
 
         </InfoSection>
 

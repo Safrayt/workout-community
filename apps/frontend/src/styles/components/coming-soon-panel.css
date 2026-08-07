@@ -1,0 +1,24 @@
+.coming-soon-panel {
+    padding: var(--space-4);
+
+    background: repeating-linear-gradient(
+        135deg,
+        var(--color-background),
+        var(--color-background) 10px,
+        var(--color-surface) 10px,
+        var(--color-surface) 20px
+    );
+
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.coming-soon-panel__header {
+    margin-bottom: var(--space-2);
+}
+
+.coming-soon-panel__description {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+}

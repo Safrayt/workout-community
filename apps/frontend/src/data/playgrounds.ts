@@ -28,9 +28,15 @@ export const playgrounds: Playground[] = [
             shower: false,
             parking: true,
             bicycleParking: true,
+            trashBins: true,
+            shade: true,
         },
 
         surface: "rubber",
+
+        access: "free",
+
+        condition: "acceptable",
 
         equipment: [
             "highPullBar",
@@ -46,7 +52,43 @@ export const playgrounds: Playground[] = [
         openingHours: "Круглосуточно",
 
         description:
-            "Современная воркаут-площадка с резиновым покрытием."
+            "Современная воркаут-площадка с резиновым покрытием.",
+
+        createdAt: "2026-03-07T09:00:00.000Z",
+
+        updatedAt: "2026-08-07T13:00:00.000Z",
+
+        history: [
+            {
+                id: "h1",
+                type: "created",
+                date: "2026-03-07T09:00:00.000Z",
+                userId: "1",
+                username: "Safrayt",
+            },
+            {
+                id: "h2",
+                type: "inspection",
+                date: "2026-05-17T12:00:00.000Z",
+                userId: "2",
+                username: "Lada",
+            },
+            {
+                id: "h3",
+                type: "edit",
+                date: "2026-08-07T13:00:00.000Z",
+                userId: "3",
+                username: "Dima",
+                changedFields: ["Удобства", "Состояние"],
+            },
+            {
+                id: "h4",
+                type: "inspection",
+                date: "2026-08-07T13:05:00.000Z",
+                userId: "3",
+                username: "Dima",
+            },
+        ],
     },
         {
         id: "2",
@@ -75,9 +117,18 @@ export const playgrounds: Playground[] = [
             shower: false,
             parking: true,
             bicycleParking: true,
+            trashBins: true,
+            shade: false,
         },
 
         surface: "rubber",
+
+        access: "limited",
+
+        condition: "needsRepair",
+
+        accessRestrictions:
+            "Территория закрытого ЖК — вход по пропускам жильцов, гостям нужна предварительная заявка на ресепшене.",
 
         equipment: [
             "highPullBar",
@@ -93,6 +144,20 @@ export const playgrounds: Playground[] = [
         openingHours: "Круглосуточно",
 
         description:
-            "Современная воркаут-площадка с резиновым покрытием."
+            "Современная воркаут-площадка с резиновым покрытием.",
+
+        createdAt: "2026-06-15T09:00:00.000Z",
+
+        updatedAt: "2026-06-15T09:00:00.000Z",
+
+        history: [
+            {
+                id: "h5",
+                type: "created",
+                date: "2026-06-15T09:00:00.000Z",
+                userId: "1",
+                username: "Safrayt",
+            },
+        ],
     },
 ];

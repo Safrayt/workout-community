@@ -9,6 +9,10 @@ import type { Playground } from "../types/playground";
 import { playgrounds as initialPlaygrounds } from "../data/playgrounds";
 import type { NewPlayground } from "../types/newPlayground";
 
+import { useCurrentUser } from "./CurrentUserContext";
+
+import { getChangedFields } from "../utils/playgroundHistory";
+
 
 type PlaygroundContextType = {
     playgrounds: Playground[];
@@ -23,6 +27,10 @@ type PlaygroundContextType = {
     ) => void;
 
     deletePlayground: (
+        id: string
+    ) => void;
+
+    confirmPlaygroundInspection: (
         id: string
     ) => void;
 };
@@ -47,14 +55,18 @@ export function PlaygroundProvider({
         initialPlaygrounds
     );
 
+    const { currentUser } = useCurrentUser();
+
 
     function addPlayground(
         playground: NewPlayground
     ) {
+        const now = new Date().toISOString();
+
         const newPlayground: Playground = {
             id: crypto.randomUUID(),
 
-            creatorId: "1",
+            creatorId: currentUser.id,
 
             name: playground.name,
 
@@ -78,6 +90,17 @@ export function PlaygroundProvider({
             surface:
                 playground.surface || "ground",
 
+            access:
+                playground.access || "free",
+
+            accessRestrictions:
+                playground.access === "limited"
+                    ? playground.accessRestrictions
+                    : undefined,
+
+            condition:
+                playground.condition || "acceptable",
+
             equipment: playground.equipment,
 
             photos: playground.photos,
@@ -86,6 +109,20 @@ export function PlaygroundProvider({
                 playground.openingHours.trim().length > 0
                     ? playground.openingHours
                     : "Не указано",
+
+            createdAt: now,
+
+            updatedAt: now,
+
+            history: [
+                {
+                    id: crypto.randomUUID(),
+                    type: "created",
+                    date: now,
+                    userId: currentUser.id,
+                    username: currentUser.nickname,
+                },
+            ],
         };
 
         setPlaygrounds(
@@ -104,38 +141,108 @@ export function PlaygroundProvider({
     ) {
         setPlaygrounds(
             (current) =>
+                current.map((existing) => {
+
+                    if (existing.id !== id) {
+                        return existing;
+                    }
+
+                    const changedFields = getChangedFields(
+                        existing,
+                        playground
+                    );
+
+                    const now = new Date().toISOString();
+
+                    return {
+                        ...existing,
+
+                        name: playground.name,
+
+                        locality: playground.locality,
+
+                        address: playground.address,
+
+                        description: playground.description,
+
+                        coordinates:
+                            playground.coordinates ?? existing.coordinates,
+
+                        size:
+                            playground.size || existing.size,
+
+                        amenities: playground.amenities,
+
+                        surface:
+                            playground.surface || existing.surface,
+
+                        access:
+                            playground.access || existing.access,
+
+                        accessRestrictions:
+                            playground.access === "limited"
+                                ? playground.accessRestrictions
+                                : (
+                                    playground.access === "free"
+                                        ? undefined
+                                        : existing.accessRestrictions
+                                ),
+
+                        condition:
+                            playground.condition || existing.condition,
+
+                        equipment: playground.equipment,
+
+                        photos: playground.photos,
+
+                        openingHours:
+                            playground.openingHours.trim().length > 0
+                                ? playground.openingHours
+                                : existing.openingHours,
+
+                        updatedAt: now,
+
+                        history:
+                            changedFields.length > 0
+                                ? [
+                                    ...existing.history,
+                                    {
+                                        id: crypto.randomUUID(),
+                                        type: "edit" as const,
+                                        date: now,
+                                        userId: currentUser.id,
+                                        username: currentUser.nickname,
+                                        changedFields,
+                                    },
+                                ]
+                                : existing.history,
+                    };
+
+                })
+        );
+    }
+
+
+    function confirmPlaygroundInspection(
+        id: string
+    ) {
+        setPlaygrounds(
+            (current) =>
                 current.map((existing) =>
                     existing.id === id
                         ? {
                             ...existing,
 
-                            name: playground.name,
-
-                            locality: playground.locality,
-
-                            address: playground.address,
-
-                            description: playground.description,
-
-                            coordinates:
-                                playground.coordinates ?? existing.coordinates,
-
-                            size:
-                                playground.size || existing.size,
-
-                            amenities: playground.amenities,
-
-                            surface:
-                                playground.surface || existing.surface,
-
-                            equipment: playground.equipment,
-
-                            photos: playground.photos,
-
-                            openingHours:
-                                playground.openingHours.trim().length > 0
-                                    ? playground.openingHours
-                                    : existing.openingHours,
+                            history: [
+                                ...existing.history,
+                                {
+                                    id: crypto.randomUUID(),
+                                    type: "inspection" as const,
+                                    date: new Date().toISOString(),
+                                    userId: currentUser.id,
+                                    username: currentUser.nickname,
+                                },
+                            ],
                         }
                         : existing
                 )
@@ -162,6 +269,7 @@ export function PlaygroundProvider({
                 addPlayground,
                 updatePlayground,
                 deletePlayground,
+                confirmPlaygroundInspection,
             }}
         >
             {children}

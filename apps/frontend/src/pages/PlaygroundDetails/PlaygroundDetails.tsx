@@ -1,8 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import Section from "../../components/ui/Section/Section";
-import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
-import Button from "../../components/ui/Button/Button";
+import "../../styles/components/playground-header.css";
 
 import PlaygroundInfo from "../../components/PlaygroundInfo/PlaygroundInfo";
 import PlaygroundMainPhoto from "../../components/PlaygroundMainPhoto/PlaygroundMainPhoto";
@@ -10,6 +8,14 @@ import PlaygroundGallery from "../../components/PlaygroundGallery/PlaygroundGall
 import PlaygroundAmenities from "../../components/PlaygroundAmenities/PlaygroundAmenities";
 import PlaygroundEquipment from "../../components/PlaygroundEquipment/PlaygroundEquipment";
 import PlaygroundEvents from "../../components/PlaygroundEvents/PlaygroundEvents";
+import PlaygroundQuickFacts from "../../components/PlaygroundQuickFacts/PlaygroundQuickFacts";
+import PlaygroundActions from "../../components/PlaygroundActions/PlaygroundActions";
+import PlaygroundUpcomingEvent from "../../components/PlaygroundUpcomingEvent/PlaygroundUpcomingEvent";
+import PlaygroundReviews from "../../components/PlaygroundReviews/PlaygroundReviews";
+import PlaygroundActivity from "../../components/PlaygroundActivity/PlaygroundActivity";
+import SimilarPlaygrounds from "../../components/SimilarPlaygrounds/SimilarPlaygrounds";
+
+import Section from "../../components/ui/Section/Section";
 
 import {
     usePlaygrounds,
@@ -107,29 +113,82 @@ export default function PlaygroundDetails() {
         navigate("/playgrounds");
     }
 
+    function handleEdit() {
+        if (!playground) {
+            return;
+        }
+
+        navigate(`/playgrounds/${playground.id}/edit`);
+    }
+
     return (
 
-        <Section title={playground.name}>
+        <div className="playground-details">
 
+            {/* 1. Cover Photo */}
             <PlaygroundMainPhoto
                 photos={playground.photos}
                 playgroundName={playground.name}
             />
 
-            <PlaygroundInfo
+            {/* 2. Title */}
+            <header className="playground-header">
+                <h1 className="playground-header__name">
+                    {playground.name}
+                </h1>
+
+                <p className="playground-header__address">
+                    {playground.locality}
+                    {", "}
+                    {playground.address}
+                </p>
+            </header>
+
+            <PlaygroundQuickFacts
                 playground={playground}
+                playgroundEvents={playgroundEvents}
             />
 
-            <PlaygroundGallery
-                photos={playground.photos}
+            {/* 3. Primary Action */}
+            <PlaygroundActions
+                playground={playground}
+                isOwner={isOwner}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+            />
+
+            {/* 4. Key Information */}
+            <PlaygroundInfo
+                playground={playground}
+                onEdit={handleEdit}
             />
 
             <PlaygroundAmenities
                 playground={playground}
             />
 
+            {/* 5. Upcoming Event */}
+            <PlaygroundUpcomingEvent
+                events={playgroundEvents}
+                registrations={registrations}
+            />
+
+            {/* 6. Equipment */}
             <PlaygroundEquipment
                 playground={playground}
+            />
+
+            {/* 7. Gallery */}
+            <PlaygroundGallery
+                photos={playground.photos}
+            />
+
+            {/* 8. Reviews */}
+            <PlaygroundReviews />
+
+            {/* 9. Activity */}
+            <PlaygroundActivity
+                events={playgroundEvents}
             />
 
             <PlaygroundEvents
@@ -137,29 +196,10 @@ export default function PlaygroundDetails() {
                 registrations={registrations}
             />
 
-            {
-                isOwner && (
-                    <ActionGroup>
-                        <Button
-                            variant="secondary"
-                            onClick={() =>
-                                navigate(`/playgrounds/${playground.id}/edit`)
-                            }
-                        >
-                            Редактировать
-                        </Button>
+            {/* 10. Similar Playgrounds */}
+            <SimilarPlaygrounds />
 
-                        <Button
-                            variant="danger"
-                            onClick={handleDelete}
-                        >
-                            Удалить площадку
-                        </Button>
-                    </ActionGroup>
-                )
-            }
-
-        </Section>
+        </div>
 
     );
 

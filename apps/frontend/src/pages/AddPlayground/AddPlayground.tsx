@@ -15,6 +15,9 @@ const emptyPlayground: NewPlayground = {
     coordinates: null,
     size: "",
     surface: "",
+    access: "",
+    accessRestrictions: "",
+    condition: "",
     amenities: {
         lighting: false,
         covered: false,
@@ -24,6 +27,8 @@ const emptyPlayground: NewPlayground = {
         shower: false,
         parking: false,
         bicycleParking: false,
+        trashBins: false,
+        shade: false,
     },
     equipment: [],
     photos: [],

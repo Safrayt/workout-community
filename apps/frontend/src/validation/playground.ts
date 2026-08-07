@@ -54,6 +54,34 @@ export function validatePlayground(
     }
 
     if (
+        playground.access.trim().length === 0
+    ) {
+        errors.push({
+            field: "access",
+            message: "Укажите доступ к площадке.",
+        });
+    }
+
+    if (
+        playground.access === "limited" &&
+        playground.accessRestrictions.trim().length === 0
+    ) {
+        errors.push({
+            field: "accessRestrictions",
+            message: "Опишите, в чём заключаются ограничения доступа.",
+        });
+    }
+
+    if (
+        playground.condition.trim().length === 0
+    ) {
+        errors.push({
+            field: "condition",
+            message: "Укажите состояние площадки.",
+        });
+    }
+
+    if (
         playground.description.trim().length === 0
     ) {
         errors.push({
