@@ -1,83 +1,95 @@
 import "../../styles/components/playground-activity.css";
 
 import type { Event } from "../../types/event";
+import type { WorkoutEntry } from "../../types/workoutEntry";
 
-import { isUpcomingEvent, isCompletedEvent } from "../../utils/eventStatus";
+import {
+    getPlaygroundActivityStats,
+    PLAYGROUND_ACTIVITY_WINDOW_DAYS,
+} from "../../utils/playgroundActivity";
+
+import { pluralizeRu } from "../../utils/pluralize";
 
 import InfoSection from "../ui/InfoSection/InfoSection";
-import SoonBadge from "../ui/SoonBadge/SoonBadge";
 
 type Props = {
+    playgroundId: string;
+
     events: Event[];
+
+    workoutEntries: WorkoutEntry[];
 };
 
 /**
- * "Community History" из документа: показывает, что площадка живая.
- * Всё, что реально можно посчитать по данным о мероприятиях, — считаем.
- * Посетителей и подписчиков честно помечаем как "Скоро" —
- * этих данных в системе пока нет. Раскладка — обычная CSS-сетка
- * без горизонтальной прокрутки: на мобильных вложенный
- * overflow-x:auto ведёт себя ненадёжно и на части устройств
- * просто обрезает контент.
+ * "Community History" из документа: показывает, что площадка живая,
+ * на примере активности за последние 30 дней. Считаем только то,
+ * что реально есть в данных — тренировки из дневника, привязанные
+ * к площадке, и уже проведённые (не будущие) мероприятия на ней.
  */
 export default function PlaygroundActivity({
+    playgroundId,
     events,
+    workoutEntries,
 }: Props) {
-    const totalEvents = events.length;
-    const upcomingEvents = events.filter(isUpcomingEvent).length;
-    const completedEvents = events.filter(isCompletedEvent).length;
+    const {
+        workoutsCount,
+        eventsCount,
+        athletesCount,
+    } = getPlaygroundActivityStats(
+        playgroundId,
+        events,
+        workoutEntries,
+        PLAYGROUND_ACTIVITY_WINDOW_DAYS
+    );
 
     return (
-        <InfoSection title="Активность">
+        <InfoSection
+            title={`Активность за последние ${PLAYGROUND_ACTIVITY_WINDOW_DAYS} дней`}
+        >
             <div className="playground-activity">
                 <div className="playground-activity__row">
                     <div className="playground-activity__stat">
                         <span className="playground-activity__value">
-                            {totalEvents}
+                            {workoutsCount}
                         </span>
 
                         <span className="playground-activity__label">
-                            Всего мероприятий
+                            {
+                                pluralizeRu(
+                                    workoutsCount,
+                                    ["тренировка", "тренировки", "тренировок"]
+                                )
+                            }
                         </span>
                     </div>
 
                     <div className="playground-activity__stat">
                         <span className="playground-activity__value">
-                            {upcomingEvents}
+                            {eventsCount}
                         </span>
 
                         <span className="playground-activity__label">
-                            Предстоящих
+                            {
+                                pluralizeRu(
+                                    eventsCount,
+                                    ["мероприятие", "мероприятия", "мероприятий"]
+                                )
+                            }
                         </span>
                     </div>
 
                     <div className="playground-activity__stat">
                         <span className="playground-activity__value">
-                            {completedEvents}
+                            {athletesCount}
                         </span>
 
                         <span className="playground-activity__label">
-                            Проведённых
-                        </span>
-                    </div>
-
-                    <div className="playground-activity__stat">
-                        <span className="playground-activity__value">
-                            <SoonBadge />
-                        </span>
-
-                        <span className="playground-activity__label">
-                            Посетителей
-                        </span>
-                    </div>
-
-                    <div className="playground-activity__stat">
-                        <span className="playground-activity__value">
-                            <SoonBadge />
-                        </span>
-
-                        <span className="playground-activity__label">
-                            Подписчиков
+                            {
+                                pluralizeRu(
+                                    athletesCount,
+                                    ["атлет", "атлета", "атлетов"]
+                                )
+                            }
                         </span>
                     </div>
                 </div>

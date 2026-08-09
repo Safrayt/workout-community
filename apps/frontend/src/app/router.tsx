@@ -16,6 +16,9 @@ import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
 import AddPlayground from "../pages/AddPlayground/AddPlayground";
 import EditPlayground from "../pages/EditPlayground/EditPlayground";
 import PlaygroundHistory from "../pages/PlaygroundHistory/PlaygroundHistory";
+import PlaygroundReviewsList from "../pages/PlaygroundReviewsList/PlaygroundReviewsList";
+import WriteReview from "../pages/WriteReview/WriteReview";
+import PlaygroundEventsList from "../pages/PlaygroundEventsList/PlaygroundEventsList";
 import Achievements from "../pages/Achievements/Achievements";
 
 export const router = createBrowserRouter([
@@ -78,6 +81,18 @@ export const router = createBrowserRouter([
       {
           path: "playgrounds/:id/history",
           element: <PlaygroundHistory />,
+      },
+      {
+          path: "playgrounds/:id/reviews",
+          element: <PlaygroundReviewsList />,
+      },
+      {
+          path: "playgrounds/:id/reviews/create",
+          element: <WriteReview />,
+      },
+      {
+          path: "playgrounds/:id/events",
+          element: <PlaygroundEventsList />,
       },
             {
           path: "playgrounds/add",

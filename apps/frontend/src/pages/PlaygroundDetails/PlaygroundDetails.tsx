@@ -7,13 +7,12 @@ import PlaygroundMainPhoto from "../../components/PlaygroundMainPhoto/Playground
 import PlaygroundGallery from "../../components/PlaygroundGallery/PlaygroundGallery";
 import PlaygroundAmenities from "../../components/PlaygroundAmenities/PlaygroundAmenities";
 import PlaygroundEquipment from "../../components/PlaygroundEquipment/PlaygroundEquipment";
-import PlaygroundEvents from "../../components/PlaygroundEvents/PlaygroundEvents";
 import PlaygroundQuickFacts from "../../components/PlaygroundQuickFacts/PlaygroundQuickFacts";
 import PlaygroundActions from "../../components/PlaygroundActions/PlaygroundActions";
 import PlaygroundUpcomingEvent from "../../components/PlaygroundUpcomingEvent/PlaygroundUpcomingEvent";
 import PlaygroundReviews from "../../components/PlaygroundReviews/PlaygroundReviews";
 import PlaygroundActivity from "../../components/PlaygroundActivity/PlaygroundActivity";
-import SimilarPlaygrounds from "../../components/SimilarPlaygrounds/SimilarPlaygrounds";
+import PlaygroundAllTimeActivity from "../../components/PlaygroundAllTimeActivity/PlaygroundAllTimeActivity";
 
 import Section from "../../components/ui/Section/Section";
 
@@ -32,6 +31,14 @@ import {
 import {
     useRegistration,
 } from "../../context/RegistrationContext";
+
+import {
+    useWorkoutDiary,
+} from "../../context/WorkoutDiaryContext";
+
+import {
+    useFavorites,
+} from "../../context/FavoriteContext";
 
 import {
     getPlaygroundById,
@@ -63,6 +70,14 @@ export default function PlaygroundDetails() {
     const {
         registrations,
     } = useRegistration();
+
+    const {
+        entries: workoutEntries,
+    } = useWorkoutDiary();
+
+    const {
+        favorites,
+    } = useFavorites();
 
     const playground =
         id
@@ -146,7 +161,6 @@ export default function PlaygroundDetails() {
 
             <PlaygroundQuickFacts
                 playground={playground}
-                playgroundEvents={playgroundEvents}
             />
 
             {/* 3. Primary Action */}
@@ -167,37 +181,42 @@ export default function PlaygroundDetails() {
                 playground={playground}
             />
 
-            {/* 5. Upcoming Event */}
-            <PlaygroundUpcomingEvent
-                events={playgroundEvents}
-                registrations={registrations}
-            />
-
-            {/* 6. Equipment */}
+            {/* 5. Equipment */}
             <PlaygroundEquipment
                 playground={playground}
             />
 
-            {/* 7. Gallery */}
+            {/* 6. Gallery */}
             <PlaygroundGallery
                 photos={playground.photos}
             />
 
-            {/* 8. Reviews */}
-            <PlaygroundReviews />
-
-            {/* 9. Activity */}
-            <PlaygroundActivity
-                events={playgroundEvents}
+            {/* 7. Reviews */}
+            <PlaygroundReviews
+                playgroundId={playground.id}
             />
 
-            <PlaygroundEvents
+            {/* 8. Upcoming events */}
+            <PlaygroundUpcomingEvent
+                playgroundId={playground.id}
                 events={playgroundEvents}
                 registrations={registrations}
             />
 
-            {/* 10. Similar Playgrounds */}
-            <SimilarPlaygrounds />
+            {/* 9. Activity (30 days) */}
+            <PlaygroundActivity
+                playgroundId={playground.id}
+                events={playgroundEvents}
+                workoutEntries={workoutEntries}
+            />
+
+            {/* 10. Activity (all time) */}
+            <PlaygroundAllTimeActivity
+                playgroundId={playground.id}
+                events={playgroundEvents}
+                workoutEntries={workoutEntries}
+                favorites={favorites}
+            />
 
         </div>
 

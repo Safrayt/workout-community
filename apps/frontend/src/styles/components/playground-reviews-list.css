@@ -1,0 +1,70 @@
+.playground-reviews-list__back {
+    display: inline-block;
+    margin-bottom: var(--space-4);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+
+    color: var(--color-text-secondary);
+}
+
+.playground-reviews-list__actions {
+    margin-bottom: var(--space-4);
+}
+
+.playground-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    list-style: none;
+}
+
+.playground-reviews-list__item {
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.playground-reviews-list__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+
+    margin-bottom: var(--space-2);
+}
+
+.playground-reviews-list__author {
+    font-weight: 700;
+
+    color: var(--color-primary-dark);
+}
+
+.playground-reviews-list__date {
+    font-size: var(--font-size-sm);
+
+    color: var(--color-text-secondary);
+
+    white-space: nowrap;
+}
+
+.playground-reviews-list__text {
+    margin: 0;
+
+    white-space: pre-line;
+}
+
+.playground-reviews-list__owner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+
+    margin-top: var(--space-3);
+}
+
+.playground-reviews-list__edit {
+    margin-top: var(--space-2);
+}

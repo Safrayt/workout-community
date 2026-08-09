@@ -60,6 +60,16 @@ import {
     getCreatedPlaygrounds,
 } from "../../utils/playgrounds";
 
+import {
+    useFavorites,
+} from "../../context/FavoriteContext";
+
+import {
+    getFavoritePlaygrounds,
+} from "../../utils/favorites";
+
+import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
+
 import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
 
 import EventSummary from "../../components/EventSummary/EventSummary";
@@ -111,6 +121,17 @@ export default function Profile() {
         playgrounds,
         user.id
     );
+
+    const {
+        favorites,
+    } = useFavorites();
+
+    const favoritePlaygrounds =
+        getFavoritePlaygrounds(
+            playgrounds,
+            favorites,
+            user.id
+        );
 
     const upcomingEvents =
     userEvents.filter(
@@ -178,6 +199,47 @@ export default function Profile() {
                 <InfoRow label="Добавленные площадки">
                     {createdPlaygrounds.length}
                 </InfoRow>
+            </InfoSection>
+
+            <InfoSection title="Избранные площадки">
+
+                {
+                    favoritePlaygrounds.length === 0
+
+                        ? (
+
+                            <p>
+                                Пока нет избранных площадок.
+                            </p>
+
+                        )
+
+                        : (
+
+                            <div className="playgrounds-list">
+
+                                {
+                                    favoritePlaygrounds.map(
+                                        (playground) => (
+
+                                            <PlaygroundCard
+                                                key={playground.id}
+                                                id={playground.id}
+                                                name={playground.name}
+                                                locality={playground.locality}
+                                                photos={playground.photos}
+                                            />
+
+                                        )
+                                    )
+                                }
+
+                            </div>
+
+                        )
+
+                }
+
             </InfoSection>
 
             <InfoSection title="Достижения">

@@ -1,21 +1,21 @@
 import "../../styles/components/playground-quick-facts.css";
 
 import type { Playground } from "../../types/playground";
-import type { Event } from "../../types/event";
 
-import { isUpcomingEvent } from "../../utils/eventStatus";
 import {
     playgroundAccessLabels,
+    playgroundConditionColors,
+    playgroundConditionLabels,
     playgroundSizes,
+    playgroundSurfaces,
 } from "../../constants/playgroundProperties";
 
 import { calculatePlaygroundRating } from "../../utils/playgroundRating";
 import { getRatingTier } from "../../constants/playgroundRating";
+import { pluralizeRu } from "../../utils/pluralize";
 
 type Props = {
     playground: Playground;
-
-    playgroundEvents: Event[];
 };
 
 /**
@@ -25,12 +25,7 @@ type Props = {
  */
 export default function PlaygroundQuickFacts({
     playground,
-    playgroundEvents,
 }: Props) {
-    const upcomingCount = playgroundEvents.filter(
-        isUpcomingEvent
-    ).length;
-
     const rating = calculatePlaygroundRating(playground);
     const ratingTier = getRatingTier(rating);
 
@@ -54,11 +49,53 @@ export default function PlaygroundQuickFacts({
 
             <li className="playground-quick-facts__item">
                 <span className="playground-quick-facts__label">
+                    Оборудование
+                </span>
+
+                <span className="playground-quick-facts__value">
+                    {
+                        `${playground.equipment.length} ${
+                            pluralizeRu(
+                                playground.equipment.length,
+                                ["элемент", "элемента", "элементов"]
+                            )
+                        }`
+                    }
+                </span>
+            </li>
+
+            <li className="playground-quick-facts__item">
+                <span className="playground-quick-facts__label">
                     Размер
                 </span>
 
                 <span className="playground-quick-facts__value">
                     {playgroundSizes[playground.size]}
+                </span>
+            </li>
+
+            <li className="playground-quick-facts__item">
+                <span className="playground-quick-facts__label">
+                    Покрытие
+                </span>
+
+                <span className="playground-quick-facts__value">
+                    {playgroundSurfaces[playground.surface]}
+                </span>
+            </li>
+
+            <li className="playground-quick-facts__item">
+                <span className="playground-quick-facts__label">
+                    Состояние
+                </span>
+
+                <span
+                    className="playground-quick-facts__value"
+                    style={{
+                        color: playgroundConditionColors[playground.condition],
+                    }}
+                >
+                    {playgroundConditionLabels[playground.condition]}
                 </span>
             </li>
 
@@ -71,39 +108,6 @@ export default function PlaygroundQuickFacts({
                     {playgroundAccessLabels[playground.access]}
                 </span>
             </li>
-
-            <li className="playground-quick-facts__item">
-                <span className="playground-quick-facts__label">
-                    Мероприятия
-                </span>
-
-                <span className="playground-quick-facts__value">
-                    {
-                        upcomingCount > 0
-                            ? `${upcomingCount} ${pluralizeEvents(upcomingCount)}`
-                            : "Нет ближайших"
-                    }
-                </span>
-            </li>
         </ul>
     );
-}
-
-function pluralizeEvents(count: number) {
-    const lastDigit = count % 10;
-    const lastTwoDigits = count % 100;
-
-    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-        return "предстоящих";
-    }
-
-    if (lastDigit === 1) {
-        return "предстоящее";
-    }
-
-    if (lastDigit >= 2 && lastDigit <= 4) {
-        return "предстоящих";
-    }
-
-    return "предстоящих";
 }

@@ -15,6 +15,12 @@ import {
 import {
     WorkoutDiaryProvider,
 } from "./context/WorkoutDiaryContext";
+import {
+    FavoriteProvider,
+} from "./context/FavoriteContext";
+import {
+    ReviewProvider,
+} from "./context/ReviewContext";
 
 export default function App() {
     return (
@@ -26,13 +32,21 @@ export default function App() {
 
                     <EventProvider>
 
-                        <WorkoutDiaryProvider>
+                        <FavoriteProvider>
 
-                            <RouterProvider
-                                router={router}
-                            />
+                            <WorkoutDiaryProvider>
 
-                        </WorkoutDiaryProvider>
+                                <ReviewProvider>
+
+                                    <RouterProvider
+                                        router={router}
+                                    />
+
+                                </ReviewProvider>
+
+                            </WorkoutDiaryProvider>
+
+                        </FavoriteProvider>
 
                     </EventProvider>
 

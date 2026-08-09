@@ -5,7 +5,8 @@ import "../../styles/components/playground-actions.css";
 import type { Playground } from "../../types/playground";
 
 import Button from "../ui/Button/Button";
-import SoonBadge from "../ui/SoonBadge/SoonBadge";
+
+import { useFavorites } from "../../context/FavoriteContext";
 
 type Props = {
     playground: Playground;
@@ -38,6 +39,13 @@ export default function PlaygroundActions({
     >("idle");
 
     const [isMoreOpen, setMoreOpen] = useState(false);
+
+    const {
+        checkFavorite,
+        toggleFavorite,
+    } = useFavorites();
+
+    const isFavorite = checkFavorite(playground.id);
 
     const routeUrl =
         `https://www.google.com/maps/dir/?api=1&destination=${playground.coordinates.latitude},${playground.coordinates.longitude}`;
@@ -77,16 +85,22 @@ export default function PlaygroundActions({
 
     const overflowActions = (
         <>
-            <span className="playground-actions__soon">
-                <Button
-                    variant="outline"
-                    disabled
-                >
-                    В избранное
-                </Button>
-
-                <SoonBadge />
-            </span>
+            <Button
+                variant={
+                    isFavorite ? "secondary" : "outline"
+                }
+                aria-pressed={isFavorite}
+                onClick={() => {
+                    setMoreOpen(false);
+                    toggleFavorite(playground.id);
+                }}
+            >
+                {
+                    isFavorite
+                        ? "В избранном"
+                        : "В избранное"
+                }
+            </Button>
 
             {
                 isOwner && (

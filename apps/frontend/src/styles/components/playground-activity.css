@@ -10,6 +10,10 @@
     gap: var(--space-3);
 }
 
+.playground-activity__row--four {
+    grid-template-columns: repeat(4, 1fr);
+}
+
 .playground-activity__stat {
     display: flex;
     flex-direction: column;
@@ -18,7 +22,8 @@
 
     padding: var(--space-3);
 
-    background: var(--color-background);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
 
     text-align: center;
@@ -38,7 +43,7 @@
 }
 
 @media (max-width: 480px) {
-    .playground-activity__row {
+    .playground-activity__row--four {
         grid-template-columns: repeat(2, 1fr);
     }
 
