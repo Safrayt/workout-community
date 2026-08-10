@@ -1,0 +1,47 @@
+.playgrounds-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .playgrounds-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.playgrounds-count {
+    margin: 0 0 var(--space-3);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.playgrounds-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+
+    padding: var(--space-7) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.playgrounds-empty-state__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.playgrounds-empty-state__description {
+    margin: 0;
+    max-width: 420px;
+
+    color: var(--color-text-secondary);
+}

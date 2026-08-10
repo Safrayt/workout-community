@@ -69,6 +69,7 @@ import {
 } from "../../utils/favorites";
 
 import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
+import "../../styles/components/playgrounds-list.css";
 
 import {isUpcomingEvent, isCompletedEvent,} from "../../utils/eventStatus";
 
@@ -224,10 +225,7 @@ export default function Profile() {
 
                                             <PlaygroundCard
                                                 key={playground.id}
-                                                id={playground.id}
-                                                name={playground.name}
-                                                locality={playground.locality}
-                                                photos={playground.photos}
+                                                playground={playground}
                                             />
 
                                         )

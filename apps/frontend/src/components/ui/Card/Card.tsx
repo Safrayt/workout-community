@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
-type CardProps = {
+type CardProps = HTMLAttributes<HTMLDivElement> & {
     children: ReactNode;
     className?: string;
 };
@@ -8,9 +8,13 @@ type CardProps = {
 export default function Card({
     children,
     className = "",
+    ...rest
 }: CardProps) {
     return (
-        <div className={`card ${className}`.trim()}>
+        <div
+            className={`card ${className}`.trim()}
+            {...rest}
+        >
             {children}
         </div>
     );

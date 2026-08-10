@@ -1,34 +1,114 @@
+/* Переопределяем паддинги/отступы, которые Leaflet задаёт своей обёртке
+   popup по умолчанию — чтобы фото было заподлицо с краями, как у
+   карточки площадки в списке. */
+.leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    width: auto !important;
+}
+
+.leaflet-popup-content p {
+    margin: 0;
+}
+
+.leaflet-popup-close-button {
+    top: 6px !important;
+    right: 6px !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-radius: 50%;
+
+    color: var(--color-text) !important;
+}
+
 .map-popup {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 160px;
+    gap: 0;
+    width: 200px;
+}
+
+.map-popup__photo-wrapper {
+    position: relative;
 }
 
 .map-popup__image {
     width: 100%;
     height: 110px;
     object-fit: cover;
-    border-radius: 8px;
     display: block;
+}
+
+.map-popup__rating {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.35));
+}
+
+.map-popup__body {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+
+    padding: var(--space-2) var(--space-2) var(--space-2);
 }
 
 .map-popup__title {
     margin: 0;
-    font-weight: 600;
+
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    line-height: 1.15;
     color: var(--color-text);
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.map-popup__button {
-    border: none;
-    background: var(--color-primary);
-    color: #fff;
-    border-radius: var(--radius-sm);
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    cursor: pointer;
+.map-popup__locality {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.map-popup__button:hover {
-    background: var(--color-primary-dark);
+.map-popup__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.map-popup__short-info {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.map-popup__body .button {
+    width: 100%;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: var(--font-size-sm);
 }

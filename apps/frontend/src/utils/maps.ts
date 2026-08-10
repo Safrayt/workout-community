@@ -1,6 +1,13 @@
 import type { Playground } from "../types/playground";
 import type { MapMarker } from "../types/map";
 
+import { calculatePlaygroundRating } from "./playgroundRating";
+import { getRatingTier } from "../constants/playgroundRating";
+import {
+    playgroundSizes,
+    playgroundSurfaces,
+} from "../constants/playgroundProperties";
+
 
 export function getCoordinatesString(
     latitude: number,
@@ -20,24 +27,37 @@ export function getPlaygroundMarkers(
     playgrounds: Playground[]
 ): MapMarker[] {
     return playgrounds.map(
-        (playground) => ({
-            id: playground.id,
+        (playground) => {
+            const rating = calculatePlaygroundRating(playground);
 
-            title: playground.name,
+            return {
+                id: playground.id,
 
-            latitude:
-                playground.coordinates.latitude,
+                title: playground.name,
 
-            longitude:
-                playground.coordinates.longitude,
-            
-            url: `/playgrounds/${playground.id}`,
+                latitude:
+                    playground.coordinates.latitude,
 
-            photoUrl:
-                playground.photos.find(
-                    (photo) => photo.isMain
-                )?.url ??
-                playground.photos[0]?.url,
-        })
+                longitude:
+                    playground.coordinates.longitude,
+
+                url: `/playgrounds/${playground.id}`,
+
+                photoUrl:
+                    playground.photos.find(
+                        (photo) => photo.isMain
+                    )?.url ??
+                    playground.photos[0]?.url,
+
+                locality: playground.locality,
+
+                color: getRatingTier(rating).color,
+
+                rating,
+
+                shortInfo:
+                    `${playground.equipment.length} эл. · ${playgroundSizes[playground.size]} · ${playgroundSurfaces[playground.surface]}`,
+            };
+        }
     );
 }

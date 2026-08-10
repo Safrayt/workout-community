@@ -70,6 +70,12 @@
     cursor: pointer;
 }
 
+.playground-filters-toggle__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
 .playground-filters-toggle h3 {
     margin: 0;
 }

@@ -22,6 +22,21 @@ export function hasActivePlaygroundFilters(
     );
 }
 
+/**
+ * Общее количество выбранных пунктов фильтра (по всем группам) — для
+ * индикатора "Фильтры · 3" на кнопке-тоггле (раздел 16 UX-спеки).
+ */
+export function countActivePlaygroundFilters(
+    filters: PlaygroundFilterState
+) {
+    return (
+        filters.sizes.length +
+        filters.surfaces.length +
+        filters.equipment.length +
+        filters.amenities.length
+    );
+}
+
 function matchesFilters(
     playground: Playground,
     filters: PlaygroundFilterState
@@ -40,9 +55,13 @@ function matchesFilters(
         return false;
     }
 
+    // Внутри группы фильтры комбинируются через ИЛИ: площадка проходит,
+    // если у неё есть хотя бы один из выбранных пунктов группы. Между
+    // группами (size / surface / equipment / amenities) — через И.
+    // См. UX-спеку "Страница «Площадки»", раздел 14.
     if (
         filters.equipment.length > 0 &&
-        !filters.equipment.every(
+        !filters.equipment.some(
             (item) => playground.equipment.includes(item)
         )
     ) {
@@ -51,7 +70,7 @@ function matchesFilters(
 
     if (
         filters.amenities.length > 0 &&
-        !filters.amenities.every(
+        !filters.amenities.some(
             (key) => playground.amenities[key]
         )
     ) {

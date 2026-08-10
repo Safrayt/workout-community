@@ -1,0 +1,11 @@
+/* Скрывает украинский флаг, который Leaflet 1.9+ добавляет в стандартный
+   префикс атрибуции ("Leaflet"-ссылка в правом нижнем углу карты) —
+   см. leaflet/dist/leaflet-src.js, переменная ukrainianFlag внутри
+   Control.Attribution. Флаг добавлен в саму библиотеку, не в этот проект.
+
+   Остальная атрибуция (copyright OpenStreetMap) остаётся видимой —
+   она нужна по условиям использования их бесплатных тайлов, поэтому
+   правило точечное, а не display:none на весь .leaflet-control-attribution. */
+.leaflet-attribution-flag {
+    display: none !important;
+}
