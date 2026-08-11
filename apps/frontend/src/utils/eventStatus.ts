@@ -19,3 +19,23 @@ export function isCompletedEvent(
         new Date()
     );
 }
+
+export type EventStatus =
+    | "upcoming"
+    | "completed";
+
+export function getEventStatus(
+    event: Event
+): EventStatus {
+    return isCompletedEvent(event)
+        ? "completed"
+        : "upcoming";
+}
+
+export const eventStatusLabels: Record<
+    EventStatus,
+    string
+> = {
+    upcoming: "Предстоит",
+    completed: "Завершено",
+};

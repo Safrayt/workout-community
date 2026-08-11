@@ -49,8 +49,8 @@ export default function EventRegistration({
 
             {
                 isRegistered
-                    ? "Отменить участие"
-                    : "Записаться"
+                    ? "Я участвую"
+                    : "Хочу участвовать"
             }
 
         </Button>

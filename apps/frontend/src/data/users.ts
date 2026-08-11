@@ -64,4 +64,146 @@ export const users: User[] = [
 
         socialLinks: {},
     },
+    {
+        id: "4",
+
+        name: "Аня",
+
+        nickname: "Anutka",
+
+        locality: "Балашиха",
+
+        bio:
+            "Начинающая, но упорная. Учусь подтягиваться на одной руке.",
+
+        avatarUrl: "",
+
+        experience: 60,
+
+        createdAt: "2026-07-01",
+
+        socialLinks: {},
+    },
+    {
+        id: "5",
+
+        name: "Максим",
+
+        nickname: "MaxPower",
+
+        locality: "Балашиха",
+
+        bio:
+            "Силовой воркаут, планка и брусья.",
+
+        avatarUrl: "",
+
+        experience: 1620,
+
+        createdAt: "2025-11-03",
+
+        socialLinks: {
+            telegram: "@MaxPower",
+        },
+    },
+    {
+        id: "6",
+
+        name: "Оля",
+
+        nickname: "OlyaFly",
+
+        locality: "Балашиха",
+
+        bio:
+            "Растяжка, воркаут-акробатика.",
+
+        avatarUrl: "",
+
+        experience: 430,
+
+        createdAt: "2026-03-18",
+
+        socialLinks: {},
+    },
+    {
+        id: "7",
+
+        name: "Игорь",
+
+        nickname: "Grom",
+
+        locality: "Балашиха",
+
+        bio:
+            "На турниках с детства.",
+
+        avatarUrl: "",
+
+        experience: 1180,
+
+        createdAt: "2025-09-27",
+
+        socialLinks: {},
+    },
+    {
+        id: "8",
+
+        name: "Настя",
+
+        nickname: "Nastya_W",
+
+        locality: "Балашиха",
+
+        bio:
+            "Первый месяц в воркауте, но уже не пропускаю тренировки.",
+
+        avatarUrl: "",
+
+        experience: 15,
+
+        createdAt: "2026-07-20",
+
+        socialLinks: {},
+    },
+    {
+        id: "9",
+
+        name: "Костя",
+
+        nickname: "KotBayun",
+
+        locality: "Балашиха",
+
+        bio:
+            "Люблю брусья и поболтать после тренировки.",
+
+        avatarUrl: "",
+
+        experience: 320,
+
+        createdAt: "2026-01-14",
+
+        socialLinks: {},
+    },
+    {
+        id: "10",
+
+        name: "Женя",
+
+        nickname: "Zhenya_K",
+
+        locality: "Балашиха",
+
+        bio:
+            "Тренируюсь с друзьями по выходным.",
+
+        avatarUrl: "",
+
+        experience: 710,
+
+        createdAt: "2025-12-05",
+
+        socialLinks: {},
+    },
 ];

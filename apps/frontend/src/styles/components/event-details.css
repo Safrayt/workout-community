@@ -1,0 +1,10 @@
+.event-details {
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 640px) {
+    .event-details--with-sticky-action {
+        padding-bottom: 96px;
+    }
+}

@@ -1,0 +1,35 @@
+.event-sticky-action {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .event-sticky-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+
+        padding: var(--space-2) var(--space-4)
+            calc(var(--space-2) + env(safe-area-inset-bottom));
+
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-border);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .event-sticky-action__count {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+    }
+
+    .event-sticky-action .button {
+        width: 100%;
+        min-height: 44px;
+    }
+}

@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import Section from "../../components/ui/Section/Section";
+import "../../styles/components/event-details.css";
+
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 
@@ -12,18 +13,19 @@ import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
 
-import { formatParticipants } from "../../utils/format";
-
 import { getPlaygroundById } from "../../utils/playgrounds";
 import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
 
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
-import InfoRow from "../../components/ui/InfoRow/InfoRow";
 import {
     getEventById,
 } from "../../utils/events";
+
+import {
+    getEventStatus,
+} from "../../utils/eventStatus";
 
 import {
     useRegistration,
@@ -34,9 +36,13 @@ import {
 } from "../../utils/eventRegistrations";
 
 import EventParticipants from "../../components/EventParticipants/EventParticipants";
-import EventRegistration from "../../components/EventRegistration/EventRegistration";
 import EventInfo from "../../components/EventInfo/EventInfo";
-import EventPoster from "../../components/EventPoster/EventPoster";
+import EventHero from "../../components/EventHero/EventHero";
+import EventQuickFacts from "../../components/EventQuickFacts/EventQuickFacts";
+import EventWeather from "../../components/EventWeather/EventWeather";
+import EventPlaygroundPreview from "../../components/EventPlaygroundPreview/EventPlaygroundPreview";
+import EventStickyAction from "../../components/EventStickyAction/EventStickyAction";
+import EventNotFound from "../../components/EventNotFound/EventNotFound";
 
 
 export default function EventDetails() {
@@ -71,14 +77,15 @@ export default function EventDetails() {
 
     if (!event) {
         return (
-            <Section title="Событие">
-                <p>Событие не найдено.</p>
-            </Section>
+            <EventNotFound />
         );
     }
 
     const isOwner =
         event.creatorId === currentUser.id;
+
+    const isUpcoming =
+        getEventStatus(event) === "upcoming";
 
     function handleDelete() {
         if (!event) {
@@ -114,43 +121,58 @@ export default function EventDetails() {
         participants.length;
 
     return (
-        <Section title={event.title}>
-            <EventPoster
+        <div
+            className={
+                isUpcoming
+                    ? "event-details event-details--with-sticky-action"
+                    : "event-details"
+            }
+        >
+
+            {/* 1. Event Hero — название, дата/время, статус, "Хочу участвовать" (шаг 1, UX §7) */}
+            <EventHero
                 event={event}
-                playground={playground}
             />
 
+            {/* 2. Quick Facts — дата, время, площадка, участники, без лимитов (шаг 2, UX §10) */}
+            <EventQuickFacts
+                event={event}
+                playground={playground}
+                participantsCount={participantsCount}
+            />
+
+            {/* 3. Weather-блок — прогноз к моменту начала тренировки (шаг 4, UX §14–17) */}
+            <EventWeather
+                startDate={event.startDate}
+                coordinates={playground?.coordinates}
+            />
+
+            {/* 4. Описание события — скрывается, если пусто (UX §18–19, §40) */}
             <EventInfo
                 event={event}
+            />
+
+            {/* 5. Playground Preview — компактная карточка (UX §20–22) */}
+            <EventPlaygroundPreview
                 playground={playground}
             />
 
+            {/* 6. Участники — создатель закреплён первым и помечен бейджем */}
             <InfoSection title="Участники">
-
-                <InfoRow label="Записалось">
-                    {formatParticipants(
-                        participantsCount
-                    )}
-                </InfoRow>
 
                 <EventParticipants
                     participants={
                         participants
                     }
-                />
-
-            </InfoSection>
-
-            <InfoSection title="Участие">
-
-                <EventRegistration
-                    eventId={event.id}
+                    creatorId={
+                        event.creatorId
+                    }
                 />
 
             </InfoSection>
 
             {
-                isOwner && (
+                isOwner && isUpcoming && (
                     <ActionGroup>
                         <Button
                             variant="secondary"
@@ -171,6 +193,16 @@ export default function EventDetails() {
                 )
             }
 
-        </Section>
+            {/* Sticky bottom action на мобильном (UX §32); скрыт для завершённых событий через isUpcoming */}
+            {
+                isUpcoming && (
+                    <EventStickyAction
+                        eventId={event.id}
+                        participantsCount={participantsCount}
+                    />
+                )
+            }
+
+        </div>
     );
 }

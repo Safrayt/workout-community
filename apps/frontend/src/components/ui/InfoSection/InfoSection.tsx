@@ -6,14 +6,23 @@ type InfoSectionProps = {
     title: string;
 
     children: ReactNode;
+
+    className?: string;
 };
 
 export default function InfoSection({
     title,
     children,
+    className,
 }: InfoSectionProps) {
     return (
-        <section className="info-section">
+        <section
+            className={
+                className
+                    ? `info-section ${className}`
+                    : "info-section"
+            }
+        >
             <h3 className="info-section__title">
                 {title}
             </h3>

@@ -11,10 +11,18 @@ import {
     useEvents,
 } from "../../context/EventContext";
 
+import {
+    useRegistration,
+} from "../../context/RegistrationContext";
+
 export default function CreateEvent() {
     const {
         addEvent,
     } = useEvents();
+
+    const {
+        register,
+    } = useRegistration();
 
     const navigate =
         useNavigate();
@@ -24,6 +32,11 @@ export default function CreateEvent() {
     ) {
         const createdEvent =
             addEvent(event);
+
+        // Создатель события считается его первым участником —
+        // отдельного блока "Создатель события" на странице нет,
+        // создатель просто виден в общем списке участников.
+        register(createdEvent.id);
 
         navigate(
             `/events/${createdEvent.id}`

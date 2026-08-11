@@ -9,3 +9,11 @@ export function getUserName(
 
     return user ? user.name : "Неизвестный пользователь";
 }
+
+export function getUserById(
+    userId: string
+) {
+    return users.find(
+        (user) => user.id === userId
+    );
+}
