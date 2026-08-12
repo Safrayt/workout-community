@@ -1,8 +1,10 @@
-import type { Event } from "../types/event";
+type EventLike = {
+    startDate: string;
+};
 
 
 export function isUpcomingEvent(
-    event: Event
+    event: EventLike
 ) {
     return (
         new Date(event.startDate) >
@@ -12,7 +14,7 @@ export function isUpcomingEvent(
 
 
 export function isCompletedEvent(
-    event: Event
+    event: EventLike
 ) {
     return (
         new Date(event.startDate) <
@@ -25,7 +27,7 @@ export type EventStatus =
     | "completed";
 
 export function getEventStatus(
-    event: Event
+    event: EventLike
 ): EventStatus {
     return isCompletedEvent(event)
         ? "completed"

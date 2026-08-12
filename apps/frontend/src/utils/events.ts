@@ -1,6 +1,7 @@
 import type { Event } from "../types/event";
 import type { EventRegistration } from "../types/eventRegistration";
 import { findById } from "./collections";
+import { isUpcomingEvent } from "./eventStatus";
 
 
 export function getUserEvents(
@@ -56,4 +57,39 @@ export function getCreatedEvents(
         (event) =>
             event.creatorId === userId
     );
+}
+
+/** События по дате начала: раньше — раньше в списке. */
+export function sortEventsAscending(
+    events: Event[]
+) {
+    return [...events].sort(
+        (a, b) =>
+            new Date(a.startDate).getTime() -
+            new Date(b.startDate).getTime()
+    );
+}
+
+/** События по дате начала: позже — раньше в списке. */
+export function sortEventsDescending(
+    events: Event[]
+) {
+    return [...events].sort(
+        (a, b) =>
+            new Date(b.startDate).getTime() -
+            new Date(a.startDate).getTime()
+    );
+}
+
+/**
+ * Ближайшие предстоящие события для блока "Ближайшие события"
+ * (UX §7) — верхние `limit` штук, отсортированные по дате.
+ */
+export function getUpcomingEventsPreview(
+    events: Event[],
+    limit = 3
+) {
+    return sortEventsAscending(
+        events.filter(isUpcomingEvent)
+    ).slice(0, limit);
 }

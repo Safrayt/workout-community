@@ -4,7 +4,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "1",
         userId: "1",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-14",
         status: "registered",
         experienceAwarded: 0,
@@ -12,7 +12,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "2",
         userId: "2",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-15",
         status: "registered",
         experienceAwarded: 0,
@@ -20,7 +20,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "3",
         userId: "3",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-18",
         status: "registered",
         experienceAwarded: 0,
@@ -28,7 +28,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "4",
         userId: "4",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-22",
         status: "registered",
         experienceAwarded: 0,
@@ -36,7 +36,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "5",
         userId: "5",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-25",
         status: "registered",
         experienceAwarded: 0,
@@ -44,7 +44,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "6",
         userId: "6",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-27",
         status: "registered",
         experienceAwarded: 0,
@@ -52,7 +52,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "7",
         userId: "7",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-07-29",
         status: "registered",
         experienceAwarded: 0,
@@ -60,7 +60,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "8",
         userId: "8",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-08-01",
         status: "registered",
         experienceAwarded: 0,
@@ -68,7 +68,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "9",
         userId: "9",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-08-03",
         status: "registered",
         experienceAwarded: 0,
@@ -76,7 +76,7 @@ export const registrations: EventRegistration[] = [
     {
         id: "10",
         userId: "10",
-        eventId: "1",
+        eventId: "6",
         registeredAt: "2026-08-05",
         status: "registered",
         experienceAwarded: 0,

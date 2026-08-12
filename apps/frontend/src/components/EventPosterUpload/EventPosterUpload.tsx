@@ -101,7 +101,7 @@ export default function EventPosterUpload({
             }
 
             <p className="event-poster-upload__hint">
-                Необязательно. Желательный формат — квадратный.
+                Можно не добавлять. Желательный формат — горизонтальный с соотношением сторон 4 на 3.
             </p>
         </div>
     );

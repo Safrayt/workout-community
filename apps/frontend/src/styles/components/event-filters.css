@@ -1,0 +1,33 @@
+.event-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    margin: var(--space-3) 0 var(--space-4);
+}
+
+.event-filters__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+}
+
+.event-filters__reset {
+    display: flex;
+    justify-content: center;
+}
+
+/* Radio-варианты (Дата, Статус) идут в ряд, а не по одному в столбик. */
+.event-filters .form-section-content {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+}
+
+.event-filters__radio {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    white-space: nowrap;
+}

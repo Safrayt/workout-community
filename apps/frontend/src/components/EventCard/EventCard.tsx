@@ -4,6 +4,8 @@ import { formatParticipants } from "../../utils/format";
 import { formatEventDate } from "../../utils/formatEventDate";
 import { Link } from "react-router-dom";
 
+import type { CSSProperties } from "react";
+
 import {
     useEventWeather,
 } from "../../hooks/useEventWeather";
@@ -16,9 +18,25 @@ import {
     getEventPosterUrl,
 } from "../../utils/eventPoster";
 
+import { getUserName } from "../../utils/users";
+
+import {
+    getEventStatus,
+    eventStatusLabels,
+} from "../../utils/eventStatus";
+
 import type {
     Playground,
 } from "../../types/playground";
+
+const eventStatusColors: Record<string, string> = {
+    upcoming: "var(--color-primary)",
+    completed: "var(--color-text-secondary)",
+};
+
+type EventStatusBadgeStyle = CSSProperties & {
+    "--status-color": string;
+};
 
 type EventCardProps = {
     id: string;
@@ -30,24 +48,28 @@ type EventCardProps = {
     expectedParticipants: number;
     posterUrl?: string;
     playground?: Playground;
+    creatorId?: string;
     isRegistered?: boolean;
     onRegister?: () => void;
     onCancelRegistration?: () => void;
+
+    /** Клик по карточке (не по конкретной ссылке/кнопке) — центрирует карту на площадке события. */
+    onSelect?: () => void;
 };
 
 export default function EventCard({
     id,
     title,
-    description,
     city,
-    location,
     startDate,
     expectedParticipants,
     posterUrl,
     playground,
+    creatorId,
     isRegistered = false,
     onRegister,
     onCancelRegistration,
+    onSelect,
 }: EventCardProps) {
     const weatherState = useEventWeather(
         startDate,
@@ -61,56 +83,100 @@ export default function EventCard({
             playground
         );
 
+    const status = getEventStatus({ startDate });
+
+    const statusBadgeStyle: EventStatusBadgeStyle = {
+        "--status-color": eventStatusColors[status],
+    };
+
     return (
-        <Card className="event-card">
-            <div className="event-card__layout">
+        <Card
+            className="event-card"
+            onClick={() => onSelect?.()}
+        >
+            <div className="event-card__photo-wrapper">
                 {
-                    imageUrl && (
+                    imageUrl ? (
                         <img
                             src={imageUrl}
-                            alt={title}
-                            className="event-card__poster"
+                            alt=""
+                            className="event-card__photo"
                         />
+                    ) : (
+                        <div className="event-card__photo event-card__photo--placeholder">
+                            Нет фото
+                        </div>
                     )
                 }
 
-                <div className="event-card__content">
-                    <h3 className="event-card__title">
-                        {title}
-                    </h3>
-
-                    <p className="event-card__meta">{formatEventDate(startDate)}</p>
-
-                    <p className="event-card__meta">{city}</p>
-
-                    <p className="event-card__meta">{location}</p>
-
-                    <p className="event-card__description">{description}</p>
-
-                    <p className="event-card__meta">Погода: {formatEventWeather(weatherState)}</p>
-
-                    <p className="event-card__meta">Ожидается {formatParticipants(expectedParticipants)}</p>
-                </div>
+                <span
+                    className="event-card__status"
+                    style={statusBadgeStyle}
+                >
+                    <span className="event-card__status-dot" />
+                    {eventStatusLabels[status]}
+                </span>
             </div>
 
-            <div className="event-card__actions">
-                <Button variant={isRegistered ? "secondary" : "primary"}
-                    onClick={
-                        isRegistered
-                            ? onCancelRegistration
-                            : onRegister
-                    }
-                >
-                    {isRegistered
-                        ? "Отменить участие"
-                        : "Записаться"}
-                </Button>
+            <div className="event-card__body">
+                <h3 className="event-card__title">
+                    {title}
+                </h3>
 
-                <Link to={`/events/${id}`}>
-                    <Button variant="secondary">
-                        Подробнее
+                <p className="event-card__locality">
+                    {city}
+                </p>
+
+                <p className="event-card__meta">
+                    {formatEventDate(startDate)}
+                </p>
+
+                {
+                    playground && (
+                        <p className="event-card__meta">
+                            {playground.name}
+                        </p>
+                    )
+                }
+
+                <p className="event-card__fact">
+                    Погода: {formatEventWeather(weatherState)}
+                </p>
+
+                <p className="event-card__fact">
+                    Ожидается {formatParticipants(expectedParticipants)}
+                </p>
+
+                {
+                    creatorId && (
+                        <p className="event-card__creator">
+                            Создатель события: {getUserName(creatorId)}
+                        </p>
+                    )
+                }
+
+                <div className="event-card__actions">
+                    <Button variant={isRegistered ? "secondary" : "primary"}
+                        onClick={
+                            isRegistered
+                                ? onCancelRegistration
+                                : onRegister
+                        }
+                    >
+                        {isRegistered
+                            ? "Отменить участие"
+                            : "Записаться"}
                     </Button>
-                </Link>
+
+                    <Link
+                        to={`/events/${id}`}
+                        className="event-card__link"
+                    >
+                        <Button variant="outline">
+                            Подробнее
+                        </Button>
+                    </Link>
+                </div>
             </div>
         </Card>
     );
