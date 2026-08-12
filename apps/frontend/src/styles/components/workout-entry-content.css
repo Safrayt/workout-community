@@ -1,0 +1,12 @@
+.workout-entry-content {
+    max-width: 640px;
+
+    margin: 0 0 var(--space-5);
+
+    font-size: var(--font-size-lg);
+    line-height: 1.8;
+
+    color: var(--color-text);
+
+    white-space: pre-wrap;
+}

@@ -25,3 +25,24 @@ export function formatWorkoutEntryDate(
 function capitalize(text: string) {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+/**
+ * Полная дата без дня недели, для Hero и Quick Facts страницы
+ * записи дневника: "20 июля 2026" (UX-DIARY-ENTRY §9, §10).
+ * В отличие от formatWorkoutEntryDate (используется в карточке
+ * списка) здесь не нужен день недели — только узнаваемая дата.
+ */
+export function formatWorkoutEntryDateLong(
+    date: string
+) {
+    const parsedDate = new Date(date);
+
+    return parsedDate.toLocaleDateString(
+        "ru-RU",
+        {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        }
+    );
+}

@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
-import Section from "../../components/ui/Section/Section";
-import InfoSection from "../../components/ui/InfoSection/InfoSection";
-import InfoRow from "../../components/ui/InfoRow/InfoRow";
-import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import "../../styles/components/workout-entry-details.css";
+
 import Button from "../../components/ui/Button/Button";
-import TagBadge from "../../components/ui/TagBadge/TagBadge";
 
 import WorkoutEntryForm from "../../components/WorkoutEntryForm/WorkoutEntryForm";
+import WorkoutEntryHero from "../../components/WorkoutEntryHero/WorkoutEntryHero";
+import WorkoutEntryQuickFacts from "../../components/WorkoutEntryQuickFacts/WorkoutEntryQuickFacts";
+import WorkoutEntryContent from "../../components/WorkoutEntryContent/WorkoutEntryContent";
+import WorkoutEntryTags from "../../components/WorkoutEntryTags/WorkoutEntryTags";
+import WorkoutEntryPlaygroundPreview from "../../components/WorkoutEntryPlaygroundPreview/WorkoutEntryPlaygroundPreview";
+import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEntryActions";
+import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
 
 import type {
     NewWorkoutEntry,
@@ -23,17 +27,16 @@ import {
 } from "../../context/PlaygroundContext";
 
 import {
+    useCurrentUser,
+} from "../../context/CurrentUserContext";
+
+import {
     getWorkoutEntryById,
 } from "../../utils/workoutEntries";
 
 import {
     getPlaygroundById,
 } from "../../utils/playgrounds";
-
-import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
-import { getTimeOfDayName } from "../../utils/timeOfDay";
-
-import "../../styles/components/workout-entry-description.css";
 
 export default function WorkoutEntryDetails() {
     const { id } = useParams();
@@ -51,6 +54,10 @@ export default function WorkoutEntryDetails() {
         playgrounds,
     } = usePlaygrounds();
 
+    const {
+        currentUser,
+    } = useCurrentUser();
+
     const navigate =
         useNavigate();
 
@@ -64,15 +71,14 @@ export default function WorkoutEntryDetails() {
 
     if (!entry) {
         return (
-            <Section title="Тренировка">
-                <p>
-                    Запись не найдена.
-                </p>
-            </Section>
+            <WorkoutEntryNotFound />
         );
     }
 
     const entryId = entry.id;
+
+    const isOwner =
+        entry.userId === currentUser.id;
 
     const playground =
         entry.playgroundId
@@ -95,7 +101,7 @@ export default function WorkoutEntryDetails() {
 
     function handleDelete() {
         const confirmed = window.confirm(
-            "Удалить эту тренировку? Это действие нельзя отменить."
+            "Удалить эту запись? Это действие нельзя отменить."
         );
 
         if (!confirmed) {
@@ -137,81 +143,49 @@ export default function WorkoutEntryDetails() {
     }
 
     return (
-        <Section title={entry.title}>
+        <div className="workout-entry-details">
 
-            <InfoSection title="Тренировка">
+            {/* Back Navigation (UX §6) */}
+            <Link
+                to="/diary"
+                className="workout-entry-details__back"
+            >
+                ← Дневник
+            </Link>
 
-                <InfoRow label="Дата">
-                    {formatWorkoutEntryDate(entry.date)}
-                </InfoRow>
+            {/* Hero — заголовок записи (UX §7–9) */}
+            <WorkoutEntryHero
+                entry={entry}
+            />
 
-                {
-                    entry.timeOfDay && (
-                        <InfoRow label="Время суток">
-                            {getTimeOfDayName(entry.timeOfDay)}
-                        </InfoRow>
-                    )
-                }
+            {/* Quick Facts — только реально существующие сведения (UX §10) */}
+            <WorkoutEntryQuickFacts
+                entry={entry}
+            />
 
-                <InfoRow label="Площадка">
-                    {
-                        playground
-                            ? (
-                                <Link
-                                    to={`/playgrounds/${playground.id}`}
-                                >
-                                    {playground.name}
-                                </Link>
-                            )
-                            : "Не указана"
-                    }
-                </InfoRow>
+            {/* Главный контент — текст записи (UX §11–13) */}
+            <WorkoutEntryContent
+                description={entry.description}
+            />
 
-            </InfoSection>
+            {/* Второстепенный блок тегов (UX §14–15) */}
+            <WorkoutEntryTags
+                tags={entry.tags}
+            />
 
-            {
-                entry.description && (
-                    <div className="workout-entry-description">
-                        <strong className="workout-entry-description__label">
-                            Описание:
-                        </strong>
+            {/* Компактный preview площадки (UX §16–18, §27) */}
+            <WorkoutEntryPlaygroundPreview
+                playgroundId={entry.playgroundId}
+                playground={playground}
+            />
 
-                        <p className="workout-entry-description__text">
-                            {entry.description}
-                        </p>
-                    </div>
-                )
-            }
+            {/* Действия доступны только владельцу записи (UX §19, §22) */}
+            <WorkoutEntryActions
+                isOwner={isOwner}
+                onEdit={() => setMode("edit")}
+                onDelete={handleDelete}
+            />
 
-            {
-                entry.tags && entry.tags.length > 0 && (
-                    <InfoSection title="Теги">
-                        <div className="tag-list">
-                            {
-                                entry.tags.map(
-                                    (tag) => (
-                                        <TagBadge
-                                            key={tag}
-                                            label={tag}
-                                        />
-                                    )
-                                )
-                            }
-                        </div>
-                    </InfoSection>
-                )
-            }
-
-            <ActionGroup>
-                <Button
-                    onClick={() =>
-                        setMode("edit")
-                    }
-                >
-                    Редактировать
-                </Button>
-            </ActionGroup>
-
-        </Section>
+        </div>
     );
 }

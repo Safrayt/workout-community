@@ -36,6 +36,7 @@ import {
 } from "../../context/PlaygroundContext";
 
 import PlaygroundsMap from "../Map/PlaygroundsMap";
+import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 
 import {
     getPlaygroundById,
@@ -129,6 +130,11 @@ export default function WorkoutEntryForm({
             currentUser.id
         );
 
+    const availableExistingTags =
+        existingTags.filter(
+            (tag) => !entry.tags.includes(tag)
+        );
+
     function updateField<K extends keyof NewWorkoutEntry>(
         field: K,
         value: NewWorkoutEntry[K]
@@ -186,6 +192,27 @@ export default function WorkoutEntryForm({
         );
 
         setTagInput("");
+        setTagError(null);
+    }
+
+    function addExistingTag(tag: string) {
+        if (entry.tags.includes(tag)) {
+            return;
+        }
+
+        if (entry.tags.length >= MAX_TAGS_PER_ENTRY) {
+            setTagError(
+                `Можно добавить не более ${MAX_TAGS_PER_ENTRY} тегов на тренировку.`
+            );
+
+            return;
+        }
+
+        updateField(
+            "tags",
+            [...entry.tags, tag]
+        );
+
         setTagError(null);
     }
 
@@ -289,15 +316,13 @@ export default function WorkoutEntryForm({
                     }
                 />
 
-                <p className="workout-entry-selected-playground">
-                    {
-                        selectedPlayground
-                            ? `Выбрано: ${selectedPlayground.name}`
-                            : "Нажмите на площадку на карте, чтобы выбрать её"
-                    }
+                {
+                    selectedPlayground ? (
+                        <div className="workout-entry-selected-playground">
+                            <SelectedPlaygroundPreview
+                                playground={selectedPlayground}
+                            />
 
-                    {
-                        selectedPlayground && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -310,9 +335,13 @@ export default function WorkoutEntryForm({
                             >
                                 Убрать
                             </Button>
-                        )
-                    }
-                </p>
+                        </div>
+                    ) : (
+                        <p className="workout-entry-selected-playground__hint">
+                            Нажмите на площадку на карте, чтобы выбрать её
+                        </p>
+                    )
+                }
             </div>
             <Textarea
                 id="description"
@@ -334,6 +363,32 @@ export default function WorkoutEntryForm({
                 >
                     {`Личные теги (${entry.tags.length}/${MAX_TAGS_PER_ENTRY})`}
                 </label>
+
+                {
+                    availableExistingTags.length > 0 && (
+                        <div className="workout-entry-tag-suggestions">
+                            <p className="workout-entry-tag-suggestions__label">
+                                Ваши теги — нажмите, чтобы прикрепить
+                            </p>
+
+                            <div className="tag-list">
+                                {
+                                    availableExistingTags.map(
+                                        (tag) => (
+                                            <TagBadge
+                                                key={tag}
+                                                label={tag}
+                                                onClick={() =>
+                                                    addExistingTag(tag)
+                                                }
+                                            />
+                                        )
+                                    )
+                                }
+                            </div>
+                        </div>
+                    )
+                }
 
                 <div className="tag-input-row">
                     <Input

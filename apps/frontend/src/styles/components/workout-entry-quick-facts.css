@@ -1,0 +1,43 @@
+.workout-entry-quick-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-6);
+
+    margin: var(--space-4) 0 var(--space-5);
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    list-style: none;
+}
+
+.workout-entry-quick-facts__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    min-width: 0;
+}
+
+.workout-entry-quick-facts__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    color: var(--color-text-secondary);
+}
+
+.workout-entry-quick-facts__value {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .workout-entry-quick-facts {
+        gap: var(--space-3) var(--space-5);
+        padding: var(--space-3);
+    }
+}

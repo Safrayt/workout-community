@@ -1,0 +1,101 @@
+.workout-entry-playground-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    margin: 0 0 var(--space-5);
+}
+
+.workout-entry-playground-preview__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+}
+
+.workout-entry-playground-preview__card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    padding: var(--space-3);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    text-decoration: none;
+    color: inherit;
+
+    transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.workout-entry-playground-preview__card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.workout-entry-playground-preview__photo {
+    width: 104px;
+    aspect-ratio: 4 / 3;
+    flex: 0 0 auto;
+
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.workout-entry-playground-preview__photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+
+    background: var(--color-background);
+}
+
+.workout-entry-playground-preview__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    min-width: 0;
+}
+
+.workout-entry-playground-preview__name {
+    margin: 0;
+
+    font-weight: 600;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workout-entry-playground-preview__fact {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.workout-entry-playground-preview__fact--rating {
+    font-weight: 700;
+}
+
+.workout-entry-playground-preview--empty {
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.workout-entry-playground-preview__message {
+    margin: var(--space-2) 0 0;
+
+    color: var(--color-text-secondary);
+}
