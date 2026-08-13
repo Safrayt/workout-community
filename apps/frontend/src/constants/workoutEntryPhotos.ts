@@ -1,0 +1,1 @@
+export const MAX_WORKOUT_ENTRY_PHOTOS = 5;

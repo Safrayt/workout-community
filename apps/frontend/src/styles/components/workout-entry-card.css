@@ -1,5 +1,6 @@
 .workout-entry-card {
-    padding: var(--space-4);
+    overflow: hidden;
+
     margin-bottom: var(--space-4);
 
     background: var(--color-surface);
@@ -11,6 +12,19 @@
     box-shadow: var(--shadow-sm);
 }
 
-.workout-entry-card h4 {
+.workout-entry-card__photo {
+    display: block;
+
+    width: 100%;
+    aspect-ratio: 16 / 9;
+
+    object-fit: cover;
+}
+
+.workout-entry-card__body {
+    padding: var(--space-4);
+}
+
+.workout-entry-card__body h4 {
     margin-bottom: var(--space-2);
 }

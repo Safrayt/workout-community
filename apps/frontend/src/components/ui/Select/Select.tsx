@@ -14,6 +14,9 @@ type SelectProps =
 
         placeholder?: string;
 
+        /** Текст первого пустого пункта. По умолчанию "Выберите...". */
+        emptyOptionLabel?: string;
+
         options: Option[];
 
         error?: string;
@@ -27,6 +30,8 @@ export default function Select({
     label,
 
     placeholder,
+
+    emptyOptionLabel = "Выберите...",
 
     options,
 
@@ -79,7 +84,7 @@ export default function Select({
             >
 
                 <option value="">
-                    Выберите...
+                    {emptyOptionLabel}
                 </option>
 
                 {

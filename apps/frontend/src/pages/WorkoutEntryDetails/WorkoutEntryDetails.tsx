@@ -9,6 +9,7 @@ import WorkoutEntryForm from "../../components/WorkoutEntryForm/WorkoutEntryForm
 import WorkoutEntryHero from "../../components/WorkoutEntryHero/WorkoutEntryHero";
 import WorkoutEntryQuickFacts from "../../components/WorkoutEntryQuickFacts/WorkoutEntryQuickFacts";
 import WorkoutEntryContent from "../../components/WorkoutEntryContent/WorkoutEntryContent";
+import WorkoutEntryGallery from "../../components/WorkoutEntryGallery/WorkoutEntryGallery";
 import WorkoutEntryTags from "../../components/WorkoutEntryTags/WorkoutEntryTags";
 import WorkoutEntryPlaygroundPreview from "../../components/WorkoutEntryPlaygroundPreview/WorkoutEntryPlaygroundPreview";
 import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEntryActions";
@@ -120,15 +121,22 @@ export default function WorkoutEntryDetails() {
             playgroundId: entry.playgroundId ?? "",
             title: entry.title,
             description: entry.description ?? "",
+            photos:
+                entry.photos?.map((photo) => ({
+                    id: photo.id,
+                    url: photo.url,
+                    isMain: photo.isMain ?? false,
+                })) ?? [],
             tags: entry.tags ?? [],
         };
 
         return (
             <WorkoutEntryForm
-                title="Редактирование записи"
+                heading="Редактирование записи"
                 initialValue={initialValue}
                 submitLabel="Сохранить изменения"
                 onSubmit={handleSubmit}
+                onCancel={() => setMode("view")}
                 extraActions={
                     <Button
                         type="button"
@@ -166,6 +174,11 @@ export default function WorkoutEntryDetails() {
             {/* Главный контент — текст записи (UX §11–13) */}
             <WorkoutEntryContent
                 description={entry.description}
+            />
+
+            {/* Галерея фотографий тренировки, если они есть */}
+            <WorkoutEntryGallery
+                photos={entry.photos}
             />
 
             {/* Второстепенный блок тегов (UX §14–15) */}

@@ -12,6 +12,10 @@ import {
 } from "../utils/workoutTags";
 
 import {
+    MAX_WORKOUT_ENTRY_PHOTOS,
+} from "../constants/workoutEntryPhotos";
+
+import {
     getTodayDateString,
 } from "../utils/today";
 
@@ -52,6 +56,15 @@ export function validateWorkoutEntry(
         errors.push({
             field: "tags",
             message: `Можно добавить не более ${MAX_TAGS_PER_ENTRY} тегов.`,
+        });
+    }
+
+    if (
+        entry.photos.length > MAX_WORKOUT_ENTRY_PHOTOS
+    ) {
+        errors.push({
+            field: "photos",
+            message: `Можно загрузить не более ${MAX_WORKOUT_ENTRY_PHOTOS} фотографий.`,
         });
     }
 

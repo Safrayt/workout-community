@@ -5,6 +5,7 @@ import Select from "../ui/Select/Select";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import TagBadge from "../ui/TagBadge/TagBadge";
+import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
 
 import { useState } from "react";
 
@@ -57,15 +58,25 @@ import {
 } from "../../utils/workoutTags";
 
 import {
+    MAX_WORKOUT_ENTRY_PHOTOS,
+} from "../../constants/workoutEntryPhotos";
+
+import {
     getTodayDateString,
 } from "../../utils/today";
 
+import "../../styles/components/workout-entry-form.css";
 import "../../styles/components/workout-entry-map-picker.css";
 
 import type { ReactNode } from "react";
 
 type WorkoutEntryFormProps = {
-    title: string;
+    /**
+     * Заголовок над формой (например, "Редактирование записи").
+     * Используется только режимом редактирования — у страницы
+     * создания записи свой Hero, живущий на уровне страницы (UX §5).
+     */
+    heading?: string;
 
     initialValue: NewWorkoutEntry;
 
@@ -73,18 +84,34 @@ type WorkoutEntryFormProps = {
 
     onSubmit: (entry: NewWorkoutEntry) => void;
 
+    /** Кнопка/действие "Отмена" (UX §24–25). */
+    onCancel?: () => void;
+
     extraActions?: ReactNode;
 };
 
+/**
+ * Форма записи дневника — используется и для создания (AddWorkoutEntry),
+ * и для редактирования (WorkoutEntryDetails, режим edit) записи.
+ *
+ * Разбита на смысловые секции согласно UX-DIARY-CREATE §3, §23, §37:
+ * "Когда" → "Тренировка" → "Место" → "Теги" → действия. Так форма
+ * читается как последовательный рассказ о тренировке, а не как
+ * длинная безликая анкета.
+ */
 export default function WorkoutEntryForm({
-    title,
+    heading,
     initialValue,
     submitLabel,
     onSubmit,
+    onCancel,
     extraActions,
 }: WorkoutEntryFormProps) {
     const [errors, setErrors] =
         useState<ValidationError[]>([]);
+
+    const [submitError, setSubmitError] =
+        useState<string | null>(null);
 
     const [
         entry,
@@ -238,83 +265,148 @@ export default function WorkoutEntryForm({
         }
 
         setErrors([]);
-        onSubmit(entry);
+
+        // Форма не должна очищаться при ошибке сохранения — все
+        // введённые данные остаются на месте (UX §27).
+        try {
+            setSubmitError(null);
+            onSubmit(entry);
+        } catch {
+            setSubmitError(
+                "Не удалось сохранить запись. Попробуйте ещё раз."
+            );
+        }
     }
 
     return (
-        <Section title={title}>
-            <Input
-                id="date"
-                label="Дата"
-                type="date"
-                className="input__field--date"
-                max={getTodayDateString()}
-                value={entry.date}
-                error={
-                    getFieldError(
-                        errors,
-                        "date"
-                    )
-                }
-                onChange={(e) =>
-                    updateField(
-                        "date",
-                        e.target.value
-                    )
-                }
-            />
-            <Select
-                id="timeOfDay"
-                label="Время суток (необязательно)"
-                options={timeOfDayOptions}
-                value={entry.timeOfDay}
-                onChange={(e) =>
-                    updateField(
-                        "timeOfDay",
-                        e.target.value
-                    )
-                }
-            />
-            <Input
-                id="title"
-                label="Название"
-                placeholder="Например, Утренняя тренировка"
-                value={entry.title}
-                error={
-                    getFieldError(
-                        errors,
-                        "title"
-                    )
-                }
-                onChange={(e) =>
-                    updateField(
-                        "title",
-                        e.target.value
-                    )
-                }
-            />
-            <div className="input">
-                <label className="input__label">
-                    Площадка (необязательно)
-                </label>
+        <div className="workout-entry-form">
 
-                <PlaygroundsMap
-                    markers={playgroundMarkers}
-                    height="350px"
-                    showDetailsLink={false}
-                    selectedLatitude={
-                        selectedPlayground?.coordinates.latitude
+            {
+                heading && (
+                    <h1 className="workout-entry-form__heading">
+                        {heading}
+                    </h1>
+                )
+            }
+
+            <Section title="Когда">
+                <Input
+                    id="date"
+                    label="Дата"
+                    type="date"
+                    className="input__field--date"
+                    max={getTodayDateString()}
+                    value={entry.date}
+                    error={
+                        getFieldError(
+                            errors,
+                            "date"
+                        )
                     }
-                    selectedLongitude={
-                        selectedPlayground?.coordinates.longitude
-                    }
-                    onMarkerClick={(marker) =>
+                    onChange={(e) =>
                         updateField(
-                            "playgroundId",
-                            marker.id
+                            "date",
+                            e.target.value
                         )
                     }
                 />
+
+                <Select
+                    id="timeOfDay"
+                    label="Время суток"
+                    emptyOptionLabel="Не указано"
+                    options={timeOfDayOptions}
+                    value={entry.timeOfDay}
+                    onChange={(e) =>
+                        updateField(
+                            "timeOfDay",
+                            e.target.value
+                        )
+                    }
+                />
+            </Section>
+
+            <Section title="Тренировка">
+                <Input
+                    id="title"
+                    label="Название"
+                    placeholder="Например, Утренняя тренировка"
+                    value={entry.title}
+                    error={
+                        getFieldError(
+                            errors,
+                            "title"
+                        )
+                    }
+                    onChange={(e) =>
+                        updateField(
+                            "title",
+                            e.target.value
+                        )
+                    }
+                />
+
+                <Textarea
+                    id="description"
+                    label="Что делал?"
+                    placeholder="Расскажи, как прошла тренировка"
+                    value={entry.description}
+                    onChange={(e) =>
+                        updateField(
+                            "description",
+                            e.target.value
+                        )
+                    }
+                />
+
+                <div className="input">
+                    <label className="input__label">
+                        Фотографии (необязательно)
+                    </label>
+
+                    <WorkoutEntryPhotoUpload
+                        photos={entry.photos}
+                        maxPhotos={MAX_WORKOUT_ENTRY_PHOTOS}
+                        error={
+                            getFieldError(
+                                errors,
+                                "photos"
+                            )
+                        }
+                        onChange={(photos) =>
+                            updateField(
+                                "photos",
+                                photos
+                            )
+                        }
+                    />
+                </div>
+            </Section>
+
+            <Section title="Где тренировался?">
+                <p className="workout-entry-form__section-lead">
+                    Площадка (необязательно)
+                </p>
+
+                <div className="workout-entry-map">
+                    <PlaygroundsMap
+                        markers={playgroundMarkers}
+                        height="var(--workout-entry-map-height, 350px)"
+                        showDetailsLink={false}
+                        selectedLatitude={
+                            selectedPlayground?.coordinates.latitude
+                        }
+                        selectedLongitude={
+                            selectedPlayground?.coordinates.longitude
+                        }
+                        onMarkerClick={(marker) =>
+                            updateField(
+                                "playgroundId",
+                                marker.id
+                            )
+                        }
+                    />
+                </div>
 
                 {
                     selectedPlayground ? (
@@ -342,131 +434,144 @@ export default function WorkoutEntryForm({
                         </p>
                     )
                 }
-            </div>
-            <Textarea
-                id="description"
-                label="Описание (необязательно)"
-                placeholder="Что делал на тренировке"
-                value={entry.description}
-                onChange={(e) =>
-                    updateField(
-                        "description",
-                        e.target.value
-                    )
-                }
-            />
+            </Section>
 
-            <div className="input">
-                <label
-                    className="input__label"
-                    htmlFor="tagInput"
-                >
-                    {`Личные теги (${entry.tags.length}/${MAX_TAGS_PER_ENTRY})`}
-                </label>
+            <Section title="Теги">
+                <div className="input">
+                    <label
+                        className="input__label"
+                        htmlFor="tagInput"
+                    >
+                        {`Личные теги (${entry.tags.length}/${MAX_TAGS_PER_ENTRY})`}
+                    </label>
 
-                {
-                    availableExistingTags.length > 0 && (
-                        <div className="workout-entry-tag-suggestions">
-                            <p className="workout-entry-tag-suggestions__label">
-                                Ваши теги — нажмите, чтобы прикрепить
-                            </p>
+                    {
+                        availableExistingTags.length > 0 && (
+                            <div className="workout-entry-tag-suggestions">
+                                <p className="workout-entry-tag-suggestions__label">
+                                    Ваши теги — нажмите, чтобы прикрепить
+                                </p>
 
+                                <div className="tag-list">
+                                    {
+                                        availableExistingTags.map(
+                                            (tag) => (
+                                                <TagBadge
+                                                    key={tag}
+                                                    label={tag}
+                                                    onClick={() =>
+                                                        addExistingTag(tag)
+                                                    }
+                                                />
+                                            )
+                                        )
+                                    }
+                                </div>
+                            </div>
+                        )
+                    }
+
+                    <div className="tag-input-row">
+                        <Input
+                            id="tagInput"
+                            list="known-tags"
+                            placeholder="Например, турник"
+                            value={tagInput}
+                            onChange={(e) =>
+                                setTagInput(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addTag();
+                                }
+                            }}
+                        />
+
+                        <datalist id="known-tags">
+                            {
+                                existingTags.map(
+                                    (tag) => (
+                                        <option
+                                            key={tag}
+                                            value={tag}
+                                        />
+                                    )
+                                )
+                            }
+                        </datalist>
+
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={addTag}
+                        >
+                            Добавить
+                        </Button>
+                    </div>
+
+                    {
+                        tagError && (
+                            <small className="input__error">
+                                {tagError}
+                            </small>
+                        )
+                    }
+
+                    {
+                        entry.tags.length > 0 && (
                             <div className="tag-list">
                                 {
-                                    availableExistingTags.map(
+                                    entry.tags.map(
                                         (tag) => (
                                             <TagBadge
                                                 key={tag}
                                                 label={tag}
-                                                onClick={() =>
-                                                    addExistingTag(tag)
+                                                onRemove={() =>
+                                                    removeTag(tag)
                                                 }
                                             />
                                         )
                                     )
                                 }
                             </div>
-                        </div>
-                    )
-                }
-
-                <div className="tag-input-row">
-                    <Input
-                        id="tagInput"
-                        list="known-tags"
-                        placeholder="Например, турник"
-                        value={tagInput}
-                        onChange={(e) =>
-                            setTagInput(e.target.value)
-                        }
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                addTag();
-                            }
-                        }}
-                    />
-
-                    <datalist id="known-tags">
-                        {
-                            existingTags.map(
-                                (tag) => (
-                                    <option
-                                        key={tag}
-                                        value={tag}
-                                    />
-                                )
-                            )
-                        }
-                    </datalist>
-
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={addTag}
-                    >
-                        Добавить
-                    </Button>
+                        )
+                    }
                 </div>
+            </Section>
 
-                {
-                    tagError && (
-                        <small className="input__error">
-                            {tagError}
-                        </small>
-                    )
-                }
+            {
+                submitError && (
+                    <p className="workout-entry-form__submit-error">
+                        {submitError}
+                    </p>
+                )
+            }
 
-                {
-                    entry.tags.length > 0 && (
-                        <div className="tag-list">
-                            {
-                                entry.tags.map(
-                                    (tag) => (
-                                        <TagBadge
-                                            key={tag}
-                                            label={tag}
-                                            onRemove={() =>
-                                                removeTag(tag)
-                                            }
-                                        />
-                                    )
-                                )
-                            }
-                        </div>
-                    )
-                }
+            <div className="workout-entry-form__actions">
+                <ActionGroup>
+                    <Button
+                        onClick={handleSubmit}
+                    >
+                        {submitLabel}
+                    </Button>
+
+                    {
+                        onCancel && (
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={onCancel}
+                            >
+                                Отмена
+                            </Button>
+                        )
+                    }
+
+                    {extraActions}
+                </ActionGroup>
             </div>
 
-            <ActionGroup>
-                <Button
-                    onClick={handleSubmit}
-                >
-                    {submitLabel}
-                </Button>
-
-                {extraActions}
-            </ActionGroup>
-        </Section>
+        </div>
     );
 }

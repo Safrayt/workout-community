@@ -1,3 +1,19 @@
+/*
+    Высота карты — переменная, чтобы можно было уменьшить её на
+    мобильных без изменения самого компонента PlaygroundsMap
+    (UX-DIARY-CREATE §31: 240–300px на мобильном вместо desktop-
+    высоты в 350px).
+*/
+.workout-entry-map {
+    --workout-entry-map-height: 350px;
+}
+
+@media (max-width: 640px) {
+    .workout-entry-map {
+        --workout-entry-map-height: 280px;
+    }
+}
+
 .workout-entry-selected-playground {
     display: flex;
     flex-direction: column;

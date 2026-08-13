@@ -4,6 +4,16 @@ export type TimeOfDay =
     | "evening"
     | "night";
 
+export type WorkoutEntryPhoto = {
+
+    id: string;
+
+    url: string;
+
+    isMain?: boolean;
+
+};
+
 export type WorkoutEntry = {
 
     id: string;
@@ -21,6 +31,8 @@ export type WorkoutEntry = {
     title: string;
 
     description?: string;
+
+    photos?: WorkoutEntryPhoto[];
 
     createdAt: string;
 

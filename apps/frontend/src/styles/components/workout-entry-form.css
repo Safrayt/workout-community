@@ -1,0 +1,42 @@
+.workout-entry-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.workout-entry-form__heading {
+    margin-top: 0;
+    margin-bottom: var(--space-4);
+}
+
+.workout-entry-form__section-lead {
+    margin: 0 0 var(--space-2);
+
+    color: var(--color-text-secondary);
+}
+
+.workout-entry-form__submit-error {
+    margin: 0 0 var(--space-3);
+
+    color: #d33;
+}
+
+.workout-entry-form__actions {
+    margin-top: var(--space-2);
+}
+
+/*
+    Mobile-first: Save и Cancel идут друг под другом, чтобы основное
+    действие было легко нажать пальцем (UX §25, §32 — touch target
+    не менее 44x44 px, это уже обеспечено высотой .button).
+*/
+.workout-entry-form__actions .action-group {
+    align-items: stretch;
+}
+
+/* Desktop: Save и Cancel идут в один ряд (UX §25). */
+@media (min-width: 640px) {
+    .workout-entry-form__actions .action-group {
+        flex-direction: row;
+        align-items: center;
+    }
+}

@@ -67,6 +67,11 @@ function buildEntryFields(
 
         description:
             entry.description || undefined,
+
+        photos:
+            entry.photos.length > 0
+                ? entry.photos
+                : undefined,
     };
 }
 

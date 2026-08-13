@@ -1,0 +1,116 @@
+.workout-entry-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    margin: 0 0 var(--space-5);
+}
+
+.workout-entry-gallery__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+}
+
+.workout-entry-gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-3);
+}
+
+.workout-entry-gallery__thumb {
+    position: relative;
+
+    padding: 0;
+
+    border: none;
+    border-radius: var(--radius-md);
+
+    overflow: hidden;
+    cursor: pointer;
+
+    aspect-ratio: 4 / 3;
+
+    background: var(--color-surface);
+}
+
+.workout-entry-gallery__thumb img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: transform 0.15s ease;
+}
+
+.workout-entry-gallery__thumb:hover img {
+    transform: scale(1.05);
+}
+
+.workout-entry-gallery__lightbox {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.85);
+
+    z-index: 1000;
+}
+
+.workout-entry-gallery__lightbox-image {
+    max-width: 90vw;
+    max-height: 85vh;
+
+    object-fit: contain;
+
+    border-radius: var(--radius-sm);
+}
+
+.workout-entry-gallery__close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+
+    background: transparent;
+    border: none;
+
+    color: #fff;
+    font-size: 1.5rem;
+
+    cursor: pointer;
+}
+
+.workout-entry-gallery__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 44px;
+    height: 44px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.5rem;
+
+    cursor: pointer;
+}
+
+.workout-entry-gallery__nav:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.workout-entry-gallery__nav--prev {
+    left: 16px;
+}
+
+.workout-entry-gallery__nav--next {
+    right: 16px;
+}
