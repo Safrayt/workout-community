@@ -5,32 +5,41 @@ import type { Playground } from "../../types/playground";
 
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
-import { getDescriptionPreview } from "../../utils/workoutEntryDescription";
+import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 
 import TagBadge from "../ui/TagBadge/TagBadge";
-import Button from "../ui/Button/Button";
 
 import "../../styles/components/workout-entry-card.css";
-import "../../styles/components/workout-entry-description.css";
 
 type WorkoutEntryCardProps = {
     entry: WorkoutEntry;
     playground?: Playground;
 };
 
+/**
+ * Карточка записи в списке дневника (UX-DIARY §22–26).
+ *
+ * Приоритет информации: фото → дата → название → площадка →
+ * краткое описание → теги. Вся карточка кликабельна — искать
+ * маленькую кнопку "Подробнее" не нужно (§25).
+ */
 export default function WorkoutEntryCard({
     entry,
     playground,
 }: WorkoutEntryCardProps) {
-    // Миниатюра записи в списке дневника — главная фотография,
-    // выбранная пользователем в форме, либо первая загруженная,
-    // если главная явно не отмечена.
+    // Миниатюра записи — главная фотография, выбранная пользователем
+    // в форме, либо первая загруженная, если главная не отмечена
+    // явно (§23). Если фото нет вовсе — просто нет картинки, а не
+    // сломанный вид (§24).
     const mainPhoto =
         entry.photos?.find((photo) => photo.isMain) ??
         entry.photos?.[0];
 
     return (
-        <div className="workout-entry-card">
+        <Link
+            to={`/diary/${entry.id}`}
+            className="workout-entry-card"
+        >
             {
                 mainPhoto && (
                     <img
@@ -42,9 +51,7 @@ export default function WorkoutEntryCard({
             }
 
             <div className="workout-entry-card__body">
-                <h4>{entry.title}</h4>
-
-                <p>
+                <p className="workout-entry-card__date">
                     {formatWorkoutEntryDate(entry.date)}
                     {
                         entry.timeOfDay &&
@@ -52,18 +59,22 @@ export default function WorkoutEntryCard({
                     }
                 </p>
 
+                <h4 className="workout-entry-card__title">
+                    {entry.title}
+                </h4>
+
                 {
                     playground && (
-                        <p>
-                            Площадка: {playground.name}
+                        <p className="workout-entry-card__playground">
+                            {playground.name}
                         </p>
                     )
                 }
 
                 {
                     entry.description && (
-                        <p className="workout-entry-description__text">
-                            {getDescriptionPreview(entry.description)}
+                        <p className="workout-entry-card__description">
+                            {getCardDescriptionPreview(entry.description)}
                         </p>
                     )
                 }
@@ -84,13 +95,7 @@ export default function WorkoutEntryCard({
                         </div>
                     )
                 }
-
-                <Link to={`/diary/${entry.id}`}>
-                    <Button variant="secondary">
-                        Подробнее
-                    </Button>
-                </Link>
             </div>
-        </div>
+        </Link>
     );
 }

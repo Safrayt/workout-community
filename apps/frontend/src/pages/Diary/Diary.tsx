@@ -1,13 +1,23 @@
-import Section from "../../components/ui/Section/Section";
-import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
-import Button from "../../components/ui/Button/Button";
 import { Link } from "react-router-dom";
 
 import { useState } from "react";
 
-import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
-import TagBadge from "../../components/ui/TagBadge/TagBadge";
+import Section from "../../components/ui/Section/Section";
+import Button from "../../components/ui/Button/Button";
+import Select from "../../components/ui/Select/Select";
+import Input from "../../components/ui/Input/Input";
 import Pagination from "../../components/ui/Pagination/Pagination";
+
+import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
+import DiaryStats from "../../components/DiaryStats/DiaryStats";
+import DiaryMap from "../../components/DiaryMap/DiaryMap";
+import WorkoutCalendar from "../../components/WorkoutCalendar/WorkoutCalendar";
+import DiaryTagFilter from "../../components/DiaryTagFilter/DiaryTagFilter";
+import DiaryActiveFilters from "../../components/DiaryActiveFilters/DiaryActiveFilters";
+
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+
+import "../../styles/components/diary.css";
 
 import {
     useWorkoutDiary,
@@ -31,13 +41,25 @@ import {
 
 import {
     getUserTags,
-    filterEntriesByTags,
 } from "../../utils/workoutTags";
+
+import {
+    emptyDiaryFilters,
+} from "../../types/diaryFilters";
+
+import {
+    filterDiaryEntries,
+    hasActiveDiaryFilters,
+    getEntryCountsByDate,
+    getPlaygroundsWithEntries,
+} from "../../utils/diaryFilters";
 
 import {
     paginate,
     getTotalPages,
 } from "../../utils/pagination";
+
+import { pluralizeRu } from "../../utils/pluralize";
 
 export default function Diary() {
     const {
@@ -52,8 +74,8 @@ export default function Diary() {
         playgrounds,
     } = usePlaygrounds();
 
-    const [selectedTags, setSelectedTags] =
-        useState<string[]>([]);
+    const [filters, setFilters] =
+        useState(emptyDiaryFilters);
 
     const [page, setPage] =
         useState(1);
@@ -64,16 +86,30 @@ export default function Diary() {
             currentUser.id
         );
 
+    // Новые записи сверху (UX §27).
+    const sortedEntries = [...userEntries].sort(
+        (a, b) => b.date.localeCompare(a.date)
+    );
+
     const userTags =
         getUserTags(
             entries,
             currentUser.id
         );
 
-    const visibleEntries =
-        filterEntriesByTags(
+    const visitedPlaygrounds =
+        getPlaygroundsWithEntries(
             userEntries,
-            selectedTags
+            playgrounds
+        );
+
+    const entryCountsByDate =
+        getEntryCountsByDate(userEntries);
+
+    const visibleEntries =
+        filterDiaryEntries(
+            sortedEntries,
+            filters
         );
 
     const totalPages =
@@ -87,21 +123,13 @@ export default function Diary() {
             page
         );
 
-    function toggleTag(tag: string) {
+    function updateFilters(next: typeof filters) {
         setPage(1);
-
-        setSelectedTags(
-            (current) =>
-                current.includes(tag)
-                    ? current.filter(
-                        (item) => item !== tag
-                    )
-                    : [...current, tag]
-        );
+        setFilters(next);
     }
 
     return (
-        <Section title="Дневник тренировок">
+        <Section title="Дневник">
             <ActionGroup>
                 <Link to="/diary/create">
                     <Button variant="primary">
@@ -110,80 +138,215 @@ export default function Diary() {
                 </Link>
             </ActionGroup>
 
+            {/* Overview (UX §5) */}
+            <p className="diary__subtitle">
+                Твоя история тренировок
+            </p>
+
+            <DiaryStats
+                entries={userEntries}
+            />
+
             {
-                userTags.length > 0 && (
-                    <div className="tag-list">
+                userEntries.length === 0 ? (
+                    /* Полностью пустой дневник — полноценный friendly empty state (UX §28) */
+                    <div className="diary-empty-state">
+                        <p className="diary-empty-state__title">
+                            Твой дневник пока пуст
+                        </p>
 
-                        {
-                            userTags.map(
-                                (tag) => (
-                                    <TagBadge
-                                        key={tag}
-                                        label={tag}
-                                        active={
-                                            selectedTags.includes(tag)
-                                        }
-                                        onClick={() =>
-                                            toggleTag(tag)
-                                        }
-                                    />
-                                )
-                            )
-                        }
+                        <p className="diary-empty-state__description">
+                            Здесь будут сохраняться твои тренировки, площадки,
+                            фотографии и история занятий.
+                        </p>
 
-                        {
-                            selectedTags.length > 0 && (
-                                <TagBadge
-                                    label="Сбросить фильтр"
-                                    onClick={() => {
-                                        setSelectedTags([]);
-                                        setPage(1);
-                                    }}
-                                />
-                            )
-                        }
-
+                        <Link to="/diary/create">
+                            <Button variant="primary">
+                                Записать первую тренировку
+                            </Button>
+                        </Link>
                     </div>
-                )
-            }
-
-            {
-                visibleEntries.length === 0 ? (
-                    <p>
-                        {
-                            userEntries.length === 0
-                                ? "Пока нет записей. Отметь свою первую тренировку."
-                                : "Нет записей с выбранными тегами."
-                        }
-                    </p>
                 ) : (
                     <>
-                        <div className="workout-entries-list">
-                            {
-                                pageEntries.map(
-                                    (entry) => (
-                                        <WorkoutEntryCard
-                                            key={entry.id}
-                                            entry={entry}
-                                            playground={
-                                                entry.playgroundId
-                                                    ? getPlaygroundById(
-                                                        playgrounds,
-                                                        entry.playgroundId
-                                                    )
-                                                    : undefined
-                                            }
-                                        />
-                                    )
-                                )
+                        <hr />
+
+                        {/* География тренировок (UX §6–10) */}
+                        <h3>
+                            География тренировок
+                        </h3>
+
+                        <DiaryMap
+                            entries={userEntries}
+                            playgrounds={playgrounds}
+                            selectedPlaygroundId={filters.playgroundId}
+                            onSelectPlayground={(playgroundId) =>
+                                updateFilters({
+                                    ...filters,
+                                    playgroundId,
+                                })
                             }
+                        />
+
+                        <hr />
+
+                        {/* Календарь тренировок (UX §11–14) */}
+                        <h3>
+                            Календарь
+                        </h3>
+
+                        <WorkoutCalendar
+                            entryCountsByDate={entryCountsByDate}
+                            selectedDate={filters.date}
+                            onSelectDate={(date) =>
+                                updateFilters({
+                                    ...filters,
+                                    date,
+                                })
+                            }
+                        />
+
+                        <hr />
+
+                        {/* Фильтры (UX §16–18, §34) */}
+                        <h3>
+                            Фильтры
+                        </h3>
+
+                        <div className="diary-filters">
+                            <Select
+                                label="Площадка"
+                                emptyOptionLabel="Все площадки"
+                                value={filters.playgroundId}
+                                options={
+                                    visitedPlaygrounds.map(
+                                        (playground) => ({
+                                            value: playground.id,
+                                            label: playground.name,
+                                        })
+                                    )
+                                }
+                                onChange={(e) =>
+                                    updateFilters({
+                                        ...filters,
+                                        playgroundId: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <Input
+                                label="Дата"
+                                type="date"
+                                className="input__field--date"
+                                value={filters.date}
+                                onChange={(e) =>
+                                    updateFilters({
+                                        ...filters,
+                                        date: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <div className="input">
+                                <span className="input__label">
+                                    Теги
+                                </span>
+
+                                <DiaryTagFilter
+                                    tags={userTags}
+                                    selectedTags={filters.tags}
+                                    onChange={(tags) =>
+                                        updateFilters({
+                                            ...filters,
+                                            tags,
+                                        })
+                                    }
+                                />
+                            </div>
                         </div>
 
-                        <Pagination
-                            page={page}
-                            totalPages={totalPages}
-                            onPageChange={setPage}
+                        {/* Активные фильтры (UX §19) */}
+                        <DiaryActiveFilters
+                            filters={filters}
+                            playground={
+                                filters.playgroundId
+                                    ? getPlaygroundById(playgrounds, filters.playgroundId)
+                                    : undefined
+                            }
+                            onChange={updateFilters}
                         />
+
+                        <hr />
+
+                        {/* Список тренировок (UX §20–27) */}
+                        <div className="diary__list-header">
+                            <h3>
+                                Тренировки
+                            </h3>
+
+                            <p className="diary__count">
+                                {
+                                    hasActiveDiaryFilters(filters)
+                                        ? `Показано ${visibleEntries.length} из ${userEntries.length}`
+                                        : `${visibleEntries.length} ${
+                                            pluralizeRu(
+                                                visibleEntries.length,
+                                                ["запись", "записи", "записей"]
+                                            )
+                                        }`
+                                }
+                            </p>
+                        </div>
+
+                        {
+                            visibleEntries.length === 0 ? (
+                                /* Пусто из-за фильтров — другой сценарий, не "дневник пуст" (UX §29) */
+                                <div className="diary-empty-state">
+                                    <p className="diary-empty-state__title">
+                                        Ничего не найдено
+                                    </p>
+
+                                    <p className="diary-empty-state__description">
+                                        Нет тренировок, соответствующих выбранным фильтрам.
+                                    </p>
+
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => updateFilters(emptyDiaryFilters)}
+                                    >
+                                        Сбросить фильтры
+                                    </Button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="workout-entries-list">
+                                        {
+                                            pageEntries.map(
+                                                (entry) => (
+                                                    <WorkoutEntryCard
+                                                        key={entry.id}
+                                                        entry={entry}
+                                                        playground={
+                                                            entry.playgroundId
+                                                                ? getPlaygroundById(
+                                                                    playgrounds,
+                                                                    entry.playgroundId
+                                                                )
+                                                                : undefined
+                                                        }
+                                                    />
+                                                )
+                                            )
+                                        }
+                                    </div>
+
+                                    <Pagination
+                                        page={page}
+                                        totalPages={totalPages}
+                                        onPageChange={setPage}
+                                    />
+                                </>
+                            )
+                        }
                     </>
                 )
             }

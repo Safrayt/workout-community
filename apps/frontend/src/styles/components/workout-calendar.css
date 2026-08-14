@@ -1,0 +1,114 @@
+.workout-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.workout-calendar__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.workout-calendar__title {
+    margin: 0;
+
+    font-weight: 600;
+}
+
+.workout-calendar__nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    cursor: pointer;
+}
+
+.workout-calendar__nav:hover {
+    background: var(--color-background);
+}
+
+.workout-calendar__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    text-align: center;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.workout-calendar__week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    gap: 4px;
+}
+
+.workout-calendar__day {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+
+    /* Touch target не менее 44px (UX §33). */
+    min-height: 44px;
+
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+
+    font: inherit;
+    cursor: pointer;
+}
+
+.workout-calendar__day--empty {
+    cursor: default;
+}
+
+.workout-calendar__day:not(.workout-calendar__day--empty):hover {
+    background: var(--color-background);
+}
+
+.workout-calendar__day-dot {
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: var(--color-primary);
+}
+
+.workout-calendar__day--active .workout-calendar__day-number {
+    font-weight: 700;
+}
+
+/*
+    Выбранный день не должен различаться только цветом (UX §33) —
+    добавляем видимую рамку и жирный шрифт, а не только заливку.
+*/
+.workout-calendar__day--selected {
+    background: var(--color-primary-light, #eaf6ee);
+    border-color: var(--color-primary);
+}
+
+.workout-calendar__day--selected .workout-calendar__day-number {
+    font-weight: 700;
+}
+
+.workout-calendar__selected-info {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
