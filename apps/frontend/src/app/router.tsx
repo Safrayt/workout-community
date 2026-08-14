@@ -20,6 +20,7 @@ import PlaygroundReviewsList from "../pages/PlaygroundReviewsList/PlaygroundRevi
 import WriteReview from "../pages/WriteReview/WriteReview";
 import PlaygroundEventsList from "../pages/PlaygroundEventsList/PlaygroundEventsList";
 import Achievements from "../pages/Achievements/Achievements";
+import PersonalTags from "../pages/PersonalTags/PersonalTags";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,10 @@ export const router = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "profile/tags",
+        element: <PersonalTags />,
       },
       {
         path: "achievements",

@@ -1,0 +1,122 @@
+.personal-tags {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    max-width: 640px;
+
+    margin: 0 auto;
+}
+
+.personal-tags__back {
+    align-self: flex-start;
+
+    color: var(--color-text-secondary);
+    text-decoration: none;
+
+    font-size: var(--font-size-sm);
+}
+
+.personal-tags__back:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.personal-tags__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.personal-tags__title {
+    margin: 0;
+}
+
+.personal-tags__description {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+}
+
+.personal-tags__overview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.personal-tags__counter {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.personal-tags__create-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.personal-tags__create-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.personal-tags__limit-title {
+    margin: 0;
+
+    font-weight: 700;
+}
+
+.personal-tags__limit-description {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+}
+
+.personal-tags-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+.personal-tags-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+
+    padding: var(--space-7) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.personal-tags-empty-state__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.personal-tags-empty-state__description {
+    margin: 0;
+    max-width: 380px;
+
+    color: var(--color-text-secondary);
+}

@@ -1,0 +1,90 @@
+.personal-tag-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+
+    padding: var(--space-3) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.personal-tag-item__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.personal-tag-item__name {
+    font-weight: 600;
+}
+
+.personal-tag-item__usage {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.personal-tag-item__actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/*
+    На мобильном действия — текстовые кнопки в ряд, а не
+    icon-only (UX-PERSONAL-TAGS §32), с touch target ≥44px,
+    который уже обеспечивает .button.
+*/
+@media (max-width: 480px) {
+    .personal-tag-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .personal-tag-item__actions {
+        justify-content: stretch;
+    }
+
+    .personal-tag-item__actions .button {
+        flex: 1 1 auto;
+    }
+}
+
+.personal-tag-item--editing {
+    padding: var(--space-3) var(--space-4);
+}
+
+.personal-tag-item__edit-form {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+
+    width: 100%;
+}
+
+.personal-tag-item__edit-form .input {
+    flex: 1 1 auto;
+}
+
+.personal-tag-item__edit-actions {
+    display: flex;
+    gap: var(--space-2);
+
+    padding-top: 2px;
+}
+
+@media (max-width: 480px) {
+    .personal-tag-item__edit-form {
+        flex-direction: column;
+    }
+
+    .personal-tag-item__edit-actions {
+        justify-content: stretch;
+    }
+
+    .personal-tag-item__edit-actions .button {
+        flex: 1 1 auto;
+    }
+}

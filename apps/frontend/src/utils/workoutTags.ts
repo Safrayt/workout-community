@@ -1,8 +1,11 @@
 import type { WorkoutEntry } from "../types/workoutEntry";
 
+import { MAX_PERSONAL_TAGS } from "../constants/personalTags";
+
 export const MAX_TAGS_PER_ENTRY = 10;
 
-export const MAX_USER_TAGS = 50;
+/** Единый источник — см. constants/personalTags.ts. */
+export const MAX_USER_TAGS = MAX_PERSONAL_TAGS;
 
 export function getUserTags(
     entries: WorkoutEntry[],

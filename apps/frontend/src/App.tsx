@@ -16,6 +16,9 @@ import {
     WorkoutDiaryProvider,
 } from "./context/WorkoutDiaryContext";
 import {
+    PersonalTagsProvider,
+} from "./context/PersonalTagsContext";
+import {
     FavoriteProvider,
 } from "./context/FavoriteContext";
 import {
@@ -36,13 +39,17 @@ export default function App() {
 
                             <WorkoutDiaryProvider>
 
-                                <ReviewProvider>
+                                <PersonalTagsProvider>
 
-                                    <RouterProvider
-                                        router={router}
-                                    />
+                                    <ReviewProvider>
 
-                                </ReviewProvider>
+                                        <RouterProvider
+                                            router={router}
+                                        />
+
+                                    </ReviewProvider>
+
+                                </PersonalTagsProvider>
 
                             </WorkoutDiaryProvider>
 

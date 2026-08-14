@@ -307,6 +307,31 @@ export default function Profile() {
 
             </InfoSection>
 
+            <InfoSection title="Мои теги">
+                <p>
+                    Личные метки, которыми вы отмечаете свои тренировки.
+                </p>
+
+                <ActionGroup>
+
+                    <Link
+                        to="/profile/tags"
+                    >
+
+                        <Button
+                            variant="secondary"
+                        >
+
+                            Мои теги
+
+                        </Button>
+
+                    </Link>
+
+                </ActionGroup>
+
+            </InfoSection>
+
             <InfoSection title="Предстоящие события">
                 {
                     upcomingEvents.length === 0 ? (

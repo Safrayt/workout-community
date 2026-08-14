@@ -25,12 +25,12 @@ import type {
 } from "../../types/newWorkoutEntry";
 
 import {
-    useWorkoutDiary,
-} from "../../context/WorkoutDiaryContext";
-
-import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
+
+import {
+    usePersonalTags,
+} from "../../context/PersonalTagsContext";
 
 import {
     usePlaygrounds,
@@ -52,7 +52,6 @@ import {
 } from "../../utils/timeOfDay";
 
 import {
-    getUserTags,
     MAX_TAGS_PER_ENTRY,
     MAX_USER_TAGS,
 } from "../../utils/workoutTags";
@@ -127,12 +126,13 @@ export default function WorkoutEntryForm({
         useState<string | null>(null);
 
     const {
-        entries,
-    } = useWorkoutDiary();
-
-    const {
         currentUser,
     } = useCurrentUser();
+
+    const {
+        registerUsedTags,
+        tags: personalTags,
+    } = usePersonalTags();
 
     const {
         playgrounds,
@@ -151,11 +151,15 @@ export default function WorkoutEntryForm({
             )
             : undefined;
 
+    // Источник — личный справочник тегов (PersonalTagsContext), а
+    // не только теги, реально встречающиеся в записях. Иначе тег,
+    // созданный на странице "Мои теги" без единого использования,
+    // не появился бы здесь для выбора.
     const existingTags =
-        getUserTags(
-            entries,
-            currentUser.id
-        );
+        personalTags
+            .filter((tag) => tag.userId === currentUser.id)
+            .map((tag) => tag.name)
+            .sort((a, b) => a.localeCompare(b, "ru"));
 
     const availableExistingTags =
         existingTags.filter(
@@ -271,6 +275,14 @@ export default function WorkoutEntryForm({
         try {
             setSubmitError(null);
             onSubmit(entry);
+
+            // Теги, введённые прямо здесь (минуя "Мои теги"),
+            // всё равно должны попасть в личный справочник тегов
+            // пользователя (UX-PERSONAL-TAGS §39, §47).
+            registerUsedTags(
+                currentUser.id,
+                entry.tags
+            );
         } catch {
             setSubmitError(
                 "Не удалось сохранить запись. Попробуйте ещё раз."

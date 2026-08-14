@@ -40,6 +40,26 @@ type WorkoutDiaryContextType = {
     deleteEntry: (
         id: string
     ) => void;
+
+    /**
+     * Переименование тега применяется ко всем записям пользователя,
+     * где он использовался — новый тег не создаётся, старый не
+     * остаётся (UX-PERSONAL-TAGS §20–21, §41).
+     */
+    renameTagInEntries: (
+        userId: string,
+        oldName: string,
+        newName: string
+    ) => void;
+
+    /**
+     * Удаление тега — это удаление связи с записями, а не удаление
+     * самих записей (UX-PERSONAL-TAGS §22–26, §40).
+     */
+    removeTagFromEntries: (
+        userId: string,
+        tagName: string
+    ) => void;
 };
 
 const WorkoutDiaryContext =
@@ -157,6 +177,68 @@ export function WorkoutDiaryProvider({
         );
     }
 
+    function renameTagInEntries(
+        userId: string,
+        oldName: string,
+        newName: string
+    ) {
+        setEntries(
+            (current) =>
+                current.map((entry) => {
+                    if (
+                        entry.userId !== userId ||
+                        !(entry.tags ?? []).includes(oldName)
+                    ) {
+                        return entry;
+                    }
+
+                    // На случай, если новое имя уже есть среди
+                    // тегов записи — не дублируем его.
+                    const updatedTags = Array.from(
+                        new Set(
+                            (entry.tags ?? []).map(
+                                (tag) => tag === oldName ? newName : tag
+                            )
+                        )
+                    );
+
+                    return {
+                        ...entry,
+                        tags: updatedTags,
+                    };
+                })
+        );
+    }
+
+    function removeTagFromEntries(
+        userId: string,
+        tagName: string
+    ) {
+        setEntries(
+            (current) =>
+                current.map((entry) => {
+                    if (
+                        entry.userId !== userId ||
+                        !(entry.tags ?? []).includes(tagName)
+                    ) {
+                        return entry;
+                    }
+
+                    const updatedTags = (entry.tags ?? []).filter(
+                        (tag) => tag !== tagName
+                    );
+
+                    return {
+                        ...entry,
+                        tags:
+                            updatedTags.length > 0
+                                ? updatedTags
+                                : undefined,
+                    };
+                })
+        );
+    }
+
     return (
         <WorkoutDiaryContext.Provider
             value={{
@@ -164,6 +246,8 @@ export function WorkoutDiaryProvider({
                 addEntry,
                 updateEntry,
                 deleteEntry,
+                renameTagInEntries,
+                removeTagFromEntries,
             }}
         >
             {children}
