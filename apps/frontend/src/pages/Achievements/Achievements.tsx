@@ -3,6 +3,8 @@ import InfoSection from "../../components/ui/InfoSection/InfoSection";
 
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 
+import "../../styles/components/achievements-grid.css";
+
 import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
@@ -91,7 +93,7 @@ export default function Achievements() {
                             </p>
                         )
                         : (
-                            <ul>
+                            <ul className="achievements-grid">
 
                                 {
                                     unlocked.map(
@@ -129,7 +131,7 @@ export default function Achievements() {
                             </p>
                         )
                         : (
-                            <ul>
+                            <ul className="achievements-grid">
 
                                 {
                                     locked.map(

@@ -4,8 +4,8 @@ import Textarea from "../ui/Textarea/Textarea";
 import Select from "../ui/Select/Select";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
-import TagBadge from "../ui/TagBadge/TagBadge";
 import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
+import TagsField from "../TagsField/TagsField";
 
 import { useState } from "react";
 
@@ -53,7 +53,6 @@ import {
 
 import {
     MAX_TAGS_PER_ENTRY,
-    MAX_USER_TAGS,
 } from "../../utils/workoutTags";
 
 import {
@@ -119,12 +118,6 @@ export default function WorkoutEntryForm({
         initialValue
     );
 
-    const [tagInput, setTagInput] =
-        useState("");
-
-    const [tagError, setTagError] =
-        useState<string | null>(null);
-
     const {
         currentUser,
     } = useCurrentUser();
@@ -161,11 +154,6 @@ export default function WorkoutEntryForm({
             .map((tag) => tag.name)
             .sort((a, b) => a.localeCompare(b, "ru"));
 
-    const availableExistingTags =
-        existingTags.filter(
-            (tag) => !entry.tags.includes(tag)
-        );
-
     function updateField<K extends keyof NewWorkoutEntry>(
         field: K,
         value: NewWorkoutEntry[K]
@@ -183,76 +171,6 @@ export default function WorkoutEntryForm({
                     (error) =>
                         error.field !== field
                 )
-        );
-    }
-
-    function addTag() {
-        const trimmed = tagInput.trim();
-
-        if (trimmed.length === 0) {
-            return;
-        }
-
-        if (entry.tags.includes(trimmed)) {
-            setTagInput("");
-            return;
-        }
-
-        if (entry.tags.length >= MAX_TAGS_PER_ENTRY) {
-            setTagError(
-                `Можно добавить не более ${MAX_TAGS_PER_ENTRY} тегов на тренировку.`
-            );
-
-            return;
-        }
-
-        if (
-            !existingTags.includes(trimmed) &&
-            existingTags.length >= MAX_USER_TAGS
-        ) {
-            setTagError(
-                `Достигнут лимит в ${MAX_USER_TAGS} личных тегов. Выберите один из уже созданных.`
-            );
-
-            return;
-        }
-
-        updateField(
-            "tags",
-            [...entry.tags, trimmed]
-        );
-
-        setTagInput("");
-        setTagError(null);
-    }
-
-    function addExistingTag(tag: string) {
-        if (entry.tags.includes(tag)) {
-            return;
-        }
-
-        if (entry.tags.length >= MAX_TAGS_PER_ENTRY) {
-            setTagError(
-                `Можно добавить не более ${MAX_TAGS_PER_ENTRY} тегов на тренировку.`
-            );
-
-            return;
-        }
-
-        updateField(
-            "tags",
-            [...entry.tags, tag]
-        );
-
-        setTagError(null);
-    }
-
-    function removeTag(tag: string) {
-        updateField(
-            "tags",
-            entry.tags.filter(
-                (item) => item !== tag
-            )
         );
     }
 
@@ -449,107 +367,14 @@ export default function WorkoutEntryForm({
             </Section>
 
             <Section title="Теги">
-                <div className="input">
-                    <label
-                        className="input__label"
-                        htmlFor="tagInput"
-                    >
-                        {`Личные теги (${entry.tags.length}/${MAX_TAGS_PER_ENTRY})`}
-                    </label>
-
-                    {
-                        availableExistingTags.length > 0 && (
-                            <div className="workout-entry-tag-suggestions">
-                                <p className="workout-entry-tag-suggestions__label">
-                                    Ваши теги — нажмите, чтобы прикрепить
-                                </p>
-
-                                <div className="tag-list">
-                                    {
-                                        availableExistingTags.map(
-                                            (tag) => (
-                                                <TagBadge
-                                                    key={tag}
-                                                    label={tag}
-                                                    onClick={() =>
-                                                        addExistingTag(tag)
-                                                    }
-                                                />
-                                            )
-                                        )
-                                    }
-                                </div>
-                            </div>
-                        )
+                <TagsField
+                    tags={entry.tags}
+                    existingTags={existingTags}
+                    maxTags={MAX_TAGS_PER_ENTRY}
+                    onChange={(tags) =>
+                        updateField("tags", tags)
                     }
-
-                    <div className="tag-input-row">
-                        <Input
-                            id="tagInput"
-                            list="known-tags"
-                            placeholder="Например, турник"
-                            value={tagInput}
-                            onChange={(e) =>
-                                setTagInput(e.target.value)
-                            }
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addTag();
-                                }
-                            }}
-                        />
-
-                        <datalist id="known-tags">
-                            {
-                                existingTags.map(
-                                    (tag) => (
-                                        <option
-                                            key={tag}
-                                            value={tag}
-                                        />
-                                    )
-                                )
-                            }
-                        </datalist>
-
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={addTag}
-                        >
-                            Добавить
-                        </Button>
-                    </div>
-
-                    {
-                        tagError && (
-                            <small className="input__error">
-                                {tagError}
-                            </small>
-                        )
-                    }
-
-                    {
-                        entry.tags.length > 0 && (
-                            <div className="tag-list">
-                                {
-                                    entry.tags.map(
-                                        (tag) => (
-                                            <TagBadge
-                                                key={tag}
-                                                label={tag}
-                                                onRemove={() =>
-                                                    removeTag(tag)
-                                                }
-                                            />
-                                        )
-                                    )
-                                }
-                            </div>
-                        )
-                    }
-                </div>
+                />
             </Section>
 
             {

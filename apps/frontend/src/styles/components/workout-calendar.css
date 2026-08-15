@@ -80,13 +80,24 @@
     background: var(--color-background);
 }
 
+.workout-calendar__day-dots {
+    display: flex;
+    gap: 3px;
+}
+
 .workout-calendar__day-dot {
     width: 5px;
     height: 5px;
 
     border-radius: 50%;
+}
 
+.workout-calendar__day-dot--workout {
     background: var(--color-primary);
+}
+
+.workout-calendar__day-dot--note {
+    background: #b5762b;
 }
 
 .workout-calendar__day--active .workout-calendar__day-number {

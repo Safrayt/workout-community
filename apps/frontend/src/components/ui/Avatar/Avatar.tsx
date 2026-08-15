@@ -6,7 +6,7 @@ type Props = {
 
     avatarUrl?: string;
 
-    size?: "sm" | "md";
+    size?: "sm" | "md" | "lg";
 
 };
 

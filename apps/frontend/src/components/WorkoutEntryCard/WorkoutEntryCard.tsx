@@ -8,6 +8,7 @@ import { getTimeOfDayName } from "../../utils/timeOfDay";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 
 import TagBadge from "../ui/TagBadge/TagBadge";
+import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
 import "../../styles/components/workout-entry-card.css";
 
@@ -17,9 +18,10 @@ type WorkoutEntryCardProps = {
 };
 
 /**
- * Карточка записи в списке дневника (UX-DIARY §22–26).
+ * Карточка записи-тренировки в списке дневника (UX-DIARY §22–26;
+ * UX-DIARY-V2 §9 — визуальный маркер типа записи).
  *
- * Приоритет информации: фото → дата → название → площадка →
+ * Приоритет информации: фото → тип+дата → название → площадка →
  * краткое описание → теги. Вся карточка кликабельна — искать
  * маленькую кнопку "Подробнее" не нужно (§25).
  */
@@ -51,13 +53,17 @@ export default function WorkoutEntryCard({
             }
 
             <div className="workout-entry-card__body">
-                <p className="workout-entry-card__date">
-                    {formatWorkoutEntryDate(entry.date)}
-                    {
-                        entry.timeOfDay &&
-                            ` • ${getTimeOfDayName(entry.timeOfDay)}`
-                    }
-                </p>
+                <div className="workout-entry-card__meta">
+                    <DiaryRecordTypeBadge type="workout" />
+
+                    <p className="workout-entry-card__date">
+                        {formatWorkoutEntryDate(entry.date)}
+                        {
+                            entry.timeOfDay &&
+                                ` • ${getTimeOfDayName(entry.timeOfDay)}`
+                        }
+                    </p>
+                </div>
 
                 <h4 className="workout-entry-card__title">
                     {entry.title}

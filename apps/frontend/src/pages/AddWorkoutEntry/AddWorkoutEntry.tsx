@@ -51,10 +51,10 @@ export default function AddWorkoutEntry() {
 
             {/* Back Navigation (UX §4) */}
             <Link
-                to="/diary"
+                to="/diary/create"
                 className="workout-entry-create__back"
             >
-                ← Дневник
+                ← Добавить запись
             </Link>
 
             {/* Hero (UX §5) — не должен занимать много места */}
@@ -76,7 +76,7 @@ export default function AddWorkoutEntry() {
                 initialValue={createEmptyEntry()}
                 submitLabel="Сохранить запись"
                 onSubmit={handleSubmit}
-                onCancel={() => navigate("/diary")}
+                onCancel={() => navigate("/diary/create")}
             />
 
         </div>

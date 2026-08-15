@@ -12,10 +12,15 @@ import { pluralizeRu } from "../../utils/pluralize";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
+type DayCounts = {
+    workout: number;
+    note: number;
+};
+
 type WorkoutCalendarProps = {
 
-    /** Дата -> количество тренировок в этот день. */
-    entryCountsByDate: Record<string, number>;
+    /** Дата -> количество записей каждого типа в этот день. */
+    entryCountsByDate: Record<string, DayCounts>;
 
     /** Выбранная дата (YYYY-MM-DD) или "" — ничего не выбрано. */
     selectedDate: string;
@@ -25,9 +30,10 @@ type WorkoutCalendarProps = {
 };
 
 /**
- * Календарь тренировочных дней (UX-DIARY §11–14). Намеренно простой:
- * тренировочные дни выделяются точкой, количество за день — только
- * после выбора даты (не перегружаем каждую ячейку числом — §13).
+ * Календарь дневника (UX-DIARY §11–14; UX-DIARY-V2 §10). Учитывает
+ * оба типа записей — тренировки и заметки, с разными по цвету
+ * точками, чтобы различие было видно на уровне календаря, не только
+ * списка. Число за день — только после выбора даты (§13).
  */
 export default function WorkoutCalendar({
     entryCountsByDate,
@@ -62,10 +68,32 @@ export default function WorkoutCalendar({
         }
     }
 
-    const selectedDayCount =
+    const selectedDayCounts =
         selectedDate
-            ? entryCountsByDate[selectedDate] ?? 0
-            : 0;
+            ? entryCountsByDate[selectedDate]
+            : undefined;
+
+    function describeSelectedDay(counts?: DayCounts) {
+        if (!counts || (counts.workout === 0 && counts.note === 0)) {
+            return "В этот день записей не было";
+        }
+
+        const parts: string[] = [];
+
+        if (counts.workout > 0) {
+            parts.push(
+                `${counts.workout} ${pluralizeRu(counts.workout, ["тренировка", "тренировки", "тренировок"])}`
+            );
+        }
+
+        if (counts.note > 0) {
+            parts.push(
+                `${counts.note} ${pluralizeRu(counts.note, ["заметка", "заметки", "заметок"])}`
+            );
+        }
+
+        return `${parts.join(", ")} в этот день`;
+    }
 
     return (
         <div className="workout-calendar">
@@ -127,8 +155,14 @@ export default function WorkoutCalendar({
                                         day
                                     );
 
-                                    const hasEntries =
-                                        Boolean(entryCountsByDate[dateKey]);
+                                    const dayCounts =
+                                        entryCountsByDate[dateKey];
+
+                                    const hasWorkouts =
+                                        Boolean(dayCounts?.workout);
+
+                                    const hasNotes =
+                                        Boolean(dayCounts?.note);
 
                                     const isSelected =
                                         dateKey === selectedDate;
@@ -139,7 +173,7 @@ export default function WorkoutCalendar({
                                             type="button"
                                             className={
                                                 "workout-calendar__day" +
-                                                (hasEntries ? " workout-calendar__day--active" : "") +
+                                                ((hasWorkouts || hasNotes) ? " workout-calendar__day--active" : "") +
                                                 (isSelected ? " workout-calendar__day--selected" : "")
                                             }
                                             onClick={() =>
@@ -153,11 +187,23 @@ export default function WorkoutCalendar({
                                             </span>
 
                                             {
-                                                hasEntries && (
+                                                (hasWorkouts || hasNotes) && (
                                                     <span
-                                                        className="workout-calendar__day-dot"
+                                                        className="workout-calendar__day-dots"
                                                         aria-hidden="true"
-                                                    />
+                                                    >
+                                                        {
+                                                            hasWorkouts && (
+                                                                <span className="workout-calendar__day-dot workout-calendar__day-dot--workout" />
+                                                            )
+                                                        }
+
+                                                        {
+                                                            hasNotes && (
+                                                                <span className="workout-calendar__day-dot workout-calendar__day-dot--note" />
+                                                            )
+                                                        }
+                                                    </span>
                                                 )
                                             }
                                         </button>
@@ -172,11 +218,7 @@ export default function WorkoutCalendar({
             {
                 selectedDate && (
                     <p className="workout-calendar__selected-info">
-                        {
-                            selectedDayCount > 0
-                                ? `${selectedDayCount} ${pluralizeRu(selectedDayCount, ["тренировка", "тренировки", "тренировок"])} в этот день`
-                                : "В этот день тренировок не было"
-                        }
+                        {describeSelectedDay(selectedDayCounts)}
                     </p>
                 )
             }

@@ -74,8 +74,8 @@ export default function PersonalTagItem({
         const message =
             usageCount > 0
                 ? `Удалить тег «${tag.name}»?\n\nЭтот тег используется в ${usageCount} ${
-                    pluralizeRu(usageCount, ["тренировке", "тренировках", "тренировках"])
-                }. Удаление уберёт его из этих записей. Сами тренировки останутся.`
+                    pluralizeRu(usageCount, ["записи", "записях", "записях"])
+                }. Удаление уберёт его из этих записей. Сами записи останутся.`
                 : `Удалить тег «${tag.name}»?`;
 
         const confirmed = window.confirm(message);
@@ -140,7 +140,7 @@ export default function PersonalTagItem({
 
                 <span className="personal-tag-item__usage">
                     {usageCount} {
-                        pluralizeRu(usageCount, ["тренировка", "тренировки", "тренировок"])
+                        pluralizeRu(usageCount, ["запись", "записи", "записей"])
                     }
                 </span>
             </div>

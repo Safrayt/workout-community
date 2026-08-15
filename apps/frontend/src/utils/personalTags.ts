@@ -1,5 +1,6 @@
 import type { PersonalTag } from "../types/personalTag";
 import type { WorkoutEntry } from "../types/workoutEntry";
+import type { DiaryNote } from "../types/diaryNote";
 
 /**
  * Начальные и конечные пробелы удаляются, внутренние — схлопываются
@@ -32,14 +33,23 @@ export function isTagNameTaken(
 
 export function getTagUsageCount(
     entries: WorkoutEntry[],
+    notes: DiaryNote[],
     userId: string,
     tagName: string
 ): number {
-    return entries.filter(
+    const entriesCount = entries.filter(
         (entry) =>
             entry.userId === userId &&
             (entry.tags ?? []).includes(tagName)
     ).length;
+
+    const notesCount = notes.filter(
+        (note) =>
+            note.userId === userId &&
+            (note.tags ?? []).includes(tagName)
+    ).length;
+
+    return entriesCount + notesCount;
 }
 
 /**
@@ -49,12 +59,13 @@ export function getTagUsageCount(
 export function sortTagsByUsage(
     tags: PersonalTag[],
     entries: WorkoutEntry[],
+    notes: DiaryNote[],
     userId: string
 ): PersonalTag[] {
     return [...tags].sort(
         (a, b) =>
-            getTagUsageCount(entries, userId, b.name) -
-            getTagUsageCount(entries, userId, a.name)
+            getTagUsageCount(entries, notes, userId, b.name) -
+            getTagUsageCount(entries, notes, userId, a.name)
     );
 }
 

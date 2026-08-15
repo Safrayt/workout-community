@@ -1,0 +1,31 @@
+.diary-record-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.diary-record-type-badge__dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+.diary-record-type-badge--workout {
+    color: var(--color-primary);
+}
+
+.diary-record-type-badge--workout .diary-record-type-badge__dot {
+    background: var(--color-primary);
+}
+
+.diary-record-type-badge--note {
+    color: #b5762b;
+}
+
+.diary-record-type-badge--note .diary-record-type-badge__dot {
+    background: #b5762b;
+}

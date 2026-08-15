@@ -4,6 +4,8 @@ import type {
     WorkoutEntry,
 } from "../../types/workoutEntry";
 
+import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
+
 type Props = {
 
     entry: WorkoutEntry;
@@ -11,7 +13,8 @@ type Props = {
 };
 
 /**
- * Верхний блок страницы записи дневника (UX-DIARY-ENTRY §7–9).
+ * Верхний блок страницы записи дневника (UX-DIARY-ENTRY §7–9;
+ * UX-DIARY-V2 §16 — тип записи в общей информации).
  *
  * В отличие от EventHero здесь нет статуса и главного CTA —
  * запись дневника не совершает действие, она рассказывает
@@ -25,6 +28,8 @@ export default function WorkoutEntryHero({
     return (
 
         <header className="workout-entry-hero">
+
+            <DiaryRecordTypeBadge type="workout" />
 
             <h1 className="workout-entry-hero__title">
                 {entry.title}

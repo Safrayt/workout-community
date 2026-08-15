@@ -1,27 +1,37 @@
 import type { WorkoutEntry } from "../types/workoutEntry";
+import type { DiaryNote } from "../types/diaryNote";
+import type { DiaryRecord } from "../types/diaryRecord";
 import type { Playground } from "../types/playground";
 import type { DiaryFilters } from "../types/diaryFilters";
 
 /**
- * Карта, календарь и теги — не независимые блоки, а инструменты
- * фильтрации одного и того же списка (UX-DIARY §2, §48). Поэтому
- * вся логика комбинирования живёт в одном месте.
+ * Карта, календарь, тип и теги — не независимые блоки, а инструменты
+ * фильтрации одной и той же ленты записей (UX-DIARY §2, §48;
+ * UX-DIARY-V2 §12). Поэтому вся логика комбинирования живёт в одном
+ * месте.
  */
-export function filterDiaryEntries(
-    entries: WorkoutEntry[],
+export function filterDiaryRecords(
+    records: DiaryRecord[],
     filters: DiaryFilters
-): WorkoutEntry[] {
-    return entries.filter((entry) => {
+): DiaryRecord[] {
+    return records.filter((record) => {
+        if (
+            filters.recordType !== "all" &&
+            record.type !== filters.recordType
+        ) {
+            return false;
+        }
+
         if (
             filters.playgroundId &&
-            entry.playgroundId !== filters.playgroundId
+            record.data.playgroundId !== filters.playgroundId
         ) {
             return false;
         }
 
         if (
             filters.date &&
-            entry.date !== filters.date
+            record.date !== filters.date
         ) {
             return false;
         }
@@ -29,7 +39,7 @@ export function filterDiaryEntries(
         if (
             filters.tags.length > 0 &&
             !filters.tags.every(
-                (tag) => (entry.tags ?? []).includes(tag)
+                (tag) => (record.data.tags ?? []).includes(tag)
             )
         ) {
             return false;
@@ -42,7 +52,8 @@ export function filterDiaryEntries(
 export function hasActiveDiaryFilters(
     filters: DiaryFilters
 ): boolean {
-    return Boolean(filters.playgroundId) ||
+    return filters.recordType !== "all" ||
+        Boolean(filters.playgroundId) ||
         Boolean(filters.date) ||
         filters.tags.length > 0;
 }
@@ -51,6 +62,7 @@ export function countActiveDiaryFilters(
     filters: DiaryFilters
 ): number {
     return (
+        (filters.recordType !== "all" ? 1 : 0) +
         (filters.playgroundId ? 1 : 0) +
         (filters.date ? 1 : 0) +
         filters.tags.length
@@ -59,51 +71,99 @@ export function countActiveDiaryFilters(
 
 /** Сколько записей приходится на каждую площадку (для popup карты). */
 export function getEntryCountsByPlayground(
-    entries: WorkoutEntry[]
+    records: DiaryRecord[]
 ): Record<string, number> {
     const counts: Record<string, number> = {};
 
-    entries.forEach((entry) => {
-        if (!entry.playgroundId) {
+    records.forEach((record) => {
+        const playgroundId = record.data.playgroundId;
+
+        if (!playgroundId) {
             return;
         }
 
-        counts[entry.playgroundId] =
-            (counts[entry.playgroundId] ?? 0) + 1;
+        counts[playgroundId] =
+            (counts[playgroundId] ?? 0) + 1;
     });
 
     return counts;
 }
 
-/** Сколько записей приходится на каждую дату (для точек в календаре). */
+/** Сколько записей каждого типа приходится на каждую дату (для календаря). */
 export function getEntryCountsByDate(
-    entries: WorkoutEntry[]
-): Record<string, number> {
-    const counts: Record<string, number> = {};
+    records: DiaryRecord[]
+): Record<string, { workout: number; note: number }> {
+    const counts: Record<string, { workout: number; note: number }> = {};
 
-    entries.forEach((entry) => {
-        counts[entry.date] =
-            (counts[entry.date] ?? 0) + 1;
+    records.forEach((record) => {
+        const current = counts[record.date] ?? { workout: 0, note: 0 };
+
+        counts[record.date] = {
+            ...current,
+            [record.type]: current[record.type] + 1,
+        };
     });
 
     return counts;
 }
 
 /**
- * Только те площадки, где пользователь реально тренировался хотя бы
- * раз (UX-DIARY §7) — не все площадки платформы.
+ * Только те площадки, с которыми реально связана хотя бы одна
+ * запись пользователя (тренировка или заметка) — не все площадки
+ * платформы (UX-DIARY §7; UX-DIARY-V2 §11).
  */
 export function getPlaygroundsWithEntries(
-    entries: WorkoutEntry[],
+    records: DiaryRecord[],
     playgrounds: Playground[]
 ): Playground[] {
     const usedIds = new Set(
-        entries
-            .map((entry) => entry.playgroundId)
+        records
+            .map((record) => record.data.playgroundId)
             .filter((id): id is string => Boolean(id))
     );
 
     return playgrounds.filter(
         (playground) => usedIds.has(playground.id)
+    );
+}
+
+/**
+ * Записи (обоих типов) пользователя, связанные с конкретной
+ * площадкой — используется на странице площадки, "Мои записи"
+ * (UX-DIARY-V2 §14).
+ */
+export function getRecordsForPlayground(
+    entries: WorkoutEntry[],
+    notes: DiaryNote[],
+    userId: string,
+    playgroundId: string
+): DiaryRecord[] {
+    const matchingEntries = entries.filter(
+        (entry) =>
+            entry.userId === userId &&
+            entry.playgroundId === playgroundId
+    );
+
+    const matchingNotes = notes.filter(
+        (note) =>
+            note.userId === userId &&
+            note.playgroundId === playgroundId
+    );
+
+    return [
+        ...matchingEntries.map((entry) => ({
+            type: "workout" as const,
+            date: entry.date,
+            createdAt: entry.createdAt,
+            data: entry,
+        })),
+        ...matchingNotes.map((note) => ({
+            type: "note" as const,
+            date: note.date,
+            createdAt: note.createdAt,
+            data: note,
+        })),
+    ].sort(
+        (a, b) => b.date.localeCompare(a.date)
     );
 }

@@ -25,3 +25,10 @@
 
     font-size: 15px;
 }
+
+.avatar--lg {
+    width: 96px;
+    height: 96px;
+
+    font-size: 32px;
+}

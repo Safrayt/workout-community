@@ -4,11 +4,15 @@ import Layout from "../components/layout/Layout";
 
 import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
+import EditProfile from "../pages/EditProfile/EditProfile";
 import Events from "../pages/Events/Events";
 import CreateEvent from "../pages/CreateEvent/CreateEvent";
 import Diary from "../pages/Diary/Diary";
+import AddDiaryEntry from "../pages/AddDiaryEntry/AddDiaryEntry";
 import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
+import AddDiaryNote from "../pages/AddDiaryNote/AddDiaryNote";
 import WorkoutEntryDetails from "../pages/WorkoutEntryDetails/WorkoutEntryDetails";
+import DiaryNoteDetails from "../pages/DiaryNoteDetails/DiaryNoteDetails";
 import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import EditEvent from "../pages/EditEvent/EditEvent";
@@ -34,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "profile/edit",
+        element: <EditProfile />,
       },
       {
         path: "profile/tags",
@@ -65,7 +73,19 @@ export const router = createBrowserRouter([
       },
       {
         path: "diary/create",
+        element: <AddDiaryEntry />,
+      },
+      {
+        path: "diary/create/workout",
         element: <AddWorkoutEntry />,
+      },
+      {
+        path: "diary/create/note",
+        element: <AddDiaryNote />,
+      },
+      {
+        path: "diary/notes/:id",
+        element: <DiaryNoteDetails />,
       },
       {
         path: "diary/:id",

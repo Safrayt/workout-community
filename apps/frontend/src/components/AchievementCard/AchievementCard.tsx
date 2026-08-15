@@ -20,13 +20,9 @@ export default function AchievementCard({
 
         <article className="achievement-card">
 
-            <div className="achievement-header">
+            <div className="achievement-icon">
 
-                <div className="achievement-icon">
-
-                    {achievement.icon}
-
-                </div>
+                {achievement.icon}
 
             </div>
 
@@ -43,16 +39,6 @@ export default function AchievementCard({
                     {achievement.description}
 
                 </p>
-
-            </div>
-
-            <div className="achievement-footer">
-
-                <span className="achievement-xp">
-
-                    +{achievement.experience} XP
-
-                </span>
 
             </div>
 

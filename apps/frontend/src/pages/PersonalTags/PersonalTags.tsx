@@ -17,6 +17,10 @@ import {
 } from "../../context/WorkoutDiaryContext";
 
 import {
+    useDiaryNotes,
+} from "../../context/DiaryNotesContext";
+
+import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
 
@@ -49,6 +53,10 @@ export default function PersonalTags() {
     } = useWorkoutDiary();
 
     const {
+        notes,
+    } = useDiaryNotes();
+
+    const {
         currentUser,
     } = useCurrentUser();
 
@@ -71,6 +79,7 @@ export default function PersonalTags() {
     const sortedTags = sortTagsByUsage(
         userTags,
         entries,
+        notes,
         currentUser.id
     );
 
@@ -273,6 +282,7 @@ export default function PersonalTags() {
                                                 usageCount={
                                                     getTagUsageCount(
                                                         entries,
+                                                        notes,
                                                         currentUser.id,
                                                         tag.name
                                                     )

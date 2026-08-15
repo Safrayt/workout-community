@@ -7,10 +7,15 @@ import {
 
 import type { PersonalTag } from "../types/personalTag";
 import type { WorkoutEntry } from "../types/workoutEntry";
+import type { DiaryNote } from "../types/diaryNote";
 
 import {
     useWorkoutDiary,
 } from "./WorkoutDiaryContext";
+
+import {
+    useDiaryNotes,
+} from "./DiaryNotesContext";
 
 import {
     MAX_PERSONAL_TAGS,
@@ -97,7 +102,8 @@ function addMissingTags(
 }
 
 function buildInitialTags(
-    entries: WorkoutEntry[]
+    entries: WorkoutEntry[],
+    notes: DiaryNote[]
 ): PersonalTag[] {
     let tags: PersonalTag[] = [];
 
@@ -106,6 +112,14 @@ function buildInitialTags(
             tags,
             entry.userId,
             entry.tags ?? []
+        );
+    });
+
+    notes.forEach((note) => {
+        tags = addMissingTags(
+            tags,
+            note.userId,
+            note.tags ?? []
         );
     });
 
@@ -123,6 +137,12 @@ export function PersonalTagsProvider({
         removeTagFromEntries,
     } = useWorkoutDiary();
 
+    const {
+        notes,
+        renameTagInNotes,
+        removeTagFromNotes,
+    } = useDiaryNotes();
+
     // Единоразовый посев из уже существующих записей при монтировании.
     // Дальнейшая синхронизация — через registerUsedTags, вызываемую
     // явно в момент сохранения записи (см. WorkoutEntryForm), а не
@@ -130,7 +150,7 @@ export function PersonalTagsProvider({
     // entries создавало бы лишний каскад ре-рендеров.
     const [tags, setTags] =
         useState<PersonalTag[]>(
-            () => buildInitialTags(entries)
+            () => buildInitialTags(entries, notes)
         );
 
     function registerUsedTags(
@@ -229,6 +249,12 @@ export function PersonalTagsProvider({
                 tag.name,
                 trimmed
             );
+
+            renameTagInNotes(
+                tag.userId,
+                tag.name,
+                trimmed
+            );
         }
 
         return { success: true };
@@ -251,6 +277,11 @@ export function PersonalTagsProvider({
         );
 
         removeTagFromEntries(
+            tag.userId,
+            tag.name
+        );
+
+        removeTagFromNotes(
             tag.userId,
             tag.name
         );

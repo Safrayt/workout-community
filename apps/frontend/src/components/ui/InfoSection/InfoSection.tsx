@@ -8,15 +8,19 @@ type InfoSectionProps = {
     children: ReactNode;
 
     className?: string;
+
+    id?: string;
 };
 
 export default function InfoSection({
     title,
     children,
     className,
+    id,
 }: InfoSectionProps) {
     return (
         <section
+            id={id}
             className={
                 className
                     ? `info-section ${className}`

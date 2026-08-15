@@ -5,6 +5,7 @@ import type { DiaryFilters } from "../../types/diaryFilters";
 import type { Playground } from "../../types/playground";
 
 import { formatWorkoutEntryDateLong } from "../../utils/formatWorkoutEntryDate";
+import { emptyDiaryFilters } from "../../types/diaryFilters";
 
 import "../../styles/components/diary-active-filters.css";
 
@@ -18,6 +19,11 @@ type DiaryActiveFiltersProps = {
 
 };
 
+const RECORD_TYPE_LABELS: Record<string, string> = {
+    workout: "Тренировки",
+    note: "Заметки",
+};
+
 /**
  * Строка активных фильтров — всегда прямо перед списком записей,
  * чтобы пользователь понимал, почему список содержит именно эти
@@ -29,6 +35,7 @@ export default function DiaryActiveFilters({
     onChange,
 }: DiaryActiveFiltersProps) {
     const hasAny =
+        filters.recordType !== "all" ||
         Boolean(filters.playgroundId) ||
         Boolean(filters.date) ||
         filters.tags.length > 0;
@@ -44,6 +51,20 @@ export default function DiaryActiveFilters({
             </span>
 
             <div className="tag-list">
+                {
+                    filters.recordType !== "all" && (
+                        <TagBadge
+                            label={RECORD_TYPE_LABELS[filters.recordType]}
+                            onRemove={() =>
+                                onChange({
+                                    ...filters,
+                                    recordType: "all",
+                                })
+                            }
+                        />
+                    )
+                }
+
                 {
                     filters.playgroundId && (
                         <TagBadge
@@ -93,11 +114,7 @@ export default function DiaryActiveFilters({
             <Button
                 variant="outline"
                 onClick={() =>
-                    onChange({
-                        playgroundId: "",
-                        date: "",
-                        tags: [],
-                    })
+                    onChange(emptyDiaryFilters)
                 }
             >
                 Сбросить

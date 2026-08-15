@@ -3,25 +3,29 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 
 import Section from "../../components/ui/Section/Section";
+import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Button from "../../components/ui/Button/Button";
 import Select from "../../components/ui/Select/Select";
 import Input from "../../components/ui/Input/Input";
 import Pagination from "../../components/ui/Pagination/Pagination";
 
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
+import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
 import DiaryStats from "../../components/DiaryStats/DiaryStats";
 import DiaryMap from "../../components/DiaryMap/DiaryMap";
 import WorkoutCalendar from "../../components/WorkoutCalendar/WorkoutCalendar";
 import DiaryTagFilter from "../../components/DiaryTagFilter/DiaryTagFilter";
 import DiaryActiveFilters from "../../components/DiaryActiveFilters/DiaryActiveFilters";
 
-import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
-
 import "../../styles/components/diary.css";
 
 import {
     useWorkoutDiary,
 } from "../../context/WorkoutDiaryContext";
+
+import {
+    useDiaryNotes,
+} from "../../context/DiaryNotesContext";
 
 import {
     useCurrentUser,
@@ -40,15 +44,19 @@ import {
 } from "../../utils/playgrounds";
 
 import {
-    getUserTags,
-} from "../../utils/workoutTags";
+    usePersonalTags,
+} from "../../context/PersonalTagsContext";
 
 import {
     emptyDiaryFilters,
 } from "../../types/diaryFilters";
 
 import {
-    filterDiaryEntries,
+    buildDiaryRecords,
+} from "../../utils/diaryRecords";
+
+import {
+    filterDiaryRecords,
     hasActiveDiaryFilters,
     getEntryCountsByDate,
     getPlaygroundsWithEntries,
@@ -61,10 +69,19 @@ import {
 
 import { pluralizeRu } from "../../utils/pluralize";
 
+const RECORD_TYPE_OPTIONS = [
+    { value: "workout", label: "Тренировки" },
+    { value: "note", label: "Заметки" },
+];
+
 export default function Diary() {
     const {
         entries,
     } = useWorkoutDiary();
+
+    const {
+        notes,
+    } = useDiaryNotes();
 
     const {
         currentUser,
@@ -86,40 +103,56 @@ export default function Diary() {
             currentUser.id
         );
 
+    const userNotes =
+        notes.filter(
+            (note) => note.userId === currentUser.id
+        );
+
+    // Единая хронологическая лента: тренировки и заметки — это два
+    // типа одной сущности "Запись дневника" (UX-DIARY-V2 §2, §8).
     // Новые записи сверху (UX §27).
-    const sortedEntries = [...userEntries].sort(
-        (a, b) => b.date.localeCompare(a.date)
-    );
+    const allRecords =
+        buildDiaryRecords(
+            userEntries,
+            userNotes
+        );
+
+    const hasAnyRecords =
+        allRecords.length > 0;
+
+    const {
+        tags: personalTags,
+    } = usePersonalTags();
 
     const userTags =
-        getUserTags(
-            entries,
-            currentUser.id
-        );
+        personalTags
+            .filter((tag) => tag.userId === currentUser.id)
+            .map((tag) => tag.name)
+            .sort((a, b) => a.localeCompare(b, "ru"));
 
     const visitedPlaygrounds =
         getPlaygroundsWithEntries(
-            userEntries,
+            allRecords,
             playgrounds
         );
 
     const entryCountsByDate =
-        getEntryCountsByDate(userEntries);
+        getEntryCountsByDate(allRecords);
 
-    const visibleEntries =
-        filterDiaryEntries(
-            sortedEntries,
+    const visibleRecords =
+        filterDiaryRecords(
+            allRecords,
             filters
         );
 
     const totalPages =
         getTotalPages(
-            visibleEntries.length
+            visibleRecords.length
         );
 
-    const pageEntries =
+    const pageRecords =
         paginate(
-            visibleEntries,
+            visibleRecords,
             page
         );
 
@@ -130,10 +163,12 @@ export default function Diary() {
 
     return (
         <Section title="Дневник">
+
+            {/* Header (UX §4; UX-DIARY-V2 §4 — единая точка входа) */}
             <ActionGroup>
                 <Link to="/diary/create">
                     <Button variant="primary">
-                        Записать тренировку
+                        Добавить запись
                     </Button>
                 </Link>
             </ActionGroup>
@@ -148,7 +183,7 @@ export default function Diary() {
             />
 
             {
-                userEntries.length === 0 ? (
+                !hasAnyRecords ? (
                     /* Полностью пустой дневник — полноценный friendly empty state (UX §28) */
                     <div className="diary-empty-state">
                         <p className="diary-empty-state__title">
@@ -156,13 +191,13 @@ export default function Diary() {
                         </p>
 
                         <p className="diary-empty-state__description">
-                            Здесь будут сохраняться твои тренировки, площадки,
-                            фотографии и история занятий.
+                            Здесь будут сохраняться твои тренировки, заметки,
+                            площадки, фотографии и история занятий.
                         </p>
 
                         <Link to="/diary/create">
                             <Button variant="primary">
-                                Записать первую тренировку
+                                Добавить первую запись
                             </Button>
                         </Link>
                     </div>
@@ -170,13 +205,11 @@ export default function Diary() {
                     <>
                         <hr />
 
-                        {/* География тренировок (UX §6–10) */}
-                        <h3>
-                            География тренировок
-                        </h3>
+                        {/* География тренировок (UX §6–10; UX-DIARY-V2 §11) */}
+                        <h3>География</h3>
 
                         <DiaryMap
-                            entries={userEntries}
+                            records={allRecords}
                             playgrounds={playgrounds}
                             selectedPlaygroundId={filters.playgroundId}
                             onSelectPlayground={(playgroundId) =>
@@ -189,10 +222,8 @@ export default function Diary() {
 
                         <hr />
 
-                        {/* Календарь тренировок (UX §11–14) */}
-                        <h3>
-                            Календарь
-                        </h3>
+                        {/* Календарь (UX §11–14; UX-DIARY-V2 §10) */}
+                        <h3>Календарь</h3>
 
                         <WorkoutCalendar
                             entryCountsByDate={entryCountsByDate}
@@ -207,12 +238,28 @@ export default function Diary() {
 
                         <hr />
 
-                        {/* Фильтры (UX §16–18, §34) */}
-                        <h3>
-                            Фильтры
-                        </h3>
+                        {/* Фильтры (UX §16–18, §34; UX-DIARY-V2 §12) */}
+                        <h3>Фильтры</h3>
 
                         <div className="diary-filters">
+                            <Select
+                                label="Тип записи"
+                                emptyOptionLabel="Все записи"
+                                value={
+                                    filters.recordType === "all"
+                                        ? ""
+                                        : filters.recordType
+                                }
+                                options={RECORD_TYPE_OPTIONS}
+                                onChange={(e) =>
+                                    updateFilters({
+                                        ...filters,
+                                        recordType:
+                                            (e.target.value || "all") as typeof filters.recordType,
+                                    })
+                                }
+                            />
+
                             <Select
                                 label="Площадка"
                                 emptyOptionLabel="Все площадки"
@@ -277,19 +324,17 @@ export default function Diary() {
 
                         <hr />
 
-                        {/* Список тренировок (UX §20–27) */}
+                        {/* Лента записей (UX §20–27; UX-DIARY-V2 §8, §9) */}
                         <div className="diary__list-header">
-                            <h3>
-                                Тренировки
-                            </h3>
+                            <h3>Записи</h3>
 
                             <p className="diary__count">
                                 {
                                     hasActiveDiaryFilters(filters)
-                                        ? `Показано ${visibleEntries.length} из ${userEntries.length}`
-                                        : `${visibleEntries.length} ${
+                                        ? `Показано ${visibleRecords.length} из ${allRecords.length}`
+                                        : `${visibleRecords.length} ${
                                             pluralizeRu(
-                                                visibleEntries.length,
+                                                visibleRecords.length,
                                                 ["запись", "записи", "записей"]
                                             )
                                         }`
@@ -298,7 +343,7 @@ export default function Diary() {
                         </div>
 
                         {
-                            visibleEntries.length === 0 ? (
+                            visibleRecords.length === 0 ? (
                                 /* Пусто из-за фильтров — другой сценарий, не "дневник пуст" (UX §29) */
                                 <div className="diary-empty-state">
                                     <p className="diary-empty-state__title">
@@ -306,7 +351,7 @@ export default function Diary() {
                                     </p>
 
                                     <p className="diary-empty-state__description">
-                                        Нет тренировок, соответствующих выбранным фильтрам.
+                                        Нет записей, соответствующих выбранным фильтрам.
                                     </p>
 
                                     <Button
@@ -320,21 +365,30 @@ export default function Diary() {
                                 <>
                                     <div className="workout-entries-list">
                                         {
-                                            pageEntries.map(
-                                                (entry) => (
-                                                    <WorkoutEntryCard
-                                                        key={entry.id}
-                                                        entry={entry}
-                                                        playground={
-                                                            entry.playgroundId
-                                                                ? getPlaygroundById(
-                                                                    playgrounds,
-                                                                    entry.playgroundId
-                                                                )
-                                                                : undefined
-                                                        }
-                                                    />
-                                                )
+                                            pageRecords.map(
+                                                (record) => {
+                                                    const playground =
+                                                        record.data.playgroundId
+                                                            ? getPlaygroundById(
+                                                                playgrounds,
+                                                                record.data.playgroundId
+                                                            )
+                                                            : undefined;
+
+                                                    return record.type === "workout" ? (
+                                                        <WorkoutEntryCard
+                                                            key={record.data.id}
+                                                            entry={record.data}
+                                                            playground={playground}
+                                                        />
+                                                    ) : (
+                                                        <DiaryNoteCard
+                                                            key={record.data.id}
+                                                            note={record.data}
+                                                            playground={playground}
+                                                        />
+                                                    );
+                                                }
                                             )
                                         }
                                     </div>
@@ -350,6 +404,7 @@ export default function Diary() {
                     </>
                 )
             }
+
         </Section>
     );
 }

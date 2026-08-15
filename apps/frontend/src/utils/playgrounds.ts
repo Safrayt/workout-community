@@ -181,3 +181,20 @@ export function getCreatedPlaygrounds(
             playground.creatorId === creatorId
     );
 }
+
+/**
+ * Количество уникальных площадок, отмеченных в дневнике
+ * пользователя — метрика "Площадок" в статистике профиля
+ * (UX-PROFILE §14).
+ */
+export function getVisitedPlaygroundsCount(
+    playgroundIds: (string | undefined)[]
+) {
+    const uniqueIds = new Set(
+        playgroundIds.filter(
+            (id): id is string => Boolean(id)
+        )
+    );
+
+    return uniqueIds.size;
+}

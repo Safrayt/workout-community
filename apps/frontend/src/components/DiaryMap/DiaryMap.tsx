@@ -1,6 +1,6 @@
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 
-import type { WorkoutEntry } from "../../types/workoutEntry";
+import type { DiaryRecord } from "../../types/diaryRecord";
 import type { Playground } from "../../types/playground";
 
 import {
@@ -16,7 +16,7 @@ import "../../styles/components/diary-map.css";
 
 type DiaryMapProps = {
 
-    entries: WorkoutEntry[];
+    records: DiaryRecord[];
 
     playgrounds: Playground[];
 
@@ -27,25 +27,26 @@ type DiaryMapProps = {
 };
 
 /**
- * "География тренировок" (UX-DIARY §6–10): карта показывает не все
- * площадки платформы, а только те, где пользователь реально
- * тренировался. Клик по метке сразу фильтрует список — отдельная
- * кнопка "Показать тренировки" не нужна (§8).
+ * "География тренировок" (UX-DIARY §6–10; UX-DIARY-V2 §11): карта
+ * показывает не все площадки платформы, а только те, с которыми
+ * связана хоть одна запись пользователя — тренировка или заметка.
+ * Клик по метке сразу фильтрует список — отдельная кнопка
+ * "Показать" не нужна (§8).
  */
 export default function DiaryMap({
-    entries,
+    records,
     playgrounds,
     selectedPlaygroundId,
     onSelectPlayground,
 }: DiaryMapProps) {
     const visitedPlaygrounds =
         getPlaygroundsWithEntries(
-            entries,
+            records,
             playgrounds
         );
 
     const entryCounts =
-        getEntryCountsByPlayground(entries);
+        getEntryCountsByPlayground(records);
 
     const markers = visitedPlaygrounds.map(
         (playground) => {
@@ -61,7 +62,7 @@ export default function DiaryMap({
                 locality: playground.locality,
                 color: getRatingTier(rating).color,
                 shortInfo:
-                    `${count} ${pluralizeRu(count, ["тренировка", "тренировки", "тренировок"])}`,
+                    `${count} ${pluralizeRu(count, ["запись", "записи", "записей"])}`,
             };
         }
     );
