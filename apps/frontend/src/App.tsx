@@ -27,6 +27,9 @@ import {
 import {
     ReviewProvider,
 } from "./context/ReviewContext";
+import {
+    SubscriptionProvider,
+} from "./context/SubscriptionContext";
 
 export default function App() {
     return (
@@ -48,9 +51,13 @@ export default function App() {
 
                                         <ReviewProvider>
 
-                                            <RouterProvider
-                                                router={router}
-                                            />
+                                            <SubscriptionProvider>
+
+                                                <RouterProvider
+                                                    router={router}
+                                                />
+
+                                            </SubscriptionProvider>
 
                                         </ReviewProvider>
 

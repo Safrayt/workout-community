@@ -3,11 +3,15 @@ import { Link } from "react-router-dom";
 import Avatar from "../ui/Avatar/Avatar";
 import Button from "../ui/Button/Button";
 
+import SubscribeButton from "../SubscribeButton/SubscribeButton";
+
 import "../../styles/components/profile-header.css";
 
 import { formatRegistrationDate } from "../../utils/username";
 
 type ProfileHeaderProps = {
+    userId: string;
+
     username: string;
 
     avatarUrl?: string;
@@ -21,6 +25,7 @@ type ProfileHeaderProps = {
 };
 
 export default function ProfileHeader({
+    userId,
     username,
     avatarUrl,
     about,
@@ -53,12 +58,14 @@ export default function ProfileHeader({
                 </p>
 
                 {
-                    isOwnProfile && (
+                    isOwnProfile ? (
                         <Link to="/profile/edit">
                             <Button variant="secondary">
                                 Редактировать профиль
                             </Button>
                         </Link>
+                    ) : (
+                        <SubscribeButton userId={userId} />
                     )
                 }
             </div>

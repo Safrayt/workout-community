@@ -29,11 +29,16 @@ export function filterDiaryRecords(
             return false;
         }
 
-        if (
-            filters.date &&
-            record.date !== filters.date
-        ) {
-            return false;
+        if (filters.date) {
+            if (filters.datePrecision === "day") {
+                if (record.date !== filters.date) {
+                    return false;
+                }
+            } else if (!record.date.startsWith(filters.date)) {
+                // month → "YYYY-MM", year → "YYYY" — оба случая
+                // сводятся к проверке префикса даты записи.
+                return false;
+            }
         }
 
         if (

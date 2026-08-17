@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
@@ -11,12 +11,15 @@ import AchievementCard from "../../components/AchievementCard/AchievementCard";
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
 import EventSummary from "../../components/EventSummary/EventSummary";
+import SubscriptionsList from "../../components/SubscriptionsList/SubscriptionsList";
 
 import "../../styles/components/profile.css";
 
 import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
+
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import {
     useWorkoutDiary,
@@ -43,6 +46,10 @@ import {
 } from "../../context/PersonalTagsContext";
 
 import {
+    useSubscriptions,
+} from "../../context/SubscriptionContext";
+
+import {
     getUserWorkoutEntries,
 } from "../../utils/workoutEntries";
 
@@ -62,7 +69,11 @@ import {
     buildDiaryRecords,
 } from "../../utils/diaryRecords";
 
-import { PROFILE_PREVIEW_LIMIT } from "../../constants/user";
+import {
+    getFollowingIds,
+} from "../../utils/subscriptions";
+
+import { PROFILE_PREVIEW_LIMIT, SUBSCRIPTIONS_PREVIEW_LIMIT } from "../../constants/user";
 import { MAX_PERSONAL_TAGS } from "../../constants/personalTags";
 
 /**
@@ -71,19 +82,39 @@ import { MAX_PERSONAL_TAGS } from "../../constants/personalTags";
  * (UX-PROFILE §1, §49). Поэтому имя, фамилия, город, уровень и
  * XP намеренно не показываются на этом экране (UX-PROFILE §44).
  *
- * Пока в портале есть только один "текущий пользователь" и нет
- * отдельного экрана чужого профиля — эта страница всегда
- * отображает собственный профиль (isOwnProfile всегда true).
- * Структура и данные уже подготовлены к разделению на публичный
- * и приватный режим (UX-PROFILE §4, §29, §30), когда появится
- * маршрут вида /u/:username.
+ * Обслуживает два маршрута:
+ * - /profile — всегда собственный профиль текущего пользователя;
+ * - /u/:username — публичный профиль любого пользователя
+ *   (UX-PROFILE §4, §29, §30). Если открыт свой же username,
+ *   ведёт себя как собственный профиль (виден блок "Настройки" и
+ *   т.д.) — отдельный редирект не нужен.
  */
 export default function Profile() {
-    const isOwnProfile = true;
+    const { username } = useParams();
 
     const {
-        currentUser: user,
+        currentUser,
     } = useCurrentUser();
+
+    const { getUserByUsername } = useUserDirectory();
+
+    const user = username
+        ? getUserByUsername(username)
+        : currentUser;
+
+    const isOwnProfile = user?.id === currentUser.id;
+
+    const canViewDiary =
+        isOwnProfile ||
+        Boolean(user?.privacySettings.diaryVisible);
+
+    const canViewAchievements =
+        isOwnProfile ||
+        Boolean(user?.privacySettings.achievementsVisible);
+
+    const canViewSubscriptions =
+        isOwnProfile ||
+        Boolean(user?.privacySettings.subscriptionsVisible);
 
     const {
         entries,
@@ -108,6 +139,28 @@ export default function Profile() {
     const {
         tags,
     } = usePersonalTags();
+
+    const {
+        subscriptions,
+    } = useSubscriptions();
+
+    if (!user) {
+        return (
+            <Section title="Профиль">
+                <div className="profile-empty">
+                    <p>
+                        Пользователь @{username} не найден.
+                    </p>
+
+                    <Link to="/">
+                        <Button variant="secondary">
+                            На главную
+                        </Button>
+                    </Link>
+                </div>
+            </Section>
+        );
+    }
 
     const userEntries = getUserWorkoutEntries(
         entries,
@@ -150,6 +203,11 @@ export default function Profile() {
         (tag) => tag.userId === user.id
     ).length;
 
+    const followingIds = getFollowingIds(
+        subscriptions,
+        user.id
+    );
+
     const statsItems = [
         {
             key: "workouts",
@@ -176,6 +234,7 @@ export default function Profile() {
     return (
         <Section title="Профиль">
             <ProfileHeader
+                userId={user.id}
                 username={user.nickname}
                 avatarUrl={user.avatarUrl}
                 about={user.bio}
@@ -186,11 +245,17 @@ export default function Profile() {
             <ProfileStats items={statsItems} />
 
             <InfoSection
-                title="Последние тренировки"
+                title="Последние записи"
                 className="profile-section"
             >
                 {
-                    diaryRecords.length === 0 ? (
+                    !canViewDiary ? (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл свой дневник от посторонних.
+                            </p>
+                        </div>
+                    ) : diaryRecords.length === 0 ? (
                         <div className="profile-empty">
                             <p>
                                 {
@@ -233,7 +298,7 @@ export default function Profile() {
                             </div>
 
                             <ActionGroup>
-                                <Link to="/diary">
+                                <Link to={isOwnProfile ? "/diary" : `/u/${user.nickname}/diary`}>
                                     <Button variant="secondary">
                                         Смотреть дневник
                                     </Button>
@@ -249,7 +314,13 @@ export default function Profile() {
                 className="profile-section"
             >
                 {
-                    unlockedAchievements.length === 0 ? (
+                    !canViewAchievements ? (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл свои достижения от посторонних.
+                            </p>
+                        </div>
+                    ) : unlockedAchievements.length === 0 ? (
                         <div className="profile-empty">
                             <p>
                                 {
@@ -275,7 +346,7 @@ export default function Profile() {
                             </ul>
 
                             <ActionGroup>
-                                <Link to="/achievements">
+                                <Link to={isOwnProfile ? "/achievements" : `/u/${user.nickname}/achievements`}>
                                     <Button variant="secondary">
                                         Все достижения
                                     </Button>
@@ -287,7 +358,7 @@ export default function Profile() {
             </InfoSection>
 
             <InfoSection
-                title="Мои события"
+                title={isOwnProfile ? "Мои события" : "События"}
                 className="profile-section"
             >
                 {
@@ -328,12 +399,55 @@ export default function Profile() {
                             </div>
 
                             <ActionGroup>
-                                <Link to="/events">
+                                <Link to={isOwnProfile ? "/profile/events" : `/u/${user.nickname}/events`}>
                                     <Button variant="secondary">
                                         Все события
                                     </Button>
                                 </Link>
                             </ActionGroup>
+                        </>
+                    )
+                }
+            </InfoSection>
+
+            <InfoSection
+                title="Подписки"
+                className="profile-section"
+            >
+                {
+                    !canViewSubscriptions ? (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл список подписок от посторонних.
+                            </p>
+                        </div>
+                    ) : followingIds.length === 0 ? (
+                        <div className="profile-empty">
+                            <p>
+                                {
+                                    isOwnProfile
+                                        ? "Ты пока ни на кого не подписан."
+                                        : "Пользователь пока ни на кого не подписан."
+                                }
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <SubscriptionsList
+                                userIds={followingIds.slice(0, SUBSCRIPTIONS_PREVIEW_LIMIT)}
+                            />
+
+                            {
+                                followingIds.length > SUBSCRIPTIONS_PREVIEW_LIMIT && (
+                                    <ActionGroup>
+                                        <Link to={isOwnProfile ? "/profile/subscriptions" : `/u/${user.nickname}/subscriptions`}>
+                                            <Button variant="secondary">
+                                                Все подписки
+                                            </Button>
+                                        </Link>
+                                    </ActionGroup>
+                                )
+                            }
                         </>
                     )
                 }
@@ -357,14 +471,12 @@ export default function Profile() {
                                 </span>
                             </Link>
 
-                            <button
-                                type="button"
-                                className="profile-account-actions__item profile-account-actions__item--soon"
-                                disabled
+                            <Link
+                                to="/profile/settings"
+                                className="profile-account-actions__item"
                             >
                                 <span>Настройки аккаунта</span>
-                                <span className="profile-account-actions__soon">Скоро</span>
-                            </button>
+                            </Link>
 
                             <button
                                 type="button"

@@ -18,12 +18,9 @@ import {
     getEventPosterUrl,
 } from "../../utils/eventPoster";
 
-import { getUserName } from "../../utils/users";
-
-import {
-    getEventStatus,
-    eventStatusLabels,
-} from "../../utils/eventStatus";
+import { getEventStatus, eventStatusLabels } from "../../utils/eventStatus";
+import { useUserDirectory } from "../../hooks/useUserDirectory";
+import UserLink from "../UserLink/UserLink";
 
 import type {
     Playground,
@@ -76,6 +73,12 @@ export default function EventCard({
         playground?.coordinates.latitude,
         playground?.coordinates.longitude
     );
+
+    const { getUserById } = useUserDirectory();
+
+    const creator = creatorId
+        ? getUserById(creatorId)
+        : undefined;
 
     const imageUrl =
         getEventPosterUrl(
@@ -148,9 +151,9 @@ export default function EventCard({
                 </p>
 
                 {
-                    creatorId && (
+                    creator && (
                         <p className="event-card__creator">
-                            Создатель события: {getUserName(creatorId)}
+                            Создатель события: <UserLink username={creator.nickname} />
                         </p>
                     )
                 }

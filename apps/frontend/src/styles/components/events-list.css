@@ -18,6 +18,20 @@
     font-weight: 600;
 }
 
+.events-back-link {
+    display: inline-block;
+
+    margin-bottom: var(--space-4);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+}
+
+.events-back-link:hover {
+    color: var(--color-primary);
+}
+
 .events-empty-state {
     display: flex;
     flex-direction: column;

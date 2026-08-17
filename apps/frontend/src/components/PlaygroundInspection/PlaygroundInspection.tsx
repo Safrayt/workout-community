@@ -11,6 +11,7 @@ import { getInspectionStatus } from "../../utils/playgroundInspection";
 import { getLastVerification } from "../../utils/playgroundHistory";
 
 import Button from "../ui/Button/Button";
+import UserLink from "../UserLink/UserLink";
 
 type Props = {
     playground: Playground;
@@ -51,7 +52,7 @@ export function InspectionSummary({
                             <>
                                 {formatDate(lastVerification.date)}
                                 {" · "}
-                                @{lastVerification.username}
+                                <UserLink username={lastVerification.username} />
                             </>
                         )
                         : "Ещё не проверялась"

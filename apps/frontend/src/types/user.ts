@@ -1,4 +1,5 @@
 import type { SocialLinks } from "./socialLinks";
+import type { PrivacySettings } from "./privacySettings";
 
 export type User = {
     id: string;
@@ -18,4 +19,6 @@ export type User = {
     createdAt: string;
 
     socialLinks: SocialLinks;
+
+    privacySettings: PrivacySettings;
 };

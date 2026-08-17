@@ -6,9 +6,9 @@ import type {
 
 import Avatar from "../ui/Avatar/Avatar";
 
-import {
-    getUserById,
-} from "../../utils/users";
+import UserLink from "../UserLink/UserLink";
+
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import {
     getUserLevel,
@@ -41,6 +41,8 @@ export default function EventParticipants({
     participants,
     creatorId,
 }: Props) {
+
+    const { getUserById } = useUserDirectory();
 
     if (
         participants.length === 0
@@ -101,7 +103,7 @@ export default function EventParticipants({
                                 />
 
                                 <span className="event-participants__nickname">
-                                    {`@${nickname}`}
+                                    <UserLink username={nickname} />
                                 </span>
 
                                 {

@@ -1,4 +1,5 @@
 import type { User } from "../types/user";
+import { DEFAULT_PRIVACY_SETTINGS } from "../types/privacySettings";
 
 export const users: User[] = [
     {
@@ -23,6 +24,8 @@ export const users: User[] = [
             telegram: "@Safrayt",
             github: "Safrayt",
         },
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "2",
@@ -43,6 +46,8 @@ export const users: User[] = [
         createdAt: "2026-04-01",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "3",
@@ -63,6 +68,8 @@ export const users: User[] = [
         createdAt: "2026-02-20",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "4",
@@ -83,6 +90,8 @@ export const users: User[] = [
         createdAt: "2026-07-01",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "5",
@@ -105,6 +114,8 @@ export const users: User[] = [
         socialLinks: {
             telegram: "@MaxPower",
         },
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "6",
@@ -125,6 +136,8 @@ export const users: User[] = [
         createdAt: "2026-03-18",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "7",
@@ -145,6 +158,8 @@ export const users: User[] = [
         createdAt: "2025-09-27",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "8",
@@ -165,6 +180,8 @@ export const users: User[] = [
         createdAt: "2026-07-20",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "9",
@@ -185,6 +202,8 @@ export const users: User[] = [
         createdAt: "2026-01-14",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
     {
         id: "10",
@@ -205,5 +224,7 @@ export const users: User[] = [
         createdAt: "2025-12-05",
 
         socialLinks: {},
+
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
     },
 ];

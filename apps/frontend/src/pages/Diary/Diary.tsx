@@ -8,6 +8,7 @@ import Button from "../../components/ui/Button/Button";
 import Select from "../../components/ui/Select/Select";
 import Input from "../../components/ui/Input/Input";
 import Pagination from "../../components/ui/Pagination/Pagination";
+import CollapsibleSection from "../../components/ui/CollapsibleSection/CollapsibleSection";
 
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
@@ -61,6 +62,8 @@ import {
     getEntryCountsByDate,
     getPlaygroundsWithEntries,
 } from "../../utils/diaryFilters";
+
+import { getYearsWithEntries } from "../../utils/diaryDateFilter";
 
 import {
     paginate,
@@ -136,6 +139,9 @@ export default function Diary() {
             playgrounds
         );
 
+    const availableYears =
+        getYearsWithEntries(allRecords);
+
     const entryCountsByDate =
         getEntryCountsByDate(allRecords);
 
@@ -206,42 +212,42 @@ export default function Diary() {
                         <hr />
 
                         {/* География тренировок (UX §6–10; UX-DIARY-V2 §11) */}
-                        <h3>География</h3>
-
-                        <DiaryMap
-                            records={allRecords}
-                            playgrounds={playgrounds}
-                            selectedPlaygroundId={filters.playgroundId}
-                            onSelectPlayground={(playgroundId) =>
-                                updateFilters({
-                                    ...filters,
-                                    playgroundId,
-                                })
-                            }
-                        />
-
-                        <hr />
+                        <CollapsibleSection title="География">
+                            <DiaryMap
+                                records={allRecords}
+                                playgrounds={playgrounds}
+                                selectedPlaygroundId={filters.playgroundId}
+                                onSelectPlayground={(playgroundId) =>
+                                    updateFilters({
+                                        ...filters,
+                                        playgroundId,
+                                    })
+                                }
+                            />
+                        </CollapsibleSection>
 
                         {/* Календарь (UX §11–14; UX-DIARY-V2 §10) */}
-                        <h3>Календарь</h3>
-
-                        <WorkoutCalendar
-                            entryCountsByDate={entryCountsByDate}
-                            selectedDate={filters.date}
-                            onSelectDate={(date) =>
-                                updateFilters({
-                                    ...filters,
-                                    date,
-                                })
-                            }
-                        />
-
-                        <hr />
+                        <CollapsibleSection title="Календарь">
+                            <WorkoutCalendar
+                                entryCountsByDate={entryCountsByDate}
+                                selectedDate={
+                                    filters.datePrecision === "day"
+                                        ? filters.date
+                                        : ""
+                                }
+                                onSelectDate={(date) =>
+                                    updateFilters({
+                                        ...filters,
+                                        date,
+                                        datePrecision: "day",
+                                    })
+                                }
+                            />
+                        </CollapsibleSection>
 
                         {/* Фильтры (UX §16–18, §34; UX-DIARY-V2 §12) */}
-                        <h3>Фильтры</h3>
-
-                        <div className="diary-filters">
+                        <CollapsibleSection title="Фильтры">
+                            <div className="diary-filters">
                             <Select
                                 label="Тип записи"
                                 emptyOptionLabel="Все записи"
@@ -280,18 +286,85 @@ export default function Diary() {
                                 }
                             />
 
-                            <Input
-                                label="Дата"
-                                type="date"
-                                className="input__field--date"
-                                value={filters.date}
-                                onChange={(e) =>
-                                    updateFilters({
-                                        ...filters,
-                                        date: e.target.value,
-                                    })
+                            <div className="diary-date-filter">
+                                <Select
+                                    label="Дата"
+                                    value={filters.datePrecision}
+                                    options={[
+                                        { value: "day", label: "День" },
+                                        { value: "month", label: "Месяц" },
+                                        { value: "year", label: "Год" },
+                                    ]}
+                                    onChange={(e) =>
+                                        updateFilters({
+                                            ...filters,
+                                            datePrecision:
+                                                e.target.value as typeof filters.datePrecision,
+                                            // При смене точности прошлое значение
+                                            // теряет смысл (день "15" — не месяц).
+                                            date: "",
+                                        })
+                                    }
+                                />
+
+                                {
+                                    filters.datePrecision === "day" && (
+                                        <Input
+                                            label="Число"
+                                            type="date"
+                                            className="input__field--date"
+                                            value={filters.date}
+                                            onChange={(e) =>
+                                                updateFilters({
+                                                    ...filters,
+                                                    date: e.target.value,
+                                                })
+                                            }
+                                        />
+                                    )
                                 }
-                            />
+
+                                {
+                                    filters.datePrecision === "month" && (
+                                        <Input
+                                            label="Месяц"
+                                            type="month"
+                                            className="input__field--date"
+                                            value={filters.date}
+                                            onChange={(e) =>
+                                                updateFilters({
+                                                    ...filters,
+                                                    date: e.target.value,
+                                                })
+                                            }
+                                        />
+                                    )
+                                }
+
+                                {
+                                    filters.datePrecision === "year" && (
+                                        <Select
+                                            label="Год"
+                                            emptyOptionLabel="Выберите год"
+                                            value={filters.date}
+                                            options={
+                                                availableYears.map(
+                                                    (year) => ({
+                                                        value: year,
+                                                        label: year,
+                                                    })
+                                                )
+                                            }
+                                            onChange={(e) =>
+                                                updateFilters({
+                                                    ...filters,
+                                                    date: e.target.value,
+                                                })
+                                            }
+                                        />
+                                    )
+                                }
+                            </div>
 
                             <div className="input">
                                 <span className="input__label">
@@ -309,7 +382,8 @@ export default function Diary() {
                                     }
                                 />
                             </div>
-                        </div>
+                            </div>
+                        </CollapsibleSection>
 
                         {/* Активные фильтры (UX §19) */}
                         <DiaryActiveFilters

@@ -13,7 +13,9 @@ type DiaryStatsProps = {
 /**
  * Небольшая статистика в Hero-блоке (UX-DIARY §5). Намеренно
  * второстепенная и компактная — главная функция страницы не
- * аналитика, а просмотр истории.
+ * аналитика, а просмотр истории. Оформление — как у "profile-stats"
+ * на странице профиля, для единообразия карточек-статистик по
+ * всему приложению.
  */
 export default function DiaryStats({
     entries,
@@ -35,10 +37,6 @@ export default function DiaryStats({
     return (
         <div className="diary-stats">
             <div className="diary-stats__item">
-                <span className="diary-stats__value">
-                    {entries.length}
-                </span>
-
                 <span className="diary-stats__label">
                     {
                         pluralizeRu(
@@ -47,15 +45,15 @@ export default function DiaryStats({
                         )
                     }
                 </span>
+
+                <span className="diary-stats__value">
+                    {entries.length}
+                </span>
             </div>
 
             {
                 playgroundsCount > 0 && (
                     <div className="diary-stats__item">
-                        <span className="diary-stats__value">
-                            {playgroundsCount}
-                        </span>
-
                         <span className="diary-stats__label">
                             {
                                 pluralizeRu(
@@ -64,22 +62,26 @@ export default function DiaryStats({
                                 )
                             }
                         </span>
+
+                        <span className="diary-stats__value">
+                            {playgroundsCount}
+                        </span>
                     </div>
                 )
             }
 
             <div className="diary-stats__item">
-                <span className="diary-stats__value">
-                    {daysCount}
-                </span>
-
                 <span className="diary-stats__label">
                     {
                         pluralizeRu(
                             daysCount,
-                            ["день", "дня", "дней"]
+                            ["тренировочный день", "тренировочных дня", "тренировочных дней"]
                         )
                     }
+                </span>
+
+                <span className="diary-stats__value">
+                    {daysCount}
                 </span>
             </div>
         </div>

@@ -4,8 +4,8 @@ import Button from "../ui/Button/Button";
 import type { DiaryFilters } from "../../types/diaryFilters";
 import type { Playground } from "../../types/playground";
 
-import { formatWorkoutEntryDateLong } from "../../utils/formatWorkoutEntryDate";
 import { emptyDiaryFilters } from "../../types/diaryFilters";
+import { formatDiaryDateFilterLabel } from "../../utils/diaryDateFilter";
 
 import "../../styles/components/diary-active-filters.css";
 
@@ -82,11 +82,17 @@ export default function DiaryActiveFilters({
                 {
                     filters.date && (
                         <TagBadge
-                            label={formatWorkoutEntryDateLong(filters.date)}
+                            label={
+                                formatDiaryDateFilterLabel(
+                                    filters.date,
+                                    filters.datePrecision
+                                )
+                            }
                             onRemove={() =>
                                 onChange({
                                     ...filters,
                                     date: "",
+                                    datePrecision: "day",
                                 })
                             }
                         />

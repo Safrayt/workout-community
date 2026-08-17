@@ -28,6 +28,24 @@
     gap: var(--space-4);
 }
 
+.diary-date-filter {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.8fr) minmax(140px, 1.2fr);
+    gap: var(--space-2);
+
+    /* Занимает как минимум столько же места, сколько два соседних
+       поля фильтра, — иначе вложенные select/input становятся
+       слишком узкими на широких экранах. */
+    grid-column: span 2;
+}
+
+@media (max-width: 480px) {
+    .diary-date-filter {
+        grid-template-columns: 1fr;
+        grid-column: span 1;
+    }
+}
+
 .workout-entries-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

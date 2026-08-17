@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import "../../styles/components/playground-history.css";
 
 import Section from "../../components/ui/Section/Section";
+import UserLink from "../../components/UserLink/UserLink";
 
 import {
     usePlaygrounds,
@@ -70,7 +71,7 @@ export default function PlaygroundHistory() {
                             </span>
 
                             <span className="playground-history__user">
-                                @{entry.username}
+                                <UserLink username={entry.username} />
                             </span>
 
                             {

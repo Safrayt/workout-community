@@ -5,6 +5,12 @@ import Layout from "../components/layout/Layout";
 import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
 import EditProfile from "../pages/EditProfile/EditProfile";
+import MyEvents from "../pages/MyEvents/MyEvents";
+import PastEvents from "../pages/PastEvents/PastEvents";
+import AccountSettings from "../pages/AccountSettings/AccountSettings";
+import UserDiary from "../pages/UserDiary/UserDiary";
+import UserEvents from "../pages/UserEvents/UserEvents";
+import Subscriptions from "../pages/Subscriptions/Subscriptions";
 import Events from "../pages/Events/Events";
 import CreateEvent from "../pages/CreateEvent/CreateEvent";
 import Diary from "../pages/Diary/Diary";
@@ -40,12 +46,52 @@ export const router = createBrowserRouter([
         element: <Profile />,
       },
       {
+        path: "u/:username",
+        element: <Profile />,
+      },
+      {
+        path: "u/:username/diary",
+        element: <UserDiary />,
+      },
+      {
+        path: "u/:username/events",
+        element: <UserEvents />,
+      },
+      {
+        path: "u/:username/events/past/:role",
+        element: <PastEvents />,
+      },
+      {
+        path: "u/:username/achievements",
+        element: <Achievements />,
+      },
+      {
+        path: "u/:username/subscriptions",
+        element: <Subscriptions />,
+      },
+      {
         path: "profile/edit",
         element: <EditProfile />,
       },
       {
         path: "profile/tags",
         element: <PersonalTags />,
+      },
+      {
+        path: "profile/settings",
+        element: <AccountSettings />,
+      },
+      {
+        path: "profile/subscriptions",
+        element: <Subscriptions />,
+      },
+      {
+        path: "profile/events",
+        element: <MyEvents />,
+      },
+      {
+        path: "profile/events/past/:role",
+        element: <PastEvents />,
       },
       {
         path: "achievements",

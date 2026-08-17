@@ -7,8 +7,11 @@ import Button from "../ui/Button/Button";
 
 import { useReviews } from "../../context/ReviewContext";
 
+import { useUserDirectory } from "../../hooks/useUserDirectory";
+
+import UserLink from "../UserLink/UserLink";
+
 import { getRecentPlaygroundReviews } from "../../utils/reviews";
-import { getUserName } from "../../utils/users";
 import { formatDate } from "../../utils/formatDate";
 
 type Props = {
@@ -25,6 +28,8 @@ export default function PlaygroundReviews({
     playgroundId,
 }: Props) {
     const { reviews } = useReviews();
+
+    const { getUserById } = useUserDirectory();
 
     const recentReviews = getRecentPlaygroundReviews(
         reviews,
@@ -57,7 +62,11 @@ export default function PlaygroundReviews({
                                     >
                                         <div className="playground-reviews__meta">
                                             <span className="playground-reviews__author">
-                                                {getUserName(review.userId)}
+                                                <UserLink
+                                                    username={
+                                                        getUserById(review.userId)?.nickname ?? "неизвестный"
+                                                    }
+                                                />
                                             </span>
 
                                             <span className="playground-reviews__date">

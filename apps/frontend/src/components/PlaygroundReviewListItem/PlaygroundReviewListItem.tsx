@@ -13,7 +13,10 @@ import type { PlaygroundReview } from "../../types/review";
 import { useReviews } from "../../context/ReviewContext";
 import { useCurrentUser } from "../../context/CurrentUserContext";
 
-import { getUserName } from "../../utils/users";
+import { useUserDirectory } from "../../hooks/useUserDirectory";
+
+import UserLink from "../UserLink/UserLink";
+
 import { formatDate } from "../../utils/formatDate";
 
 type Props = {
@@ -30,6 +33,8 @@ export default function PlaygroundReviewListItem({
 }: Props) {
     const { updateReview, deleteReview } = useReviews();
     const { currentUser } = useCurrentUser();
+
+    const { getUserById } = useUserDirectory();
 
     const isOwnReview = review.userId === currentUser.id;
 
@@ -83,7 +88,11 @@ export default function PlaygroundReviewListItem({
         <li className="playground-reviews-list__item">
             <div className="playground-reviews-list__meta">
                 <span className="playground-reviews-list__author">
-                    {getUserName(review.userId)}
+                    <UserLink
+                        username={
+                            getUserById(review.userId)?.nickname ?? "неизвестный"
+                        }
+                    />
                 </span>
 
                 <span className="playground-reviews-list__date">

@@ -1,5 +1,8 @@
+import { Link, useParams } from "react-router-dom";
+
 import Section from "../../components/ui/Section/Section";
 import InfoSection from "../../components/ui/InfoSection/InfoSection";
+import Button from "../../components/ui/Button/Button";
 
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 
@@ -8,6 +11,8 @@ import "../../styles/components/achievements-grid.css";
 import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
+
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import {
     useEvents,
@@ -25,11 +30,20 @@ import {
     getAchievementsProgress,
 } from "../../utils/achievements";
 
+/**
+ * Обслуживает /achievements (свои достижения) и
+ * /u/:username/achievements (достижения любого пользователя, если
+ * он не закрыл их в настройках приватности).
+ */
 export default function Achievements() {
+
+    const { username } = useParams();
 
     const {
         currentUser,
     } = useCurrentUser();
+
+    const { getUserByUsername } = useUserDirectory();
 
     const {
         events,
@@ -43,9 +57,46 @@ export default function Achievements() {
         registrations,
     } = useRegistration();
 
+    const user = username
+        ? getUserByUsername(username)
+        : currentUser;
+
+    const isOwnProfile = user?.id === currentUser.id;
+
+    if (!user) {
+        return (
+            <Section title="Достижения">
+                <div className="profile-empty">
+                    <p>
+                        Пользователь @{username} не найден.
+                    </p>
+                </div>
+            </Section>
+        );
+    }
+
+    if (!isOwnProfile && !user.privacySettings.achievementsVisible) {
+        return (
+            <Section title={`Достижения — ${user.nickname}`}>
+                <div className="profile-empty">
+                    <p>
+                        Этот пользователь закрыл свои достижения от
+                        посторонних.
+                    </p>
+
+                    <Link to={`/u/${user.nickname}`}>
+                        <Button variant="secondary">
+                            Назад к профилю
+                        </Button>
+                    </Link>
+                </div>
+            </Section>
+        );
+    }
+
     const achievementsProgress =
         getAchievementsProgress(
-            currentUser.id,
+            user.id,
             events,
             playgrounds,
             registrations
@@ -63,7 +114,18 @@ export default function Achievements() {
 
     return (
 
-        <Section title="Достижения">
+        <Section title={isOwnProfile ? "Достижения" : `Достижения — ${user.nickname}`}>
+
+            {
+                !isOwnProfile && (
+                    <Link
+                        to={`/u/${user.nickname}`}
+                        className="events-back-link"
+                    >
+                        ← Назад к профилю
+                    </Link>
+                )
+            }
 
             <InfoSection title="Общий прогресс">
 
