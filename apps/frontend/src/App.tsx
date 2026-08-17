@@ -30,6 +30,9 @@ import {
 import {
     SubscriptionProvider,
 } from "./context/SubscriptionContext";
+import {
+    CommentProvider,
+} from "./context/CommentContext";
 
 export default function App() {
     return (
@@ -53,9 +56,13 @@ export default function App() {
 
                                             <SubscriptionProvider>
 
-                                                <RouterProvider
-                                                    router={router}
-                                                />
+                                                <CommentProvider>
+
+                                                    <RouterProvider
+                                                        router={router}
+                                                    />
+
+                                                </CommentProvider>
 
                                             </SubscriptionProvider>
 

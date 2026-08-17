@@ -14,6 +14,7 @@ import WorkoutEntryTags from "../../components/WorkoutEntryTags/WorkoutEntryTags
 import WorkoutEntryPlaygroundPreview from "../../components/WorkoutEntryPlaygroundPreview/WorkoutEntryPlaygroundPreview";
 import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEntryActions";
 import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
+import DiaryComments from "../../components/DiaryComments/DiaryComments";
 
 import type {
     NewWorkoutEntry,
@@ -197,6 +198,11 @@ export default function WorkoutEntryDetails() {
                 isOwner={isOwner}
                 onEdit={() => setMode("edit")}
                 onDelete={handleDelete}
+            />
+
+            <DiaryComments
+                recordId={entry.id}
+                recordType="workout"
             />
 
         </div>

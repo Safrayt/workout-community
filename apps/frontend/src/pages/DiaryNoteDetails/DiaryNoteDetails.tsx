@@ -13,6 +13,7 @@ import WorkoutEntryTags from "../../components/WorkoutEntryTags/WorkoutEntryTags
 import WorkoutEntryPlaygroundPreview from "../../components/WorkoutEntryPlaygroundPreview/WorkoutEntryPlaygroundPreview";
 import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEntryActions";
 import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
+import DiaryComments from "../../components/DiaryComments/DiaryComments";
 
 import type {
     NewDiaryNote,
@@ -185,6 +186,11 @@ export default function DiaryNoteDetails() {
                 isOwner={isOwner}
                 onEdit={() => setMode("edit")}
                 onDelete={handleDelete}
+            />
+
+            <DiaryComments
+                recordId={note.id}
+                recordType="note"
             />
 
         </div>
