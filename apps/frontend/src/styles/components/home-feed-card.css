@@ -1,0 +1,59 @@
+/*
+ * Базовый вид карточки (рамка, тень, hover, фото 4:3, отступы,
+ * типографика заголовка/даты/площадки/описания) переиспользован из
+ * workout-entry-card.css — тот же формат, что и в Дневнике. Здесь
+ * только то, чего в карточках Дневника нет: шапка с автором, явная
+ * дата события при расхождении с датой публикации, и комментарии.
+ */
+
+.home-feed-card {
+    cursor: pointer;
+}
+
+.home-feed-card__author-row {
+    padding: var(--space-3) var(--space-4) 0;
+}
+
+.home-feed-card__author {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    color: var(--color-text);
+}
+
+.home-feed-card__author:hover .home-feed-card__author-name {
+    text-decoration: underline;
+}
+
+.home-feed-card__author-name {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.home-feed-card__event-date {
+    margin: 0 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.home-feed-card__comments {
+    display: inline-block;
+
+    margin-top: var(--space-2);
+    padding: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+
+    background: none;
+    border: none;
+
+    cursor: pointer;
+}
+
+.home-feed-card__comments:hover {
+    color: var(--color-text);
+}

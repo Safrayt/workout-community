@@ -44,6 +44,9 @@ type PlaygroundsMapProps = {
 
     showDetailsLink?: boolean;
 
+    /** Текст кнопки-ссылки в popup — по умолчанию "Подробнее". */
+    detailsLinkLabel?: string;
+
     /** id маркера, подсвечиваемого при наведении на карточку в списке. */
     hoveredMarkerId?: string;
 
@@ -174,6 +177,7 @@ export default function PlaygroundsMap({
     selectedLongitude,
     onMarkerClick,
     showDetailsLink = true,
+    detailsLinkLabel = "Подробнее",
     hoveredMarkerId,
     selectedMarkerId,
     focusMarkerId,
@@ -305,7 +309,7 @@ export default function PlaygroundsMap({
                                                 variant="outline"
                                                 onClick={() => navigate(marker.url)}
                                             >
-                                                Подробнее
+                                                {detailsLinkLabel}
                                             </Button>
                                         )
                                     }

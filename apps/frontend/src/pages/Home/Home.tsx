@@ -1,48 +1,56 @@
-import Button from "../../components/ui/Button/Button";
-import Card from "../../components/ui/Card/Card";
-import Section from "../../components/ui/Section/Section";
-import Badge from "../../components/ui/Badge/Badge";
+import { useWorkoutDiary } from "../../context/WorkoutDiaryContext";
+import { useDiaryNotes } from "../../context/DiaryNotesContext";
+import { usePlaygrounds } from "../../context/PlaygroundContext";
+import { useComments } from "../../context/CommentContext";
+import { useSubscriptions } from "../../context/SubscriptionContext";
+import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
+import { buildDiaryRecords } from "../../utils/diaryRecords";
+
+import HomeActivityMap from "../../components/HomeActivityMap/HomeActivityMap";
+import HomeFeed from "../../components/HomeFeed/HomeFeed";
+
+import "../../styles/components/home.css";
+
+/**
+ * Главная страница портала (UX-HOME §36): карта недавней активности
+ * сообщества сверху, социальная лента — основной контент под ней.
+ * Личный дневник пользователя остаётся на /diary (§37 п.2) — здесь
+ * показывается только публичная активность всего сообщества.
+ */
 export default function Home() {
+    const { entries } = useWorkoutDiary();
+    const { notes } = useDiaryNotes();
+    const { playgrounds } = usePlaygrounds();
+    const { comments } = useComments();
+    const { subscriptions } = useSubscriptions();
+    const { currentUser } = useCurrentUser();
+    const { users } = useUserDirectory();
+
+    const records = buildDiaryRecords(entries, notes);
+
+    const followingIds = subscriptions
+        .filter((subscription) => subscription.followerId === currentUser.id)
+        .map((subscription) => subscription.followingId);
+
     return (
-        <>
-            <Section title="Добро пожаловать!">
-                <Card>
-                    <p>
-                        Workout Community помогает вести дневник тренировок,
-                        участвовать в мероприятиях и развиваться вместе с
-                        сообществом.
-                    </p>
+        <div className="home-page">
+            <h1 className="home-page__title">Главная</h1>
 
-                    <Button>
-                        Записать тренировку
-                    </Button>
-                </Card>
-            </Section>
+            <HomeActivityMap
+                records={records}
+                playgrounds={playgrounds}
+                users={users}
+            />
 
-            <Section title="Сегодня для тебя">
-                <Card>
-                    <Badge variant="success">
-                        Совет дня
-                    </Badge>
-
-                    <p>
-                        Самое сложное — начать. Всё остальное становится легче после первого подхода.
-                    </p>
-                </Card>
-            </Section>
-
-            <Section title="Ближайшие события">
-                <Card>
-                    <p>Пока нет запланированных тренировок.</p>
-                </Card>
-            </Section>
-
-            <Section title="Продолжить программу">
-                <Card>
-                    <p>Вы пока не выбрали тренировочную программу.</p>
-                </Card>
-            </Section>
-        </>
+            <HomeFeed
+                records={records}
+                users={users}
+                playgrounds={playgrounds}
+                comments={comments}
+                followingIds={followingIds}
+            />
+        </div>
     );
 }

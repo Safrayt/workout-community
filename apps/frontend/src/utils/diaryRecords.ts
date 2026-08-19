@@ -35,3 +35,15 @@ export function buildDiaryRecords(
             b.createdAt.localeCompare(a.createdAt)
     );
 }
+
+/**
+ * Единая точка формирования URL записи дневника — тренировки и
+ * заметки живут на разных маршрутах (`/diary/:id` и
+ * `/diary/notes/:id`), и эту развилку не стоит дублировать в каждом
+ * месте, где на запись нужно сослаться.
+ */
+export function getDiaryRecordUrl(record: DiaryRecord): string {
+    return record.type === "workout"
+        ? `/diary/${record.data.id}`
+        : `/diary/notes/${record.data.id}`;
+}

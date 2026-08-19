@@ -1,0 +1,104 @@
+.home-feed {
+    /* Ширина колонки — как на странице Дневник: карточки идут
+       плиткой на всю ширину контейнера, а не узкой read-колонкой. */
+}
+
+.home-feed__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .home-feed__list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.home-feed__load-more {
+    display: flex;
+    justify-content: center;
+
+    margin-top: var(--space-4);
+}
+
+.home-feed__empty {
+    padding: var(--space-6) var(--space-4);
+
+    text-align: center;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.home-feed__empty-title {
+    margin: 0 0 var(--space-2);
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.home-feed__empty-text {
+    max-width: 420px;
+    margin: 0 auto var(--space-4);
+
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.home-feed__error {
+    padding: var(--space-6) var(--space-4);
+
+    text-align: center;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.home-feed__error p {
+    margin: 0 0 var(--space-3);
+
+    color: var(--color-text-secondary);
+}
+
+.home-feed__skeleton {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .home-feed__skeleton {
+        grid-template-columns: 1fr;
+    }
+}
+
+.home-feed-card-skeleton {
+    height: 320px;
+
+    background: linear-gradient(
+        90deg,
+        var(--color-surface) 25%,
+        var(--color-background) 37%,
+        var(--color-surface) 63%
+    );
+    background-size: 400% 100%;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    animation: home-feed-skeleton-pulse 1.4s ease infinite;
+}
+
+@keyframes home-feed-skeleton-pulse {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}

@@ -1,0 +1,131 @@
+.home-activity-map {
+    margin-bottom: var(--space-6);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.home-activity-map__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    width: 100%;
+    padding: var(--space-4);
+
+    background: none;
+    border: none;
+
+    text-align: left;
+    cursor: pointer;
+}
+
+.home-activity-map__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.home-activity-map__title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.home-activity-map__subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.home-activity-map__chevron {
+    display: block;
+    flex-shrink: 0;
+
+    width: 10px;
+    height: 10px;
+
+    border-right: 2px solid var(--color-text-secondary);
+    border-bottom: 2px solid var(--color-text-secondary);
+
+    transform: rotate(45deg);
+    transition: transform var(--transition-fast);
+}
+
+.home-activity-map__chevron[data-open="true"] {
+    transform: rotate(-135deg);
+}
+
+.home-activity-map__body {
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.home-activity-map__empty {
+    margin: 0;
+    padding: var(--space-5);
+
+    color: var(--color-text-secondary);
+    text-align: center;
+
+    background: var(--color-background);
+    border-radius: var(--radius-sm);
+}
+
+.home-activity-map__error {
+    padding: var(--space-5);
+
+    text-align: center;
+
+    background: var(--color-background);
+    border-radius: var(--radius-sm);
+}
+
+.home-activity-map__error p {
+    margin: 0 0 var(--space-3);
+
+    color: var(--color-text-secondary);
+}
+
+.home-activity-map__skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--color-surface) 25%,
+        var(--color-background) 37%,
+        var(--color-surface) 63%
+    );
+    background-size: 400% 100%;
+
+    border-radius: var(--radius-sm);
+
+    animation: home-activity-map-skeleton-pulse 1.4s ease infinite;
+}
+
+@keyframes home-activity-map-skeleton-pulse {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+/* Desktop: 420–480px (UX-HOME §11). */
+:root {
+    --home-activity-map-height: 440px;
+}
+
+/* Tablet: 360px. */
+@media (max-width: 900px) {
+    :root {
+        --home-activity-map-height: 360px;
+    }
+}
+
+/* Mobile: 280px. */
+@media (max-width: 600px) {
+    :root {
+        --home-activity-map-height: 280px;
+    }
+}

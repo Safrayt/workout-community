@@ -20,3 +20,25 @@ export function isWithinLastDays(
 
     return date >= daysAgo && date <= now;
 }
+
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+/**
+ * Скользящее окно в часах (UX-HOME §5): createdAt >= now - hours, а
+ * не календарный день. Используется картой "Активность на площадках".
+ */
+export function isWithinLastHours(
+    dateString: string,
+    hours: number
+) {
+    const date = new Date(dateString).getTime();
+    const now = Date.now();
+
+    if (Number.isNaN(date)) {
+        return false;
+    }
+
+    const hoursAgo = now - hours * MS_PER_HOUR;
+
+    return date >= hoursAgo && date <= now;
+}

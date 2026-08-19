@@ -1,0 +1,35 @@
+.home-feed-tabs {
+    display: inline-flex;
+    gap: 4px;
+
+    padding: 4px;
+    margin-bottom: var(--space-4);
+
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+}
+
+.home-feed-tabs__tab {
+    padding: var(--space-2) var(--space-4);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.home-feed-tabs__tab:hover {
+    color: var(--color-text);
+}
+
+.home-feed-tabs__tab--active {
+    color: var(--color-text);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
