@@ -23,6 +23,17 @@ class PlaygroundSurface(str, enum.Enum):
     mixed = "mixed"
 
 
+class PlaygroundAccess(str, enum.Enum):
+    free = "free"
+    limited = "limited"
+
+
+class PlaygroundCondition(str, enum.Enum):
+    acceptable = "acceptable"
+    needs_repair = "needsRepair"
+    unusable = "unusable"
+
+
 class PlaygroundEquipment(str, enum.Enum):
     """
     Значения совпадают строка-в-строку с фронтендом (types/playground.ts),
@@ -49,6 +60,51 @@ class PlaygroundEquipment(str, enum.Enum):
     posts = "posts"
     rings = "rings"
     rope = "rope"
+
+
+class PlaygroundHistoryEntryType(str, enum.Enum):
+    """Совпадает построчно с PlaygroundHistoryEntryType на фронтенде."""
+
+    created = "created"
+    inspection = "inspection"
+    edit = "edit"
+
+
+class PlaygroundHistoryEntry(SQLModel, table=True):
+    """
+    Одна запись в истории площадки: "добавлена", "проверена" или
+    "изменена". changed_fields заполняется только для type == "edit" —
+    список человекочитаемых названий полей (см. CHANGED_FIELD_LABELS
+    в routers/playgrounds.py), в остальных случаях остаётся None.
+
+    username в истории не хранится — при чтении подставляется из
+    связанного User (см. _to_playground_read в routers/playgrounds.py),
+    как и expected_participants в EventRead.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    playground_id: int = Field(foreign_key="playground.id")
+    user_id: int = Field(foreign_key="user.id")
+
+    type: PlaygroundHistoryEntryType
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    changed_fields: Optional[List[str]] = Field(
+        default=None,
+        sa_column=Column(JSON),
+    )
+
+    playground: Optional["Playground"] = Relationship(
+        back_populates="history"
+    )
+
+
+class PlaygroundHistoryEntryRead(SQLModel):
+    id: int
+    type: PlaygroundHistoryEntryType
+    date: datetime
+    user_id: int
+    username: str
+    changed_fields: Optional[List[str]] = None
 
 
 # --- Фотографии площадки ---------------------------------------------------
@@ -100,11 +156,17 @@ class PlaygroundBase(SQLModel):
 
     size: PlaygroundSize
     surface: PlaygroundSurface
+    access: PlaygroundAccess
+    # Заполняется только когда access == "limited" (например,
+    # "территория школы, только в будни после 18:00"). Логика этого
+    # условия — забота фронтенда, бэкенд поле не валидирует.
+    access_restrictions: Optional[str] = None
+    condition: PlaygroundCondition
     opening_hours: str
     description: str = ""
 
     # PlaygroundAmenities с фронтенда — тоже вложенный объект,
-    # по той же причине "распрямляем" его в восемь отдельных колонок.
+    # по той же причине "распрямляем" его в отдельные колонки.
     lighting: bool = False
     covered: bool = False
     changing_room: bool = False
@@ -113,6 +175,8 @@ class PlaygroundBase(SQLModel):
     shower: bool = False
     parking: bool = False
     bicycle_parking: bool = False
+    trash_bins: bool = False
+    shade: bool = False
 
 
 class Playground(PlaygroundBase, table=True):
@@ -134,8 +198,16 @@ class Playground(PlaygroundBase, table=True):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+    # Обновляется вручную в routers/playgrounds.py при каждом PUT —
+    # SQLModel сам это не отслеживает, в отличие от created_at.
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     photos: List[PlaygroundPhoto] = Relationship(
+        back_populates="playground"
+    )
+    history: List[PlaygroundHistoryEntry] = Relationship(
         back_populates="playground"
     )
 
@@ -165,6 +237,9 @@ class PlaygroundUpdate(SQLModel):
     longitude: Optional[float] = None
     size: Optional[PlaygroundSize] = None
     surface: Optional[PlaygroundSurface] = None
+    access: Optional[PlaygroundAccess] = None
+    access_restrictions: Optional[str] = None
+    condition: Optional[PlaygroundCondition] = None
     opening_hours: Optional[str] = None
     description: Optional[str] = None
     lighting: Optional[bool] = None
@@ -175,6 +250,8 @@ class PlaygroundUpdate(SQLModel):
     shower: Optional[bool] = None
     parking: Optional[bool] = None
     bicycle_parking: Optional[bool] = None
+    trash_bins: Optional[bool] = None
+    shade: Optional[bool] = None
     equipment: Optional[List[PlaygroundEquipment]] = None
 
 
@@ -183,4 +260,6 @@ class PlaygroundRead(PlaygroundBase):
     creator_id: int
     equipment: List[PlaygroundEquipment]
     created_at: datetime
+    updated_at: datetime
     photos: List[PlaygroundPhotoRead] = []
+    history: List[PlaygroundHistoryEntryRead] = []

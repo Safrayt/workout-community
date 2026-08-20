@@ -15,7 +15,9 @@ MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 МБ
 
 def ensure_upload_dirs() -> None:
     """Создаёт подпапки для загрузок, если их ещё нет."""
-    for subfolder in ("playgrounds", "events"):
+    for subfolder in (
+        "playgrounds", "events", "workout_entries", "diary_notes",
+    ):
         (UPLOAD_ROOT / subfolder).mkdir(parents=True, exist_ok=True)
 
 

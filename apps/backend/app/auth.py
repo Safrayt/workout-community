@@ -87,3 +87,37 @@ def get_current_user(
         raise credentials_error
 
     return user
+
+
+# auto_error=False — в отличие от oauth2_scheme выше, не бросает 401,
+# если заголовка Authorization вообще нет, а просто отдаёт None.
+_optional_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="auth/login", auto_error=False
+)
+
+
+def get_optional_current_user(
+    token: Optional[str] = Depends(_optional_oauth2_scheme),
+    session: Session = Depends(get_session),
+) -> Optional[User]:
+    """
+    Как get_current_user, но для эндпоинтов, где авторизация не
+    обязательна, а нужна только чтобы отличить "свою" страницу от
+    "чужой" — например, дневник: смотреть его может кто угодно, а
+    вот проверка privacySettings.diaryVisible зависит от того, чей
+    сейчас токен, если он вообще есть. Токен есть, но невалиден —
+    тоже просто None, не 401: до самого эндпоинта тут дела нет.
+    """
+    if token is None:
+        return None
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: Optional[str] = payload.get("sub")
+
+        if user_id is None:
+            return None
+    except jwt.PyJWTError:
+        return None
+
+    return session.get(User, int(user_id))

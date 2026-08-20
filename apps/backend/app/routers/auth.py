@@ -40,12 +40,13 @@ def register(
             detail="Пользователь с таким nickname уже существует",
         )
 
+    # model_dump с exclude — а не перечисление полей вручную, — чтобы
+    # соцсети/приватность (UserBase) не забывались молча при каждом
+    # новом поле, которое добавится в профиль в будущем.
+    user_fields = user_data.model_dump(exclude={"password"})
+
     user = User(
-        name=user_data.name,
-        nickname=user_data.nickname,
-        locality=user_data.locality,
-        bio=user_data.bio,
-        avatar_url=user_data.avatar_url,
+        **user_fields,
         password_hash=hash_password(user_data.password),
     )
 

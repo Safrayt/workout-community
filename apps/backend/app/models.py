@@ -17,6 +17,26 @@ class UserBase(SQLModel):
     bio: str = ""
     avatar_url: Optional[str] = None
 
+    # SocialLinks с фронтенда (types/socialLinks.ts) — вложенный объект,
+    # "распрямляем" в отдельные колонки по той же схеме, что и
+    # PlaygroundAmenities в models_playground.py.
+    social_telegram: Optional[str] = None
+    social_vk: Optional[str] = None
+    social_whatsapp: Optional[str] = None
+    social_signal: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_youtube: Optional[str] = None
+    social_github: Optional[str] = None
+    social_website: Optional[str] = None
+
+    # PrivacySettings с фронтенда (types/privacySettings.ts) — тоже
+    # вложенный объект, аналогично распрямляем. Значения по умолчанию
+    # совпадают с DEFAULT_PRIVACY_SETTINGS на фронте — всё видно всем.
+    diary_visible: bool = True
+    achievements_visible: bool = True
+    events_visible: bool = True
+    subscriptions_visible: bool = True
+
 
 class User(UserBase, table=True):
     """
@@ -40,6 +60,34 @@ class UserCreate(UserBase):
     """
 
     password: str
+
+
+class UserUpdate(SQLModel):
+    """
+    Все поля необязательны — обновляем только то, что реально
+    передано (см. PlaygroundUpdate в models_playground.py — тот же
+    подход). Пароль и nickname здесь не меняются: для смены пароля
+    и логина в будущем понадобятся отдельные защищённые эндпоинты.
+    """
+
+    name: Optional[str] = None
+    locality: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+    social_telegram: Optional[str] = None
+    social_vk: Optional[str] = None
+    social_whatsapp: Optional[str] = None
+    social_signal: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_youtube: Optional[str] = None
+    social_github: Optional[str] = None
+    social_website: Optional[str] = None
+
+    diary_visible: Optional[bool] = None
+    achievements_visible: Optional[bool] = None
+    events_visible: Optional[bool] = None
+    subscriptions_visible: Optional[bool] = None
 
 
 class UserRead(UserBase):

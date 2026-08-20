@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 
 from app.auth import get_current_user
 from app.database import get_session
-from app.models import User, UserRead
+from app.models import User, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,6 +16,30 @@ def read_current_user(
     Возвращает профиль пользователя, которому принадлежит переданный
     токен. Это защищённый эндпоинт — без валидного токена ответит 401.
     """
+    return current_user
+
+
+@router.put("/me", response_model=UserRead)
+def update_current_user(
+    data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> User:
+    """
+    Обновляет профиль текущего пользователя: имя, город, био, аватар,
+    соцсети и настройки приватности (EditProfile и AccountSettings
+    на фронтенде). exclude_unset=True — как и в PlaygroundUpdate,
+    трогаем только реально переданные поля.
+    """
+    updates = data.model_dump(exclude_unset=True)
+
+    for field_name, value in updates.items():
+        setattr(current_user, field_name, value)
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
     return current_user
 
 

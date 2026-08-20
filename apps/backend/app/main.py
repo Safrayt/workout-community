@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import create_db_and_tables
 from app.files import UPLOAD_ROOT, ensure_upload_dirs
-from app.routers import auth, events, playgrounds, users
+from app.routers import achievements, auth, diary, events, playgrounds, reviews, social, users
 
 # Папки для загрузок должны существовать ДО того, как StaticFiles
 # попробует их примонтировать (иначе будет ошибка при старте).
@@ -36,6 +36,10 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(playgrounds.router)
 app.include_router(events.router)
+app.include_router(diary.router)
+app.include_router(reviews.router)
+app.include_router(achievements.router)
+app.include_router(social.router)
 
 
 @app.on_event("startup")
