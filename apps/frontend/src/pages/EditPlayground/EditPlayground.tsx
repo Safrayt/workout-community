@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
@@ -5,6 +6,7 @@ import PlaygroundForm from "../../components/PlaygroundForm/PlaygroundForm";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
 import { useCurrentUser } from "../../context/CurrentUserContext";
+import { ApiError } from "../../api/errors";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 import { playgroundToFormValue } from "../../utils/playgroundForm";
@@ -24,6 +26,9 @@ export default function EditPlayground() {
 
     const navigate =
         useNavigate();
+
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const playground =
         id
@@ -53,28 +58,48 @@ export default function EditPlayground() {
         );
     }
 
-    function handleSubmit(
+    async function handleSubmit(
         formValue: NewPlayground
     ) {
         if (!playground) {
             return;
         }
 
-        updatePlayground(
-            playground.id,
-            formValue
-        );
+        setError(null);
+        setIsSubmitting(true);
 
-        navigate(
-            `/playgrounds/${playground.id}`
-        );
+        try {
+            await updatePlayground(
+                playground.id,
+                formValue
+            );
+
+            navigate(
+                `/playgrounds/${playground.id}`
+            );
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось сохранить изменения. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
         <Section title={`Редактирование: ${playground.name}`}>
+            {error && (
+                <p className="auth-form__error" role="alert">
+                    {error}
+                </p>
+            )}
+
             <PlaygroundForm
                 initialValue={playgroundToFormValue(playground)}
-                submitLabel="Сохранить изменения"
+                submitLabel={
+                    isSubmitting ? "Сохраняем…" : "Сохранить изменения"
+                }
                 excludePlaygroundId={playground.id}
                 onSubmit={handleSubmit}
             />

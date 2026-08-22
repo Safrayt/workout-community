@@ -1,38 +1,43 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
 } from "react";
 
 import type { Playground } from "../types/playground";
-
-import { playgrounds as initialPlaygrounds } from "../data/playgrounds";
 import type { NewPlayground } from "../types/newPlayground";
 
-import { useCurrentUser } from "./CurrentUserContext";
-
-import { getChangedFields } from "../utils/playgroundHistory";
-
+import {
+    confirmPlaygroundInspection as apiConfirmInspection,
+    createPlayground as apiCreatePlayground,
+    deletePlayground as apiDeletePlayground,
+    listPlaygrounds,
+    updatePlayground as apiUpdatePlayground,
+} from "../api/playgrounds";
 
 type PlaygroundContextType = {
     playgrounds: Playground[];
 
+    /** true, пока идёт самая первая загрузка списка с сервера. */
+    isLoading: boolean;
+
     addPlayground: (
         playground: NewPlayground
-    ) => Playground;
+    ) => Promise<Playground>;
 
     updatePlayground: (
         id: string,
         playground: NewPlayground
-    ) => void;
+    ) => Promise<Playground>;
 
     deletePlayground: (
         id: string
-    ) => void;
+    ) => Promise<void>;
 
     confirmPlaygroundInspection: (
         id: string
-    ) => void;
+    ) => Promise<void>;
 };
 
 
@@ -48,216 +53,68 @@ export function PlaygroundProvider({
     children: React.ReactNode;
 }) {
 
-    const [
-        playgrounds,
-        setPlaygrounds
-    ] = useState(
-        initialPlaygrounds
-    );
+    const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const { currentUser } = useCurrentUser();
+    useEffect(() => {
+        listPlaygrounds()
+            .then(setPlaygrounds)
+            .catch((error: unknown) => {
+                console.error("Не удалось загрузить площадки:", error);
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
 
 
-    function addPlayground(
+    async function addPlayground(
         playground: NewPlayground
-    ) {
-        const now = new Date().toISOString();
+    ): Promise<Playground> {
+        const created = await apiCreatePlayground(playground);
 
-        const newPlayground: Playground = {
-            id: crypto.randomUUID(),
+        setPlaygrounds((current) => [...current, created]);
 
-            creatorId: currentUser.id,
-
-            name: playground.name,
-
-            locality: playground.locality,
-
-            address: playground.address,
-
-            description: playground.description,
-
-            coordinates:
-                playground.coordinates ?? {
-                    latitude: 0,
-                    longitude: 0,
-                },
-
-            size:
-                playground.size || "medium",
-
-            amenities: playground.amenities,
-
-            surface:
-                playground.surface || "ground",
-
-            access:
-                playground.access || "free",
-
-            accessRestrictions:
-                playground.access === "limited"
-                    ? playground.accessRestrictions
-                    : undefined,
-
-            condition:
-                playground.condition || "acceptable",
-
-            equipment: playground.equipment,
-
-            photos: playground.photos,
-
-            openingHours:
-                playground.openingHours.trim().length > 0
-                    ? playground.openingHours
-                    : "Не указано",
-
-            createdAt: now,
-
-            updatedAt: now,
-
-            history: [
-                {
-                    id: crypto.randomUUID(),
-                    type: "created",
-                    date: now,
-                    userId: currentUser.id,
-                    username: currentUser.nickname,
-                },
-            ],
-        };
-
-        setPlaygrounds(
-            (current) => [
-                ...current,
-                newPlayground,
-            ]
-        );
-        return newPlayground;
+        return created;
     }
 
 
-    function updatePlayground(
+    async function updatePlayground(
         id: string,
         playground: NewPlayground
-    ) {
-        setPlaygrounds(
-            (current) =>
-                current.map((existing) => {
+    ): Promise<Playground> {
+        const existing = playgrounds.find((p) => p.id === id);
 
-                    if (existing.id !== id) {
-                        return existing;
-                    }
+        if (!existing) {
+            throw new Error(`Площадка ${id} не найдена в текущем списке`);
+        }
 
-                    const changedFields = getChangedFields(
-                        existing,
-                        playground
-                    );
+        const updated = await apiUpdatePlayground(id, playground, existing);
 
-                    const now = new Date().toISOString();
+        setPlaygrounds((current) =>
+            current.map((p) => (p.id === id ? updated : p))
+        );
 
-                    return {
-                        ...existing,
+        return updated;
+    }
 
-                        name: playground.name,
 
-                        locality: playground.locality,
+    async function confirmPlaygroundInspection(
+        id: string
+    ): Promise<void> {
+        const updated = await apiConfirmInspection(id);
 
-                        address: playground.address,
-
-                        description: playground.description,
-
-                        coordinates:
-                            playground.coordinates ?? existing.coordinates,
-
-                        size:
-                            playground.size || existing.size,
-
-                        amenities: playground.amenities,
-
-                        surface:
-                            playground.surface || existing.surface,
-
-                        access:
-                            playground.access || existing.access,
-
-                        accessRestrictions:
-                            playground.access === "limited"
-                                ? playground.accessRestrictions
-                                : (
-                                    playground.access === "free"
-                                        ? undefined
-                                        : existing.accessRestrictions
-                                ),
-
-                        condition:
-                            playground.condition || existing.condition,
-
-                        equipment: playground.equipment,
-
-                        photos: playground.photos,
-
-                        openingHours:
-                            playground.openingHours.trim().length > 0
-                                ? playground.openingHours
-                                : existing.openingHours,
-
-                        updatedAt: now,
-
-                        history:
-                            changedFields.length > 0
-                                ? [
-                                    ...existing.history,
-                                    {
-                                        id: crypto.randomUUID(),
-                                        type: "edit" as const,
-                                        date: now,
-                                        userId: currentUser.id,
-                                        username: currentUser.nickname,
-                                        changedFields,
-                                    },
-                                ]
-                                : existing.history,
-                    };
-
-                })
+        setPlaygrounds((current) =>
+            current.map((p) => (p.id === id ? updated : p))
         );
     }
 
 
-    function confirmPlaygroundInspection(
+    async function deletePlayground(
         id: string
-    ) {
-        setPlaygrounds(
-            (current) =>
-                current.map((existing) =>
-                    existing.id === id
-                        ? {
-                            ...existing,
+    ): Promise<void> {
+        await apiDeletePlayground(id);
 
-                            history: [
-                                ...existing.history,
-                                {
-                                    id: crypto.randomUUID(),
-                                    type: "inspection" as const,
-                                    date: new Date().toISOString(),
-                                    userId: currentUser.id,
-                                    username: currentUser.nickname,
-                                },
-                            ],
-                        }
-                        : existing
-                )
-        );
-    }
-
-
-    function deletePlayground(
-        id: string
-    ) {
-        setPlaygrounds(
-            (current) =>
-                current.filter(
-                    (playground) => playground.id !== id
-                )
+        setPlaygrounds((current) =>
+            current.filter((playground) => playground.id !== id)
         );
     }
 
@@ -266,6 +123,7 @@ export function PlaygroundProvider({
         <PlaygroundContext.Provider
             value={{
                 playgrounds,
+                isLoading,
                 addPlayground,
                 updatePlayground,
                 deletePlayground,

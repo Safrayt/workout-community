@@ -119,7 +119,7 @@ export default function PlaygroundDetails() {
     const isOwner =
         playground.creatorId === currentUser.id;
 
-    function handleDelete() {
+    async function handleDelete() {
         if (!playground) {
             return;
         }
@@ -132,9 +132,15 @@ export default function PlaygroundDetails() {
             return;
         }
 
-        deletePlayground(playground.id);
-
-        navigate("/playgrounds");
+        try {
+            await deletePlayground(playground.id);
+            navigate("/playgrounds");
+        } catch (error) {
+            console.error("Не удалось удалить площадку:", error);
+            window.alert(
+                "Не удалось удалить площадку. Попробуйте ещё раз."
+            );
+        }
     }
 
     function handleEdit() {

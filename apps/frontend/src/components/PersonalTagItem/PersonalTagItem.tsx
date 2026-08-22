@@ -19,9 +19,9 @@ type PersonalTagItemProps = {
 
     usageCount: number;
 
-    onRename: (id: string, name: string) => MutationResult;
+    onRename: (id: string, name: string) => Promise<MutationResult>;
 
-    onDelete: (id: string) => void;
+    onDelete: (id: string) => Promise<void>;
 
 };
 
@@ -46,6 +46,8 @@ export default function PersonalTagItem({
     const [error, setError] =
         useState<string | null>(null);
 
+    const [isSaving, setIsSaving] = useState(false);
+
     function startEditing() {
         setDraftName(tag.name);
         setError(null);
@@ -57,8 +59,12 @@ export default function PersonalTagItem({
         setError(null);
     }
 
-    function saveEditing() {
-        const result = onRename(tag.id, draftName);
+    async function saveEditing() {
+        setIsSaving(true);
+
+        const result = await onRename(tag.id, draftName);
+
+        setIsSaving(false);
 
         if (!result.success) {
             // Введённые данные не исчезают при ошибке (UX §34).
@@ -81,7 +87,9 @@ export default function PersonalTagItem({
         const confirmed = window.confirm(message);
 
         if (confirmed) {
-            onDelete(tag.id);
+            onDelete(tag.id).catch((error: unknown) => {
+                console.error("Не удалось удалить тег:", error);
+            });
         }
     }
 
@@ -114,14 +122,16 @@ export default function PersonalTagItem({
                         <Button
                             type="button"
                             onClick={saveEditing}
+                            disabled={isSaving}
                         >
-                            Сохранить
+                            {isSaving ? "Сохраняем…" : "Сохранить"}
                         </Button>
 
                         <Button
                             type="button"
                             variant="secondary"
                             onClick={cancelEditing}
+                            disabled={isSaving}
                         >
                             Отмена
                         </Button>

@@ -59,7 +59,9 @@ export default function DiaryComments({
             return;
         }
 
-        addComment(recordId, recordType, text);
+        addComment(recordId, recordType, text).catch((error: unknown) => {
+            console.error("Не удалось отправить комментарий:", error);
+        });
 
         setText("");
         setErrors([]);

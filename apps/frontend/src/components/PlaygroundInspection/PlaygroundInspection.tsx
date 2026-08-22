@@ -89,7 +89,14 @@ export default function PlaygroundInspectionPrompt({
     }
 
     function handleConfirm() {
-        confirmPlaygroundInspection(playground.id);
+        confirmPlaygroundInspection(playground.id).catch(
+            (error: unknown) => {
+                console.error(
+                    "Не удалось подтвердить актуальность площадки:",
+                    error
+                );
+            }
+        );
     }
 
     return (

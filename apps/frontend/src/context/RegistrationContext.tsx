@@ -1,6 +1,7 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
@@ -10,12 +11,18 @@ import type {
 } from "../types/eventRegistration";
 
 import {
-    registrations as initialRegistrations,
-} from "../data/registrations";
+    cancelEventRegistration,
+    listAllRegistrations,
+    registerForEvent,
+} from "../api/events";
 
 import {
     useCurrentUser,
 } from "./CurrentUserContext";
+
+import {
+    useEvents,
+} from "./EventContext";
 
 import {
     isUserRegistered,
@@ -27,11 +34,11 @@ type RegistrationContextType = {
 
     register: (
         eventId: string
-    ) => void;
+    ) => Promise<void>;
 
     cancel: (
         eventId: string
-    ) => void;
+    ) => Promise<void>;
 
     checkRegistration: (
         eventId: string
@@ -54,10 +61,7 @@ export function RegistrationProvider({
     const [
         registrations,
         setRegistrations,
-    ] = useState<EventRegistration[]>(
-        initialRegistrations
-    );
-
+    ] = useState<EventRegistration[]>([]);
 
     const {
         currentUser,
@@ -66,9 +70,26 @@ export function RegistrationProvider({
     const currentUserId =
         currentUser.id;
 
+    // refreshEvents живёт в EventContext — после регистрации/отмены
+    // expectedParticipants на мероприятии (он считается на бэкенде
+    // по этой же таблице регистраций) устареет в локальном кеше
+    // EventContext, если его не перечитать. Поэтому RegistrationProvider
+    // должен быть вложен внутрь EventProvider — см. ProtectedLayout.
+    const { refreshEvents } = useEvents();
+
+    useEffect(() => {
+        listAllRegistrations()
+            .then(setRegistrations)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить регистрации:",
+                    error
+                );
+            });
+    }, []);
 
 
-    function register(
+    async function register(
         eventId: string
     ) {
         if (
@@ -81,47 +102,48 @@ export function RegistrationProvider({
             return;
         }
 
-
-        const newRegistration: EventRegistration =
-        {
-            id: crypto.randomUUID(),
-
-            userId: currentUserId,
-
-            eventId,
-
-            registeredAt:
-                new Date().toISOString(),
-
-            status: "registered",
-
-            experienceAwarded: 0,
-        };
-
+        const newRegistration =
+            await registerForEvent(eventId);
 
         setRegistrations(
             (previous) => [
-                ...previous,
+                ...previous.filter(
+                    (r) =>
+                        !(
+                            r.userId === currentUserId &&
+                            r.eventId === eventId
+                        )
+                ),
                 newRegistration,
             ]
         );
+
+        await refreshEvents();
     }
 
 
 
-    function cancel(
+    async function cancel(
         eventId: string
     ) {
+        await cancelEventRegistration(eventId);
+
+        // Бэкенд не удаляет регистрацию, а помечает её status:
+        // "cancelled" (см. cancel_registration в routers/events.py) —
+        // отражаем то же самое локально, а не убираем запись из
+        // массива целиком, чтобы не разойтись с сервером при
+        // следующей перезагрузке страницы.
         setRegistrations(
             (previous) =>
-                previous.filter(
-                    (registration) =>
-                        !(
-                            registration.userId === currentUserId &&
-                            registration.eventId === eventId
-                        )
+                previous.map((registration) =>
+                    registration.userId === currentUserId &&
+                    registration.eventId === eventId
+                        ? { ...registration, status: "cancelled" as const }
+                        : registration
                 )
         );
+
+        await refreshEvents();
     }
 
 

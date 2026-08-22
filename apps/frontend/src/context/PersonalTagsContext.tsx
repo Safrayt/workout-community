@@ -1,33 +1,26 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
 
 import type { PersonalTag } from "../types/personalTag";
-import type { WorkoutEntry } from "../types/workoutEntry";
-import type { DiaryNote } from "../types/diaryNote";
 
 import {
-    useWorkoutDiary,
-} from "./WorkoutDiaryContext";
+    createPersonalTag,
+    deletePersonalTag,
+    listPersonalTags,
+    renamePersonalTag,
+} from "../api/diary";
 
-import {
-    useDiaryNotes,
-} from "./DiaryNotesContext";
+import { ApiError } from "../api/errors";
 
-import {
-    MAX_PERSONAL_TAGS,
-} from "../constants/personalTags";
+import { useWorkoutDiary } from "./WorkoutDiaryContext";
+import { useDiaryNotes } from "./DiaryNotesContext";
 
-import {
-    normalizeTagName,
-} from "../utils/personalTags";
-
-import {
-    validateTagName,
-} from "../validation/personalTag";
+import { normalizeTagName } from "../utils/personalTags";
 
 type MutationResult =
     | { success: true }
@@ -39,23 +32,23 @@ type PersonalTagsContextType = {
     createTag: (
         userId: string,
         name: string
-    ) => MutationResult;
+    ) => Promise<MutationResult>;
 
     renameTag: (
         id: string,
         name: string
-    ) => MutationResult;
+    ) => Promise<MutationResult>;
 
-    deleteTag: (
-        id: string
-    ) => void;
+    deleteTag: (id: string) => Promise<void>;
 
     /**
-     * Регистрирует теги записи дневника как личные теги, если они
-     * ещё не зарегистрированы — например, когда тег был свободно
-     * введён прямо в форме записи (см. WorkoutEntryForm), минуя эту
-     * страницу. Так "Мои теги" не расходится со списком тегов,
-     * реально используемых в дневнике (UX-PERSONAL-TAGS §39, §47).
+     * На бэкенде теги, использованные в записи/заметке, уже
+     * регистрируются в личном каталоге сами (см. _sync_personal_tags
+     * в routers/diary.py) в момент создания/изменения записи. Поэтому
+     * здесь достаточно просто перечитать список тегов с сервера —
+     * сама регистрация уже случилась. Сигнатура (userId, tagNames)
+     * сохранена ради WorkoutEntryForm/DiaryNoteForm, которые вызывают
+     * эту функцию без изменений — переданные значения не используются.
      */
     registerUsedTags: (
         userId: string,
@@ -66,226 +59,107 @@ type PersonalTagsContextType = {
 const PersonalTagsContext =
     createContext<PersonalTagsContextType | undefined>(undefined);
 
-function addMissingTags(
-    current: PersonalTag[],
-    userId: string,
-    tagNames: string[]
-): PersonalTag[] {
-    const existingKeys = new Set(
-        current
-            .filter((tag) => tag.userId === userId)
-            .map((tag) => tag.name.toLowerCase())
-    );
-
-    const additions: PersonalTag[] = [];
-
-    tagNames.forEach((tagName) => {
-        const key = tagName.toLowerCase();
-
-        if (existingKeys.has(key)) {
-            return;
-        }
-
-        existingKeys.add(key);
-
-        additions.push({
-            id: crypto.randomUUID(),
-            userId,
-            name: tagName,
-            createdAt: new Date().toISOString(),
-        });
-    });
-
-    return additions.length > 0
-        ? [...current, ...additions]
-        : current;
-}
-
-function buildInitialTags(
-    entries: WorkoutEntry[],
-    notes: DiaryNote[]
-): PersonalTag[] {
-    let tags: PersonalTag[] = [];
-
-    entries.forEach((entry) => {
-        tags = addMissingTags(
-            tags,
-            entry.userId,
-            entry.tags ?? []
-        );
-    });
-
-    notes.forEach((note) => {
-        tags = addMissingTags(
-            tags,
-            note.userId,
-            note.tags ?? []
-        );
-    });
-
-    return tags;
-}
 
 export function PersonalTagsProvider({
     children,
 }: {
     children: ReactNode;
 }) {
-    const {
-        entries,
-        renameTagInEntries,
-        removeTagFromEntries,
-    } = useWorkoutDiary();
+    const { refreshEntries } = useWorkoutDiary();
+    const { refreshNotes } = useDiaryNotes();
 
-    const {
-        notes,
-        renameTagInNotes,
-        removeTagFromNotes,
-    } = useDiaryNotes();
+    const [tags, setTags] = useState<PersonalTag[]>([]);
 
-    // Единоразовый посев из уже существующих записей при монтировании.
-    // Дальнейшая синхронизация — через registerUsedTags, вызываемую
-    // явно в момент сохранения записи (см. WorkoutEntryForm), а не
-    // через useEffect: setState внутри эффекта на каждое изменение
-    // entries создавало бы лишний каскад ре-рендеров.
-    const [tags, setTags] =
-        useState<PersonalTag[]>(
-            () => buildInitialTags(entries, notes)
-        );
-
-    function registerUsedTags(
-        userId: string,
-        tagNames: string[]
-    ) {
-        if (tagNames.length === 0) {
-            return;
-        }
-
-        setTags(
-            (current) => addMissingTags(current, userId, tagNames)
-        );
+    async function refreshTags(): Promise<void> {
+        const fetched = await listPersonalTags();
+        setTags(fetched);
     }
 
-    function createTag(
-        userId: string,
+    useEffect(() => {
+        listPersonalTags()
+            .then(setTags)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить личные теги:",
+                    error
+                );
+            });
+    }, []);
+
+
+    function registerUsedTags() {
+        refreshTags().catch((error: unknown) => {
+            console.error(
+                "Не удалось обновить список тегов:",
+                error
+            );
+        });
+    }
+
+
+    async function createTag(
+        _userId: string,
         name: string
-    ): MutationResult {
+    ): Promise<MutationResult> {
         const trimmed = normalizeTagName(name);
 
-        const error = validateTagName(
-            trimmed,
-            tags,
-            userId
-        );
+        try {
+            const created = await createPersonalTag(trimmed);
 
-        if (error) {
-            return { success: false, error };
-        }
+            setTags((current) => [...current, created]);
 
-        const userTagsCount = tags.filter(
-            (tag) => tag.userId === userId
-        ).length;
-
-        if (userTagsCount >= MAX_PERSONAL_TAGS) {
+            return { success: true };
+        } catch (error) {
             return {
                 success: false,
-                error: `Достигнут лимит тегов. Вы можете удалить ненужный тег, чтобы создать новый.`,
+                error:
+                    error instanceof ApiError
+                        ? error.message
+                        : "Не удалось создать тег. Попробуйте ещё раз.",
             };
         }
-
-        setTags(
-            (current) => [
-                ...current,
-                {
-                    id: crypto.randomUUID(),
-                    userId,
-                    name: trimmed,
-                    createdAt: new Date().toISOString(),
-                },
-            ]
-        );
-
-        return { success: true };
     }
 
-    function renameTag(
+
+    async function renameTag(
         id: string,
         name: string
-    ): MutationResult {
-        const tag = tags.find(
-            (item) => item.id === id
-        );
-
-        if (!tag) {
-            return { success: false, error: "Тег не найден." };
-        }
-
+    ): Promise<MutationResult> {
         const trimmed = normalizeTagName(name);
 
-        const error = validateTagName(
-            trimmed,
-            tags,
-            tag.userId,
-            id
-        );
+        try {
+            const renamed = await renamePersonalTag(id, trimmed);
 
-        if (error) {
-            return { success: false, error };
-        }
-
-        setTags(
-            (current) =>
-                current.map(
-                    (item) =>
-                        item.id === id
-                            ? { ...item, name: trimmed }
-                            : item
-                )
-        );
-
-        if (trimmed !== tag.name) {
-            renameTagInEntries(
-                tag.userId,
-                tag.name,
-                trimmed
+            setTags((current) =>
+                current.map((tag) => (tag.id === id ? renamed : tag))
             );
 
-            renameTagInNotes(
-                tag.userId,
-                tag.name,
-                trimmed
-            );
-        }
+            // Переименование каскадно правит tags у записей/заметок на
+            // бэкенде (см. _rename_tag_everywhere) — локальный кеш
+            // entries/notes об этом сам не узнает, перечитываем.
+            await Promise.all([refreshEntries(), refreshNotes()]);
 
-        return { success: true };
+            return { success: true };
+        } catch (error) {
+            return {
+                success: false,
+                error:
+                    error instanceof ApiError
+                        ? error.message
+                        : "Не удалось переименовать тег. Попробуйте ещё раз.",
+            };
+        }
     }
 
-    function deleteTag(id: string) {
-        const tag = tags.find(
-            (item) => item.id === id
-        );
 
-        if (!tag) {
-            return;
-        }
+    async function deleteTag(id: string): Promise<void> {
+        await deletePersonalTag(id);
 
-        setTags(
-            (current) =>
-                current.filter(
-                    (item) => item.id !== id
-                )
-        );
+        setTags((current) => current.filter((tag) => tag.id !== id));
 
-        removeTagFromEntries(
-            tag.userId,
-            tag.name
-        );
-
-        removeTagFromNotes(
-            tag.userId,
-            tag.name
-        );
+        await Promise.all([refreshEntries(), refreshNotes()]);
     }
+
 
     return (
         <PersonalTagsContext.Provider
@@ -302,10 +176,9 @@ export function PersonalTagsProvider({
     );
 }
 
+
 export function usePersonalTags() {
-    const context = useContext(
-        PersonalTagsContext
-    );
+    const context = useContext(PersonalTagsContext);
 
     if (!context) {
         throw new Error(

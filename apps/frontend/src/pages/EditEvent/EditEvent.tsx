@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
@@ -5,6 +6,7 @@ import EventForm from "../../components/EventForm/EventForm";
 
 import { useEvents } from "../../context/EventContext";
 import { useCurrentUser } from "../../context/CurrentUserContext";
+import { ApiError } from "../../api/errors";
 
 import { getEventById } from "../../utils/events";
 import { eventToFormValue } from "../../utils/eventForm";
@@ -24,6 +26,9 @@ export default function EditEvent() {
 
     const navigate =
         useNavigate();
+
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const event =
         id
@@ -53,28 +58,48 @@ export default function EditEvent() {
         );
     }
 
-    function handleSubmit(
+    async function handleSubmit(
         formValue: NewEvent
     ) {
         if (!event) {
             return;
         }
 
-        updateEvent(
-            event.id,
-            formValue
-        );
+        setError(null);
+        setIsSubmitting(true);
 
-        navigate(
-            `/events/${event.id}`
-        );
+        try {
+            await updateEvent(
+                event.id,
+                formValue
+            );
+
+            navigate(
+                `/events/${event.id}`
+            );
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось сохранить изменения. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
         <Section title={`Редактирование: ${event.title}`}>
+            {error && (
+                <p className="auth-form__error" role="alert">
+                    {error}
+                </p>
+            )}
+
             <EventForm
                 initialValue={eventToFormValue(event)}
-                submitLabel="Сохранить изменения"
+                submitLabel={
+                    isSubmitting ? "Сохраняем…" : "Сохранить изменения"
+                }
                 onSubmit={handleSubmit}
             />
         </Section>

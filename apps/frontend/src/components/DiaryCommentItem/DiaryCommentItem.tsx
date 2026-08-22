@@ -68,7 +68,9 @@ export default function DiaryCommentItem({
             return;
         }
 
-        updateComment(comment.id, text);
+        updateComment(comment.id, text).catch((error: unknown) => {
+            console.error("Не удалось сохранить комментарий:", error);
+        });
         setIsEditing(false);
     }
 
@@ -81,7 +83,9 @@ export default function DiaryCommentItem({
             return;
         }
 
-        deleteComment(comment.id);
+        deleteComment(comment.id).catch((error: unknown) => {
+            console.error("Не удалось удалить комментарий:", error);
+        });
     }
 
     return (

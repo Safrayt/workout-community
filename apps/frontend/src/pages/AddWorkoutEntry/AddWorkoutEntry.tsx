@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "../../styles/components/workout-entry-create.css";
@@ -15,6 +16,8 @@ import {
 import {
     getTodayDateString,
 } from "../../utils/today";
+
+import { ApiError } from "../../api/errors";
 
 function createEmptyEntry(): NewWorkoutEntry {
     return {
@@ -38,12 +41,26 @@ export default function AddWorkoutEntry() {
     const navigate =
         useNavigate();
 
-    function handleSubmit(
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    async function handleSubmit(
         entry: NewWorkoutEntry
     ) {
-        addEntry(entry);
+        setError(null);
+        setIsSubmitting(true);
 
-        navigate("/diary");
+        try {
+            await addEntry(entry);
+            navigate("/diary");
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось сохранить запись. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -72,9 +89,15 @@ export default function AddWorkoutEntry() {
                 </p>
             </header>
 
+            {error && (
+                <p className="auth-form__error" role="alert">
+                    {error}
+                </p>
+            )}
+
             <WorkoutEntryForm
                 initialValue={createEmptyEntry()}
-                submitLabel="Сохранить запись"
+                submitLabel={isSubmitting ? "Сохраняем…" : "Сохранить запись"}
                 onSubmit={handleSubmit}
                 onCancel={() => navigate("/diary/create")}
             />

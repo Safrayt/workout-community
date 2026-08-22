@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "../../styles/components/workout-entry-create.css";
@@ -11,6 +12,8 @@ import type {
 import {
     useDiaryNotes,
 } from "../../context/DiaryNotesContext";
+
+import { ApiError } from "../../api/errors";
 
 function createEmptyNote(): NewDiaryNote {
     return {
@@ -30,12 +33,26 @@ export default function AddDiaryNote() {
     const navigate =
         useNavigate();
 
-    function handleSubmit(
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    async function handleSubmit(
         note: NewDiaryNote
     ) {
-        addNote(note);
+        setError(null);
+        setIsSubmitting(true);
 
-        navigate("/diary");
+        try {
+            await addNote(note);
+            navigate("/diary");
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось сохранить заметку. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -62,9 +79,15 @@ export default function AddDiaryNote() {
                 </p>
             </header>
 
+            {error && (
+                <p className="auth-form__error" role="alert">
+                    {error}
+                </p>
+            )}
+
             <DiaryNoteForm
                 initialValue={createEmptyNote()}
-                submitLabel="Сохранить заметку"
+                submitLabel={isSubmitting ? "Сохраняем…" : "Сохранить заметку"}
                 onSubmit={handleSubmit}
                 onCancel={() => navigate("/diary/create")}
             />

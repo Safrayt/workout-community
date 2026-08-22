@@ -1,99 +1,48 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
 } from "react";
 
-import type {
-    WorkoutEntry,
-    TimeOfDay,
-} from "../types/workoutEntry";
-
-import type {
-    NewWorkoutEntry,
-} from "../types/newWorkoutEntry";
+import type { WorkoutEntry } from "../types/workoutEntry";
+import type { NewWorkoutEntry } from "../types/newWorkoutEntry";
 
 import {
-    workoutEntries as initialWorkoutEntries,
-} from "../data/workoutEntries";
-
-import {
-    useCurrentUser,
-} from "./CurrentUserContext";
-
-import {
-    MAX_TAGS_PER_ENTRY,
-} from "../utils/workoutTags";
+    createWorkoutEntry,
+    deleteWorkoutEntry as apiDeleteEntry,
+    listWorkoutEntries,
+    updateWorkoutEntry,
+} from "../api/diary";
 
 type WorkoutDiaryContextType = {
     entries: WorkoutEntry[];
 
-    addEntry: (
-        entry: NewWorkoutEntry
-    ) => WorkoutEntry;
+    /** true, пока идёт самая первая загрузка списка с сервера. */
+    isLoading: boolean;
+
+    addEntry: (entry: NewWorkoutEntry) => Promise<WorkoutEntry>;
 
     updateEntry: (
         id: string,
         entry: NewWorkoutEntry
-    ) => WorkoutEntry | undefined;
+    ) => Promise<WorkoutEntry | undefined>;
 
-    deleteEntry: (
-        id: string
-    ) => void;
+    deleteEntry: (id: string) => Promise<void>;
 
     /**
-     * Переименование тега применяется ко всем записям пользователя,
-     * где он использовался — новый тег не создаётся, старый не
-     * остаётся (UX-PERSONAL-TAGS §20–21, §41).
+     * Перечитывает записи с сервера — используется PersonalTagsContext
+     * после переименования/удаления тега, поскольку такое изменение
+     * каскадно правит tags у записей на бэкенде (см.
+     * _rename_tag_everywhere в routers/diary.py), а локальный кеш
+     * здесь об этом не узнáет сам по себе.
      */
-    renameTagInEntries: (
-        userId: string,
-        oldName: string,
-        newName: string
-    ) => void;
-
-    /**
-     * Удаление тега — это удаление связи с записями, а не удаление
-     * самих записей (UX-PERSONAL-TAGS §22–26, §40).
-     */
-    removeTagFromEntries: (
-        userId: string,
-        tagName: string
-    ) => void;
+    refreshEntries: () => Promise<void>;
 };
+
 
 const WorkoutDiaryContext =
     createContext<WorkoutDiaryContextType | undefined>(undefined);
-
-function buildEntryFields(
-    entry: NewWorkoutEntry
-) {
-    return {
-        playgroundId:
-            entry.playgroundId || undefined,
-
-        date: entry.date,
-
-        timeOfDay:
-            (entry.timeOfDay || undefined) as
-                TimeOfDay | undefined,
-
-        title: entry.title,
-
-        tags:
-            entry.tags.length > 0
-                ? entry.tags.slice(0, MAX_TAGS_PER_ENTRY)
-                : undefined,
-
-        description:
-            entry.description || undefined,
-
-        photos:
-            entry.photos.length > 0
-                ? entry.photos
-                : undefined,
-    };
-}
 
 
 export function WorkoutDiaryProvider({
@@ -101,153 +50,74 @@ export function WorkoutDiaryProvider({
 }: {
     children: React.ReactNode;
 }) {
-    const [
-        entries,
-        setEntries,
-    ] = useState(
-        initialWorkoutEntries
-    );
+    const [entries, setEntries] = useState<WorkoutEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const {
-        currentUser,
-    } = useCurrentUser();
-
-    function addEntry(
-        entry: NewWorkoutEntry
-    ) {
-        const newEntry: WorkoutEntry = {
-            id: crypto.randomUUID(),
-
-            userId: currentUser.id,
-
-            ...buildEntryFields(entry),
-
-            createdAt: new Date().toISOString(),
-        };
-
-        setEntries(
-            (current) => [
-                ...current,
-                newEntry,
-            ]
-        );
-
-        return newEntry;
+    async function refreshEntries(): Promise<void> {
+        const fetched = await listWorkoutEntries();
+        setEntries(fetched);
     }
 
-    function updateEntry(
+    useEffect(() => {
+        listWorkoutEntries()
+            .then(setEntries)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить записи дневника:",
+                    error
+                );
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
+
+
+    async function addEntry(
+        entry: NewWorkoutEntry
+    ): Promise<WorkoutEntry> {
+        const created = await createWorkoutEntry(entry);
+
+        setEntries((current) => [...current, created]);
+
+        return created;
+    }
+
+
+    async function updateEntry(
         id: string,
         entry: NewWorkoutEntry
-    ) {
-        const existingEntry = entries.find(
-            (item) => item.id === id
-        );
+    ): Promise<WorkoutEntry | undefined> {
+        const existing = entries.find((item) => item.id === id);
 
-        if (!existingEntry) {
+        if (!existing) {
             return undefined;
         }
 
-        const updatedEntry: WorkoutEntry = {
-            ...existingEntry,
+        const updated = await updateWorkoutEntry(id, entry, existing);
 
-            ...buildEntryFields(entry),
-        };
-
-        setEntries(
-            (current) =>
-                current.map(
-                    (item) =>
-                        item.id === id
-                            ? updatedEntry
-                            : item
-                )
+        setEntries((current) =>
+            current.map((item) => (item.id === id ? updated : item))
         );
 
-        return updatedEntry;
+        return updated;
     }
 
-    function deleteEntry(
-        id: string
-    ) {
-        setEntries(
-            (current) =>
-                current.filter(
-                    (item) => item.id !== id
-                )
-        );
+
+    async function deleteEntry(id: string): Promise<void> {
+        await apiDeleteEntry(id);
+
+        setEntries((current) => current.filter((item) => item.id !== id));
     }
 
-    function renameTagInEntries(
-        userId: string,
-        oldName: string,
-        newName: string
-    ) {
-        setEntries(
-            (current) =>
-                current.map((entry) => {
-                    if (
-                        entry.userId !== userId ||
-                        !(entry.tags ?? []).includes(oldName)
-                    ) {
-                        return entry;
-                    }
-
-                    // На случай, если новое имя уже есть среди
-                    // тегов записи — не дублируем его.
-                    const updatedTags = Array.from(
-                        new Set(
-                            (entry.tags ?? []).map(
-                                (tag) => tag === oldName ? newName : tag
-                            )
-                        )
-                    );
-
-                    return {
-                        ...entry,
-                        tags: updatedTags,
-                    };
-                })
-        );
-    }
-
-    function removeTagFromEntries(
-        userId: string,
-        tagName: string
-    ) {
-        setEntries(
-            (current) =>
-                current.map((entry) => {
-                    if (
-                        entry.userId !== userId ||
-                        !(entry.tags ?? []).includes(tagName)
-                    ) {
-                        return entry;
-                    }
-
-                    const updatedTags = (entry.tags ?? []).filter(
-                        (tag) => tag !== tagName
-                    );
-
-                    return {
-                        ...entry,
-                        tags:
-                            updatedTags.length > 0
-                                ? updatedTags
-                                : undefined,
-                    };
-                })
-        );
-    }
 
     return (
         <WorkoutDiaryContext.Provider
             value={{
                 entries,
+                isLoading,
                 addEntry,
                 updateEntry,
                 deleteEntry,
-                renameTagInEntries,
-                removeTagFromEntries,
+                refreshEntries,
             }}
         >
             {children}
@@ -255,11 +125,9 @@ export function WorkoutDiaryProvider({
     );
 }
 
+
 export function useWorkoutDiary() {
-    const context =
-        useContext(
-            WorkoutDiaryContext
-        );
+    const context = useContext(WorkoutDiaryContext);
 
     if (!context) {
         throw new Error(

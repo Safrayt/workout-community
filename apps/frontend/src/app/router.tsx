@@ -1,6 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import Layout from "../components/layout/Layout";
+import ProtectedLayout from "./ProtectedLayout";
+
+import Login from "../pages/Login/Login";
+import Register from "../pages/Register/Register";
 
 import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
@@ -34,8 +37,16 @@ import PersonalTags from "../pages/PersonalTags/PersonalTags";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+  },
+  {
     path: "/",
-    element: <Layout />,
+    element: <ProtectedLayout />,
     children: [
       {
         index: true,

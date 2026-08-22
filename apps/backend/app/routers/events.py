@@ -97,6 +97,31 @@ def create_event(
     return _to_event_read(event, session)
 
 
+@router.get(
+    "/registrations",
+    response_model=list[EventRegistrationRead],
+)
+def list_all_registrations(
+    session: Session = Depends(get_session),
+) -> list[EventRegistration]:
+    """
+    Полный список регистраций по всем мероприятиям и пользователям —
+    без фильтров. Публичный эндпоинт: как и data/registrations.ts на
+    фронтенде, это не приватные данные (нет соответствующей настройки
+    в PrivacySettings), а нужен он сразу многим разным страницам
+    (MyEvents, PastEvents, UserEvents, Achievements, счётчики
+    участников на карточках) — поэтому проще отдать всё целиком и
+    отфильтровать на клиенте, чем городить кучу узких query-параметров.
+
+    Объявлен ДО @router.get("/{event_id}") намеренно: раз оба пути
+    содержат один сегмент после /events/, порядок регистрации
+    маршрутов в FastAPI решает, что "/events/registrations" не
+    пытается сматчиться как {event_id}="registrations" (иначе
+    получили бы 422 — event_id не приводится к int).
+    """
+    return list(session.exec(select(EventRegistration)).all())
+
+
 @router.get("/", response_model=list[EventRead])
 def list_events(session: Session = Depends(get_session)) -> list[EventRead]:
     events = session.exec(select(Event)).all()

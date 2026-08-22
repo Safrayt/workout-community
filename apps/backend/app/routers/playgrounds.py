@@ -402,6 +402,44 @@ async def add_playground_photo(
     return photo
 
 
+@router.put(
+    "/{playground_id}/photos/{photo_id}/set-main",
+    response_model=PlaygroundPhotoRead,
+)
+def set_main_playground_photo(
+    playground_id: int,
+    photo_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> PlaygroundPhoto:
+    """
+    Делает фото главным (сняв эту отметку с остальных). Отдельный
+    эндпоинт, а не часть PUT /playgrounds/{id} — фото не входят в
+    PlaygroundUpdate, у них своя мини-жизнь через /photos/*, как и
+    добавление/удаление.
+    """
+    playground = _get_playground_or_404(playground_id, session)
+    _ensure_is_owner(playground, current_user)
+
+    target_photo = session.get(PlaygroundPhoto, photo_id)
+
+    if target_photo is None or target_photo.playground_id != playground_id:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    for photo in playground.photos:
+        if photo.is_main and photo.id != photo_id:
+            photo.is_main = False
+            session.add(photo)
+
+    target_photo.is_main = True
+    session.add(target_photo)
+
+    session.commit()
+    session.refresh(target_photo)
+
+    return target_photo
+
+
 @router.delete(
     "/{playground_id}/photos/{photo_id}",
     status_code=status.HTTP_204_NO_CONTENT,

@@ -94,9 +94,17 @@ export default function DiaryNoteDetails() {
         updateNote(
             noteId,
             updated
-        );
-
-        setMode("view");
+        ).then(() => {
+            setMode("view");
+        }).catch((error: unknown) => {
+            console.error(
+                "Не удалось сохранить изменения заметки:",
+                error
+            );
+            window.alert(
+                "Не удалось сохранить изменения. Попробуйте ещё раз."
+            );
+        });
     }
 
     function handleDelete() {
@@ -108,9 +116,17 @@ export default function DiaryNoteDetails() {
             return;
         }
 
-        deleteNote(noteId);
-
-        navigate("/diary");
+        deleteNote(noteId).then(() => {
+            navigate("/diary");
+        }).catch((error: unknown) => {
+            console.error(
+                "Не удалось удалить заметку:",
+                error
+            );
+            window.alert(
+                "Не удалось удалить заметку. Попробуйте ещё раз."
+            );
+        });
     }
 
     if (mode === "edit") {

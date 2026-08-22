@@ -137,25 +137,48 @@ def create_workout_entry(
     return entry
 
 
+def _visible_diary_user_ids(
+    session: Session, viewer: Optional[User]
+) -> set[int]:
+    """
+    Все пользователи, чей дневник виден в общей ленте (Home.tsx):
+    у кого diary_visible=True, плюс сам смотрящий — свои записи он
+    должен видеть в ленте, даже если сам их от других скрыл.
+    """
+    return {
+        user.id
+        for user in session.exec(select(User)).all()
+        if user.diary_visible or (viewer is not None and viewer.id == user.id)
+    }
+
+
 @router.get("/entries", response_model=List[WorkoutEntryRead])
 def list_workout_entries(
-    user_id: int,
+    user_id: Optional[int] = None,
     session: Session = Depends(get_session),
     viewer: Optional[User] = Depends(get_optional_current_user),
 ) -> List[WorkoutEntry]:
     """
-    Дневник тренировок конкретного пользователя (?user_id=...) — так
-    же, как /u/:username/diary на фронтенде показывает записи одного
-    человека, а не общую ленту всех подряд.
+    Без user_id — общая лента (Home.tsx/HomeFeed): записи всех, чей
+    дневник не скрыт настройками приватности, плюс собственные записи
+    смотрящего в любом случае. С user_id — дневник одного конкретного
+    пользователя (/u/:username/diary), с обычной проверкой
+    diary_visible через _check_diary_visible.
     """
-    owner = _get_target_user_or_404(user_id, session)
-    _check_diary_visible(owner, viewer)
+    if user_id is not None:
+        owner = _get_target_user_or_404(user_id, session)
+        _check_diary_visible(owner, viewer)
 
-    entries = session.exec(
-        select(WorkoutEntry).where(WorkoutEntry.user_id == user_id)
-    ).all()
+        entries = session.exec(
+            select(WorkoutEntry).where(WorkoutEntry.user_id == user_id)
+        ).all()
 
-    return list(entries)
+        return list(entries)
+
+    visible_user_ids = _visible_diary_user_ids(session, viewer)
+    all_entries = session.exec(select(WorkoutEntry)).all()
+
+    return [e for e in all_entries if e.user_id in visible_user_ids]
 
 
 def _get_workout_entry_or_404(
@@ -298,6 +321,40 @@ def delete_workout_entry_photo(
     session.commit()
 
 
+@router.put(
+    "/entries/{entry_id}/photos/{photo_id}/set-main",
+    response_model=WorkoutEntryPhotoRead,
+)
+def set_main_workout_entry_photo(
+    entry_id: int,
+    photo_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> WorkoutEntryPhoto:
+    """Делает фото главным (сняв отметку с остальных) — тот же
+    паттерн, что и set_main_playground_photo в routers/playgrounds.py."""
+    entry = _get_workout_entry_or_404(entry_id, session)
+    _ensure_entry_owner(entry, current_user)
+
+    target_photo = session.get(WorkoutEntryPhoto, photo_id)
+
+    if target_photo is None or target_photo.entry_id != entry_id:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+
+    for photo in entry.photos:
+        if photo.is_main and photo.id != photo_id:
+            photo.is_main = False
+            session.add(photo)
+
+    target_photo.is_main = True
+    session.add(target_photo)
+
+    session.commit()
+    session.refresh(target_photo)
+
+    return target_photo
+
+
 # =====================================================================
 # Заметки дневника
 # =====================================================================
@@ -322,18 +379,26 @@ def create_diary_note(
 
 @router.get("/notes", response_model=List[DiaryNoteRead])
 def list_diary_notes(
-    user_id: int,
+    user_id: Optional[int] = None,
     session: Session = Depends(get_session),
     viewer: Optional[User] = Depends(get_optional_current_user),
 ) -> List[DiaryNote]:
-    owner = _get_target_user_or_404(user_id, session)
-    _check_diary_visible(owner, viewer)
+    """Без user_id — общая лента, с ним — дневник одного пользователя.
+    См. подробный комментарий у list_workout_entries — та же логика."""
+    if user_id is not None:
+        owner = _get_target_user_or_404(user_id, session)
+        _check_diary_visible(owner, viewer)
 
-    notes = session.exec(
-        select(DiaryNote).where(DiaryNote.user_id == user_id)
-    ).all()
+        notes = session.exec(
+            select(DiaryNote).where(DiaryNote.user_id == user_id)
+        ).all()
 
-    return list(notes)
+        return list(notes)
+
+    visible_user_ids = _visible_diary_user_ids(session, viewer)
+    all_notes = session.exec(select(DiaryNote)).all()
+
+    return [n for n in all_notes if n.user_id in visible_user_ids]
 
 
 def _get_diary_note_or_404(note_id: int, session: Session) -> DiaryNote:
@@ -480,6 +545,40 @@ def delete_diary_note_photo(
     delete_image(photo.url)
     session.delete(photo)
     session.commit()
+
+
+@router.put(
+    "/notes/{note_id}/photos/{photo_id}/set-main",
+    response_model=DiaryNotePhotoRead,
+)
+def set_main_diary_note_photo(
+    note_id: int,
+    photo_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> DiaryNotePhoto:
+    """Делает фото заметки главным — тот же паттерн, что и
+    set_main_workout_entry_photo выше."""
+    note = _get_diary_note_or_404(note_id, session)
+    _ensure_note_owner(note, current_user)
+
+    target_photo = session.get(DiaryNotePhoto, photo_id)
+
+    if target_photo is None or target_photo.note_id != note_id:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+
+    for photo in note.photos:
+        if photo.is_main and photo.id != photo_id:
+            photo.is_main = False
+            session.add(photo)
+
+    target_photo.is_main = True
+    session.add(target_photo)
+
+    session.commit()
+    session.refresh(target_photo)
+
+    return target_photo
 
 
 # =====================================================================
@@ -702,6 +801,27 @@ def _delete_comments_for_record(
 
     for comment in comments:
         session.delete(comment)
+
+
+@router.get("/comments/all", response_model=List[CommentRead])
+def list_all_comments(session: Session = Depends(get_session)) -> List[Comment]:
+    """
+    Абсолютно все комментарии по всем записям и заметкам — без
+    фильтров. Нужен главной странице (Home.tsx/HomeFeed) для счётчика
+    комментариев у каждого элемента общей ленты: там одновременно
+    показываются записи разных пользователей, делать по отдельному
+    запросу на каждую было бы неоправданно.
+
+    Публичный, без авторизации — то же обоснование, что и у
+    GET /events/registrations: это не приватные данные (комментарии
+    видно под любой открытой записью, включая чужие).
+
+    Путь "/comments/all" не пересекается с "/comments/{comment_id}"
+    (тот объявлен только для PUT/DELETE, не для GET), так что здесь,
+    в отличие от /events/registrations, порядок объявления маршрутов
+    ни на что не влияет.
+    """
+    return list(session.exec(select(Comment)).all())
 
 
 @router.get("/comments", response_model=List[CommentRead])

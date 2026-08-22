@@ -91,6 +91,9 @@ export default function PersonalTags() {
     const isAtLimit =
         userTags.length >= MAX_PERSONAL_TAGS;
 
+    const [isSubmitting, setIsSubmitting] =
+        useState(false);
+
     function openCreateForm() {
         setNewTagName("");
         setCreateError(null);
@@ -102,11 +105,15 @@ export default function PersonalTags() {
         setCreateError(null);
     }
 
-    function submitCreateForm() {
-        const result = createTag(
+    async function submitCreateForm() {
+        setIsSubmitting(true);
+
+        const result = await createTag(
             currentUser.id,
             newTagName
         );
+
+        setIsSubmitting(false);
 
         if (!result.success) {
             // Введённые данные не исчезают при ошибке (UX §34).
@@ -204,14 +211,18 @@ export default function PersonalTags() {
                                         <Button
                                             type="button"
                                             onClick={submitCreateForm}
+                                            disabled={isSubmitting}
                                         >
-                                            Создать
+                                            {isSubmitting
+                                                ? "Создаём…"
+                                                : "Создать"}
                                         </Button>
 
                                         <Button
                                             type="button"
                                             variant="secondary"
                                             onClick={closeCreateForm}
+                                            disabled={isSubmitting}
                                         >
                                             Отмена
                                         </Button>

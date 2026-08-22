@@ -87,7 +87,7 @@ export default function EventDetails() {
     const isUpcoming =
         getEventStatus(event) === "upcoming";
 
-    function handleDelete() {
+    async function handleDelete() {
         if (!event) {
             return;
         }
@@ -100,9 +100,15 @@ export default function EventDetails() {
             return;
         }
 
-        deleteEvent(event.id);
-
-        navigate("/events");
+        try {
+            await deleteEvent(event.id);
+            navigate("/events");
+        } catch (error) {
+            console.error("Не удалось удалить мероприятие:", error);
+            window.alert(
+                "Не удалось удалить мероприятие. Попробуйте ещё раз."
+            );
+        }
     }
 
     const playground =

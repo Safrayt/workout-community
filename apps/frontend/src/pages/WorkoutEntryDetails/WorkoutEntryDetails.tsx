@@ -96,9 +96,17 @@ export default function WorkoutEntryDetails() {
         updateEntry(
             entryId,
             updated
-        );
-
-        setMode("view");
+        ).then(() => {
+            setMode("view");
+        }).catch((error: unknown) => {
+            console.error(
+                "Не удалось сохранить изменения записи:",
+                error
+            );
+            window.alert(
+                "Не удалось сохранить изменения. Попробуйте ещё раз."
+            );
+        });
     }
 
     function handleDelete() {
@@ -110,9 +118,17 @@ export default function WorkoutEntryDetails() {
             return;
         }
 
-        deleteEntry(entryId);
-
-        navigate("/diary");
+        deleteEntry(entryId).then(() => {
+            navigate("/diary");
+        }).catch((error: unknown) => {
+            console.error(
+                "Не удалось удалить запись:",
+                error
+            );
+            window.alert(
+                "Не удалось удалить запись. Попробуйте ещё раз."
+            );
+        });
     }
 
     if (mode === "edit") {

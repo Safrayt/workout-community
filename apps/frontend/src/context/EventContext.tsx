@@ -1,50 +1,44 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
 } from "react";
 
-import type {
-    Event,
-} from "../types/event";
-
-import type {
-    NewEvent,
-} from "../types/newEvent";
+import type { Event } from "../types/event";
+import type { NewEvent } from "../types/newEvent";
 
 import {
-    events as initialEvents,
-} from "../data/events";
-
-import {
-    usePlaygrounds,
-} from "./PlaygroundContext";
-
-import {
-    useCurrentUser,
-} from "./CurrentUserContext";
+    createEvent as apiCreateEvent,
+    deleteEvent as apiDeleteEvent,
+    listEvents,
+    updateEvent as apiUpdateEvent,
+} from "../api/events";
 
 type EventContextType = {
     events: Event[];
 
-    addEvent: (
-        event: NewEvent
-    ) => Event;
+    /** true, пока идёт самая первая загрузка списка с сервера. */
+    isLoading: boolean;
 
-    updateEvent: (
-        id: string,
-        event: NewEvent
-    ) => void;
+    addEvent: (event: NewEvent) => Promise<Event>;
 
-    deleteEvent: (
-        id: string
-    ) => void;
+    updateEvent: (id: string, event: NewEvent) => Promise<Event>;
+
+    deleteEvent: (id: string) => Promise<void>;
+
+    /**
+     * Перечитывает список мероприятий с сервера — используется
+     * RegistrationContext после регистрации/отмены, чтобы
+     * expectedParticipants (он вычисляется на бэкенде по таблице
+     * регистраций) не оставался устаревшим в локальном кеше.
+     */
+    refreshEvents: () => Promise<void>;
 };
 
+
 const EventContext =
-    createContext<
-        EventContextType | undefined
-    >(undefined);
+    createContext<EventContextType | undefined>(undefined);
 
 
 export function EventProvider({
@@ -52,134 +46,70 @@ export function EventProvider({
 }: {
     children: React.ReactNode;
 }) {
-    const [
-        events,
-        setEvents,
-    ] = useState(
-        initialEvents
-    );
 
-    const {
-    currentUser,
-} = useCurrentUser();
+    const [events, setEvents] = useState<Event[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const {
-        playgrounds,
-    } = usePlaygrounds();
-
-    function addEvent(
-        event: NewEvent
-    ) {
-        const playground =
-            playgrounds.find(
-                (item) =>
-                    item.id === event.playgroundId
-            );
-
-        if (!playground) {
-            throw new Error(
-                "Playground not found."
-            );
-        }
-
-        const newEvent: Event = {
-            id: crypto.randomUUID(),
-
-            creatorId: currentUser.id,
-
-            title: event.title,
-
-            description: event.description,
-
-            city: playground.locality,
-
-            location: playground.address,
-
-            playgroundId: event.playgroundId,
-
-            startDate: event.startDate,
-
-            expectedParticipants: 0,
-
-            posterUrl:
-                event.posterUrl.trim().length > 0
-                    ? event.posterUrl
-                    : undefined,
-        };
-
-        setEvents(
-            (current) => [
-                ...current,
-                newEvent,
-            ]
-        );
-
-        return newEvent;
+    async function refreshEvents(): Promise<void> {
+        const fetched = await listEvents();
+        setEvents(fetched);
     }
 
-    function updateEvent(
+    useEffect(() => {
+        listEvents()
+            .then(setEvents)
+            .catch((error: unknown) => {
+                console.error("Не удалось загрузить мероприятия:", error);
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
+
+
+    async function addEvent(event: NewEvent): Promise<Event> {
+        const created = await apiCreateEvent(event);
+
+        setEvents((current) => [...current, created]);
+
+        return created;
+    }
+
+
+    async function updateEvent(
         id: string,
         event: NewEvent
-    ) {
-        const playground =
-            playgrounds.find(
-                (item) =>
-                    item.id === event.playgroundId
-            );
+    ): Promise<Event> {
+        const existing = events.find((e) => e.id === id);
 
-        if (!playground) {
-            throw new Error(
-                "Playground not found."
-            );
+        if (!existing) {
+            throw new Error(`Мероприятие ${id} не найдено в текущем списке`);
         }
 
-        setEvents(
-            (current) =>
-                current.map((existing) =>
-                    existing.id === id
-                        ? {
-                            ...existing,
+        const updated = await apiUpdateEvent(id, event, existing);
 
-                            title: event.title,
-
-                            description: event.description,
-
-                            city: playground.locality,
-
-                            location: playground.address,
-
-                            playgroundId: event.playgroundId,
-
-                            startDate: event.startDate,
-
-                            posterUrl:
-                                event.posterUrl.trim().length > 0
-                                    ? event.posterUrl
-                                    : undefined,
-                        }
-                        : existing
-                )
+        setEvents((current) =>
+            current.map((e) => (e.id === id ? updated : e))
         );
+
+        return updated;
     }
 
-    function deleteEvent(
-        id: string
-    ) {
-        setEvents(
-            (current) =>
-                current.filter(
-                    (event) => event.id !== id
-                )
-        );
+
+    async function deleteEvent(id: string): Promise<void> {
+        await apiDeleteEvent(id);
+
+        setEvents((current) => current.filter((event) => event.id !== id));
     }
+
 
     return (
         <EventContext.Provider
             value={{
                 events,
+                isLoading,
                 addEvent,
                 updateEvent,
                 deleteEvent,
+                refreshEvents,
             }}
         >
             {children}
@@ -187,16 +117,13 @@ export function EventProvider({
     );
 }
 
+
 export function useEvents() {
-    const context =
-        useContext(
-            EventContext
-        );
+
+    const context = useContext(EventContext);
 
     if (!context) {
-        throw new Error(
-            "useEvents must be used inside EventProvider"
-        );
+        throw new Error("useEvents must be used inside EventProvider");
     }
 
     return context;

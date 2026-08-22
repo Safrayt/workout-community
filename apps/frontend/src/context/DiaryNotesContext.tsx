@@ -1,232 +1,114 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
 } from "react";
 
-import type {
-    DiaryNote,
-} from "../types/diaryNote";
-
-import type {
-    NewDiaryNote,
-} from "../types/newDiaryNote";
+import type { DiaryNote } from "../types/diaryNote";
+import type { NewDiaryNote } from "../types/newDiaryNote";
 
 import {
-    diaryNotes as initialDiaryNotes,
-} from "../data/diaryNotes";
-
-import {
-    useCurrentUser,
-} from "./CurrentUserContext";
+    createDiaryNote,
+    deleteDiaryNote as apiDeleteNote,
+    listDiaryNotes,
+    updateDiaryNote,
+} from "../api/diary";
 
 type DiaryNotesContextType = {
     notes: DiaryNote[];
 
-    addNote: (
-        note: NewDiaryNote
-    ) => DiaryNote;
+    isLoading: boolean;
+
+    addNote: (note: NewDiaryNote) => Promise<DiaryNote>;
 
     updateNote: (
         id: string,
         note: NewDiaryNote
-    ) => DiaryNote | undefined;
+    ) => Promise<DiaryNote | undefined>;
 
-    deleteNote: (
-        id: string
-    ) => void;
+    deleteNote: (id: string) => Promise<void>;
 
-    renameTagInNotes: (
-        userId: string,
-        oldName: string,
-        newName: string
-    ) => void;
-
-    removeTagFromNotes: (
-        userId: string,
-        tagName: string
-    ) => void;
+    /** См. комментарий у refreshEntries в WorkoutDiaryContext — тот
+     * же смысл, для заметок. */
+    refreshNotes: () => Promise<void>;
 };
 
 const DiaryNotesContext =
     createContext<DiaryNotesContextType | undefined>(undefined);
 
-function buildNoteFields(
-    note: NewDiaryNote
-) {
-    return {
-        title:
-            note.title.trim() || undefined,
-
-        text: note.text,
-
-        playgroundId:
-            note.playgroundId || undefined,
-
-        tags:
-            note.tags.length > 0
-                ? note.tags
-                : undefined,
-
-        photos:
-            note.photos.length > 0
-                ? note.photos
-                : undefined,
-    };
-}
 
 export function DiaryNotesProvider({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [
-        notes,
-        setNotes,
-    ] = useState(
-        initialDiaryNotes
-    );
+    const [notes, setNotes] = useState<DiaryNote[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const {
-        currentUser,
-    } = useCurrentUser();
-
-    function addNote(
-        note: NewDiaryNote
-    ) {
-        const newNote: DiaryNote = {
-            id: crypto.randomUUID(),
-
-            userId: currentUser.id,
-
-            date: new Date().toISOString().slice(0, 10),
-
-            ...buildNoteFields(note),
-
-            createdAt: new Date().toISOString(),
-        };
-
-        setNotes(
-            (current) => [
-                ...current,
-                newNote,
-            ]
-        );
-
-        return newNote;
+    async function refreshNotes(): Promise<void> {
+        const fetched = await listDiaryNotes();
+        setNotes(fetched);
     }
 
-    function updateNote(
+    useEffect(() => {
+        listDiaryNotes()
+            .then(setNotes)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить заметки дневника:",
+                    error
+                );
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
+
+
+    async function addNote(note: NewDiaryNote): Promise<DiaryNote> {
+        const created = await createDiaryNote(note);
+
+        setNotes((current) => [...current, created]);
+
+        return created;
+    }
+
+
+    async function updateNote(
         id: string,
         note: NewDiaryNote
-    ) {
-        const existingNote = notes.find(
-            (item) => item.id === id
-        );
+    ): Promise<DiaryNote | undefined> {
+        const existing = notes.find((item) => item.id === id);
 
-        if (!existingNote) {
+        if (!existing) {
             return undefined;
         }
 
-        const updatedNote: DiaryNote = {
-            ...existingNote,
+        const updated = await updateDiaryNote(id, note, existing);
 
-            ...buildNoteFields(note),
-        };
-
-        setNotes(
-            (current) =>
-                current.map(
-                    (item) =>
-                        item.id === id
-                            ? updatedNote
-                            : item
-                )
+        setNotes((current) =>
+            current.map((item) => (item.id === id ? updated : item))
         );
 
-        return updatedNote;
+        return updated;
     }
 
-    function deleteNote(
-        id: string
-    ) {
-        setNotes(
-            (current) =>
-                current.filter(
-                    (item) => item.id !== id
-                )
-        );
+
+    async function deleteNote(id: string): Promise<void> {
+        await apiDeleteNote(id);
+
+        setNotes((current) => current.filter((item) => item.id !== id));
     }
 
-    function renameTagInNotes(
-        userId: string,
-        oldName: string,
-        newName: string
-    ) {
-        setNotes(
-            (current) =>
-                current.map((note) => {
-                    if (
-                        note.userId !== userId ||
-                        !(note.tags ?? []).includes(oldName)
-                    ) {
-                        return note;
-                    }
-
-                    const updatedTags = Array.from(
-                        new Set(
-                            (note.tags ?? []).map(
-                                (tag) => tag === oldName ? newName : tag
-                            )
-                        )
-                    );
-
-                    return {
-                        ...note,
-                        tags: updatedTags,
-                    };
-                })
-        );
-    }
-
-    function removeTagFromNotes(
-        userId: string,
-        tagName: string
-    ) {
-        setNotes(
-            (current) =>
-                current.map((note) => {
-                    if (
-                        note.userId !== userId ||
-                        !(note.tags ?? []).includes(tagName)
-                    ) {
-                        return note;
-                    }
-
-                    const updatedTags = (note.tags ?? []).filter(
-                        (tag) => tag !== tagName
-                    );
-
-                    return {
-                        ...note,
-                        tags:
-                            updatedTags.length > 0
-                                ? updatedTags
-                                : undefined,
-                    };
-                })
-        );
-    }
 
     return (
         <DiaryNotesContext.Provider
             value={{
                 notes,
+                isLoading,
                 addNote,
                 updateNote,
                 deleteNote,
-                renameTagInNotes,
-                removeTagFromNotes,
+                refreshNotes,
             }}
         >
             {children}
@@ -234,11 +116,9 @@ export function DiaryNotesProvider({
     );
 }
 
+
 export function useDiaryNotes() {
-    const context =
-        useContext(
-            DiaryNotesContext
-        );
+    const context = useContext(DiaryNotesContext);
 
     if (!context) {
         throw new Error(

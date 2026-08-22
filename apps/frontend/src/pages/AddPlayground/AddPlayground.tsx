@@ -1,8 +1,11 @@
+import { useState } from "react";
+
 import Section from "../../components/ui/Section/Section";
 import PlaygroundForm from "../../components/PlaygroundForm/PlaygroundForm";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
 import { useNavigate } from "react-router-dom";
+import { ApiError } from "../../api/errors";
 
 import type {
     NewPlayground,
@@ -44,22 +47,45 @@ export default function AddPlayground() {
     const navigate =
         useNavigate();
 
-    function handleSubmit(
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    async function handleSubmit(
         playground: NewPlayground
     ) {
-        const createdPlayground =
-            addPlayground(playground);
+        setError(null);
+        setIsSubmitting(true);
 
-        navigate(
-            `/playgrounds/${createdPlayground.id}`
-        );
+        try {
+            const createdPlayground =
+                await addPlayground(playground);
+
+            navigate(
+                `/playgrounds/${createdPlayground.id}`
+            );
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось добавить площадку. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
         <Section title="Добавление площадки">
+            {error && (
+                <p className="auth-form__error" role="alert">
+                    {error}
+                </p>
+            )}
+
             <PlaygroundForm
                 initialValue={emptyPlayground}
-                submitLabel="Добавить площадку"
+                submitLabel={
+                    isSubmitting ? "Добавляем…" : "Добавить площадку"
+                }
                 onSubmit={handleSubmit}
             />
         </Section>

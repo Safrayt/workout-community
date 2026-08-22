@@ -29,6 +29,17 @@ export default function EventRegistration({
             eventId
         );
 
+    function handleClick() {
+        const action = isRegistered ? cancel(eventId) : register(eventId);
+
+        action.catch((error: unknown) => {
+            console.error(
+                "Не удалось изменить регистрацию на мероприятие:",
+                error
+            );
+        });
+    }
+
     return (
 
         <Button
@@ -39,11 +50,7 @@ export default function EventRegistration({
                     : "primary"
             }
 
-            onClick={
-                isRegistered
-                    ? () => cancel(eventId)
-                    : () => register(eventId)
-            }
+            onClick={handleClick}
 
         >
 

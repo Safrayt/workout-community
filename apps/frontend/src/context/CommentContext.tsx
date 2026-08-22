@@ -1,6 +1,7 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
@@ -14,8 +15,11 @@ import type {
 } from "../types/diaryRecord";
 
 import {
-    comments as initialComments,
-} from "../data/comments";
+    addComment as apiAddComment,
+    deleteComment as apiDeleteComment,
+    listAllComments,
+    updateComment as apiUpdateComment,
+} from "../api/diary";
 
 import {
     useCurrentUser,
@@ -29,16 +33,16 @@ type CommentContextType = {
         recordId: string,
         recordType: DiaryRecordType,
         text: string
-    ) => Comment;
+    ) => Promise<Comment>;
 
     updateComment: (
         id: string,
         text: string
-    ) => Comment | undefined;
+    ) => Promise<Comment | undefined>;
 
     deleteComment: (
         id: string
-    ) => void;
+    ) => Promise<void>;
 };
 
 
@@ -56,32 +60,30 @@ export function CommentProvider({
     const [
         comments,
         setComments,
-    ] = useState<Comment[]>(
-        initialComments
-    );
+    ] = useState<Comment[]>([]);
 
     const {
         currentUser,
     } = useCurrentUser();
 
-    function addComment(
+    useEffect(() => {
+        listAllComments()
+            .then(setComments)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить комментарии:",
+                    error
+                );
+            });
+    }, []);
+
+    async function addComment(
         recordId: string,
         recordType: DiaryRecordType,
         text: string
     ) {
-        const newComment: Comment = {
-            id: crypto.randomUUID(),
-
-            recordId,
-
-            recordType,
-
-            userId: currentUser.id,
-
-            text: text.trim(),
-
-            createdAt: new Date().toISOString(),
-        };
+        const newComment =
+            await apiAddComment(recordId, recordType, text);
 
         setComments(
             (current) => [
@@ -93,7 +95,7 @@ export function CommentProvider({
         return newComment;
     }
 
-    function updateComment(
+    async function updateComment(
         id: string,
         text: string
     ) {
@@ -108,35 +110,42 @@ export function CommentProvider({
             return undefined;
         }
 
-        const trimmedText = text.trim();
+        const updatedComment =
+            await apiUpdateComment(id, text);
 
         setComments(
             (current) =>
                 current.map(
                     (comment) =>
                         comment.id === id
-                            ? { ...comment, text: trimmedText }
+                            ? updatedComment
                             : comment
                 )
         );
 
-        return {
-            ...existingComment,
-            text: trimmedText,
-        };
+        return updatedComment;
     }
 
-    function deleteComment(
+    async function deleteComment(
         id: string
     ) {
+        const existingComment = comments.find(
+            (comment) => comment.id === id
+        );
+
+        if (
+            !existingComment ||
+            existingComment.userId !== currentUser.id
+        ) {
+            return;
+        }
+
+        await apiDeleteComment(id);
+
         setComments(
             (current) =>
                 current.filter(
-                    (comment) =>
-                        !(
-                            comment.id === id &&
-                            comment.userId === currentUser.id
-                        )
+                    (comment) => comment.id !== id
                 )
         );
     }
