@@ -87,22 +87,6 @@
     font-weight: 600;
 }
 
-.playground-card__event {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    margin: 4px 0 0;
-
-    color: var(--color-primary-dark);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-}
-
-.playground-card__event-icon {
-    font-size: 0.9em;
-}
-
 .playground-card__link {
     margin-top: auto;
     padding-top: var(--space-3);

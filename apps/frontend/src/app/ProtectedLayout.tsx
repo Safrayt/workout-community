@@ -14,6 +14,7 @@ import { FavoriteProvider } from "../context/FavoriteContext";
 import { ReviewProvider } from "../context/ReviewContext";
 import { SubscriptionProvider } from "../context/SubscriptionContext";
 import { CommentProvider } from "../context/CommentContext";
+import { UserDirectoryProvider } from "../context/UserDirectoryContext";
 
 /**
  * Всё содержимое приложения, кроме /login и /register, монтируется
@@ -47,26 +48,28 @@ export default function ProtectedLayout() {
     }
 
     return (
-        <PlaygroundProvider>
-            <EventProvider>
-                <RegistrationProvider>
-                    <FavoriteProvider>
-                        <WorkoutDiaryProvider>
-                            <DiaryNotesProvider>
-                                <PersonalTagsProvider>
-                                    <ReviewProvider>
-                                        <SubscriptionProvider>
-                                            <CommentProvider>
-                                                <Layout />
-                                            </CommentProvider>
-                                        </SubscriptionProvider>
-                                    </ReviewProvider>
-                                </PersonalTagsProvider>
-                            </DiaryNotesProvider>
-                        </WorkoutDiaryProvider>
-                    </FavoriteProvider>
-                </RegistrationProvider>
-            </EventProvider>
-        </PlaygroundProvider>
+        <UserDirectoryProvider>
+            <PlaygroundProvider>
+                <EventProvider>
+                    <RegistrationProvider>
+                        <FavoriteProvider>
+                            <WorkoutDiaryProvider>
+                                <DiaryNotesProvider>
+                                    <PersonalTagsProvider>
+                                        <ReviewProvider>
+                                            <SubscriptionProvider>
+                                                <CommentProvider>
+                                                    <Layout />
+                                                </CommentProvider>
+                                            </SubscriptionProvider>
+                                        </ReviewProvider>
+                                    </PersonalTagsProvider>
+                                </DiaryNotesProvider>
+                            </WorkoutDiaryProvider>
+                        </FavoriteProvider>
+                    </RegistrationProvider>
+                </EventProvider>
+            </PlaygroundProvider>
+        </UserDirectoryProvider>
     );
 }

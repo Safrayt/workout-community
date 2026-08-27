@@ -13,7 +13,6 @@ import PlaygroundUpcomingEvent from "../../components/PlaygroundUpcomingEvent/Pl
 import PlaygroundReviews from "../../components/PlaygroundReviews/PlaygroundReviews";
 import PlaygroundActivity from "../../components/PlaygroundActivity/PlaygroundActivity";
 import PlaygroundAllTimeActivity from "../../components/PlaygroundAllTimeActivity/PlaygroundAllTimeActivity";
-import PlaygroundMyRecords from "../../components/PlaygroundMyRecords/PlaygroundMyRecords";
 
 import Section from "../../components/ui/Section/Section";
 
@@ -36,10 +35,6 @@ import {
 import {
     useWorkoutDiary,
 } from "../../context/WorkoutDiaryContext";
-
-import {
-    useDiaryNotes,
-} from "../../context/DiaryNotesContext";
 
 import {
     useFavorites,
@@ -79,10 +74,6 @@ export default function PlaygroundDetails() {
     const {
         entries: workoutEntries,
     } = useWorkoutDiary();
-
-    const {
-        notes,
-    } = useDiaryNotes();
 
     const {
         favorites,
@@ -137,9 +128,13 @@ export default function PlaygroundDetails() {
             navigate("/playgrounds");
         } catch (error) {
             console.error("Не удалось удалить площадку:", error);
-            window.alert(
-                "Не удалось удалить площадку. Попробуйте ещё раз."
-            );
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось удалить площадку. Попробуйте ещё раз.";
+
+            window.alert(message);
         }
     }
 
@@ -231,14 +226,6 @@ export default function PlaygroundDetails() {
                 events={playgroundEvents}
                 workoutEntries={workoutEntries}
                 favorites={favorites}
-            />
-
-            {/* 11. Мои записи (UX-DIARY-V2 §14) */}
-            <PlaygroundMyRecords
-                playgroundId={playground.id}
-                userId={currentUser.id}
-                entries={workoutEntries}
-                notes={notes}
             />
 
         </div>

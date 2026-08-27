@@ -1,16 +1,19 @@
 import type { DiaryRecordType } from "../../types/diaryRecord";
+import type { SystemFeedRecordType } from "../../types/systemFeedRecord";
 
 import "../../styles/components/diary-record-type-badge.css";
 
 type Props = {
 
-    type: DiaryRecordType;
+    type: DiaryRecordType | SystemFeedRecordType;
 
 };
 
-const LABELS: Record<DiaryRecordType, string> = {
+const LABELS: Record<DiaryRecordType | SystemFeedRecordType, string> = {
     workout: "Тренировка",
     note: "Заметка",
+    event_created: "Событие",
+    playground_created: "Новая площадка",
 };
 
 /**

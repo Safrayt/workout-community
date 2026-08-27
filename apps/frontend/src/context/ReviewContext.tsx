@@ -14,8 +14,11 @@ import type {
 } from "../types/newReview";
 
 import {
-    reviews as initialReviews,
-} from "../data/reviews";
+    createReview,
+    deleteReview as apiDeleteReview,
+    listPlaygroundReviews,
+    updateReview as apiUpdateReview,
+} from "../api/reviews";
 
 import {
     useCurrentUser,
@@ -23,20 +26,30 @@ import {
 
 
 type ReviewContextType = {
+    /**
+     * Накопительный кеш отзывов по всем площадкам, которые уже
+     * загружались через refreshReviews в этой сессии — а не сразу
+     * все отзывы всего сайта (такого эндпоинта на бэкенде нет и не
+     * нужно: отзывы всегда показываются в контексте одной конкретной
+     * площадки). Компоненты страницы площадки вызывают refreshReviews
+     * при монтировании.
+     */
     reviews: PlaygroundReview[];
+
+    refreshReviews: (playgroundId: string) => Promise<void>;
 
     addReview: (
         review: NewReview
-    ) => PlaygroundReview;
+    ) => Promise<PlaygroundReview>;
 
     updateReview: (
         id: string,
         text: string
-    ) => PlaygroundReview | undefined;
+    ) => Promise<PlaygroundReview | undefined>;
 
     deleteReview: (
         id: string
-    ) => void;
+    ) => Promise<void>;
 };
 
 
@@ -54,28 +67,29 @@ export function ReviewProvider({
     const [
         reviews,
         setReviews,
-    ] = useState<PlaygroundReview[]>(
-        initialReviews
-    );
+    ] = useState<PlaygroundReview[]>([]);
 
     const {
         currentUser,
     } = useCurrentUser();
 
-    function addReview(
+    async function refreshReviews(playgroundId: string) {
+        const fetched = await listPlaygroundReviews(playgroundId);
+
+        setReviews((current) => [
+            // Убираем старые отзывы именно этой площадки — свежие
+            // данные из fetched их полностью заменяют.
+            ...current.filter(
+                (review) => review.playgroundId !== playgroundId
+            ),
+            ...fetched,
+        ]);
+    }
+
+    async function addReview(
         review: NewReview
     ) {
-        const newReview: PlaygroundReview = {
-            id: crypto.randomUUID(),
-
-            playgroundId: review.playgroundId,
-
-            userId: currentUser.id,
-
-            text: review.text.trim(),
-
-            createdAt: new Date().toISOString(),
-        };
+        const newReview = await createReview(review);
 
         setReviews(
             (current) => [
@@ -87,7 +101,7 @@ export function ReviewProvider({
         return newReview;
     }
 
-    function updateReview(
+    async function updateReview(
         id: string,
         text: string
     ) {
@@ -102,35 +116,41 @@ export function ReviewProvider({
             return undefined;
         }
 
-        const trimmedText = text.trim();
+        const updatedReview = await apiUpdateReview(id, text);
 
         setReviews(
             (current) =>
                 current.map(
                     (review) =>
                         review.id === id
-                            ? { ...review, text: trimmedText }
+                            ? updatedReview
                             : review
                 )
         );
 
-        return {
-            ...existingReview,
-            text: trimmedText,
-        };
+        return updatedReview;
     }
 
-    function deleteReview(
+    async function deleteReview(
         id: string
     ) {
+        const existingReview = reviews.find(
+            (review) => review.id === id
+        );
+
+        if (
+            !existingReview ||
+            existingReview.userId !== currentUser.id
+        ) {
+            return;
+        }
+
+        await apiDeleteReview(id);
+
         setReviews(
             (current) =>
                 current.filter(
-                    (review) =>
-                        !(
-                            review.id === id &&
-                            review.userId === currentUser.id
-                        )
+                    (review) => review.id !== id
                 )
         );
     }
@@ -139,6 +159,7 @@ export function ReviewProvider({
         <ReviewContext.Provider
             value={{
                 reviews,
+                refreshReviews,
                 addReview,
                 updateReview,
                 deleteReview,

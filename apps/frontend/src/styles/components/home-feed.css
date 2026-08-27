@@ -3,15 +3,47 @@
        плиткой на всю ширину контейнера, а не узкой read-колонкой. */
 }
 
+/*
+ * Masonry-сетка (UX-документ §4, §17): карточки имеют естественную
+ * высоту и не растягиваются под соседей — короткая заметка не
+ * должна становиться высотой с длинной тренировки. Чистого CSS
+ * grid-masonry ещё нет в стабильных браузерах, поэтому используем
+ * CSS-колонки (column-count) — общепринятый способ добиться того же
+ * эффекта без JS-библиотек: каждая карточка сама решает, сколько ей
+ * нужно места по высоте, а не тянется под высоту строки.
+ *
+ * Раскладка идёт по колонкам сверху вниз (а не по рядам слева
+ * направо, как в классическом CSS grid) — из-за этого хронологический
+ * порядок читается сначала сверху вниз в первой колонке, затем во
+ * второй и т.д., а не строка за строкой. Это осознанный компромисс
+ * ради настоящего masonry без сторонних зависимостей.
+ */
 .home-feed__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-4);
+    column-count: 3;
+    column-gap: var(--space-4);
 }
 
-@media (max-width: 640px) {
+.home-feed__list > * {
+    /* break-inside: avoid не даёт браузеру разрезать карточку между
+       двумя колонками пополам. Отступ снизу уже задаёт сама карточка
+       (.workout-entry-card { margin-bottom }) — здесь его не дублируем. */
+    break-inside: avoid;
+
+    display: inline-block;
+    width: 100%;
+}
+
+/* Tablet 768–1199px (UX-документ §17): 2 колонки. */
+@media (max-width: 1199px) {
     .home-feed__list {
-        grid-template-columns: 1fr;
+        column-count: 2;
+    }
+}
+
+/* Mobile < 768px (UX-документ §17): 1 колонка. */
+@media (max-width: 767px) {
+    .home-feed__list {
+        column-count: 1;
     }
 }
 
@@ -65,14 +97,28 @@
 }
 
 .home-feed__skeleton {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-4);
+    column-count: 3;
+    column-gap: var(--space-4);
 }
 
-@media (max-width: 640px) {
+.home-feed__skeleton > * {
+    break-inside: avoid;
+
+    display: inline-block;
+    width: 100%;
+
+    margin-bottom: var(--space-4);
+}
+
+@media (max-width: 1199px) {
     .home-feed__skeleton {
-        grid-template-columns: 1fr;
+        column-count: 2;
+    }
+}
+
+@media (max-width: 767px) {
+    .home-feed__skeleton {
+        column-count: 1;
     }
 }
 

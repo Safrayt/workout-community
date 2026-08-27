@@ -1,6 +1,6 @@
 .profile-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-4);
 
     margin: var(--space-4) 0 var(--space-5);
@@ -40,6 +40,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    text-align: center;
 
     color: var(--color-text-secondary);
 }

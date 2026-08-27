@@ -24,6 +24,17 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 
 
+/**
+ * Стартовый вид карты, когда конкретный центр/масштаб не заданы явно
+ * (см. initialCenter/initialZoom) — весь мир на уровне материков,
+ * центрирован над Европой. Так карта не "прыгает" сразу к площадкам
+ * одного города при первой загрузке страницы, а даёт увидеть общую
+ * картину, прежде чем пользователь сам приблизится к интересующему
+ * региону.
+ */
+const DEFAULT_MAP_CENTER: [number, number] = [50, 15];
+const DEFAULT_MAP_ZOOM = 3;
+
 type PlaygroundsMapProps = {
     markers: MapMarker[];
 
@@ -63,6 +74,19 @@ type PlaygroundsMapProps = {
      * масштабирует и не панорамирует — площадка уже видна на экране.
      */
     focusMarkerId?: string;
+
+    /**
+     * Начальный центр карты — только для первого рендера (Leaflet не
+     * перецентрирует карту при изменении этого пропа после монтажа).
+     * По умолчанию — вид на уровне материков над Европой
+     * (DEFAULT_MAP_CENTER). Явно переопределяется формами выбора
+     * точки на карте (создание площадки/мероприятия/записи), где
+     * сразу нужен вид на уровне города, а не всего мира.
+     */
+    initialCenter?: [number, number];
+
+    /** Начальный масштаб карты — см. initialCenter. */
+    initialZoom?: number;
 };
 
 type MarkerVisualState = "default" | "hovered" | "selected";
@@ -181,14 +205,16 @@ export default function PlaygroundsMap({
     hoveredMarkerId,
     selectedMarkerId,
     focusMarkerId,
+    initialCenter = DEFAULT_MAP_CENTER,
+    initialZoom = DEFAULT_MAP_ZOOM,
 }: PlaygroundsMapProps) {
     const navigate = useNavigate();
     const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
     return (
         <MapContainer
-            center={[53.9, 27.5667]}
-            zoom={12}
+            center={initialCenter}
+            zoom={initialZoom}
             style={{
                 height,
                 width: "100%",

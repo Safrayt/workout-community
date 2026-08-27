@@ -15,6 +15,8 @@ export type Event = {
 
     startDate: string;
 
+    createdAt: string;
+
     expectedParticipants: number;
 
     posterUrl?: string;

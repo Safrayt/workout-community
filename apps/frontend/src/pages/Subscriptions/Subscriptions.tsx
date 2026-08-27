@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
@@ -44,6 +44,7 @@ export default function Subscriptions() {
 
     const {
         subscriptions,
+        refreshSubscriptions,
     } = useSubscriptions();
 
     const [page, setPage] = useState(1);
@@ -53,6 +54,23 @@ export default function Subscriptions() {
         : currentUser;
 
     const isOwnProfile = user?.id === currentUser.id;
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        // Свои подписки уже загружены при монтировании
+        // SubscriptionProvider — довозим только чужие.
+        if (user.id === currentUser.id) {
+            return;
+        }
+
+        refreshSubscriptions(user.id).catch((error: unknown) => {
+            console.error("Не удалось загрузить подписки:", error);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
     if (!user) {
         return (

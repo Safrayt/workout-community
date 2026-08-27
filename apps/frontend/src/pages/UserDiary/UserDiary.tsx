@@ -130,12 +130,12 @@ export default function UserDiary() {
                                 pageRecords.map((record) =>
                                     record.type === "workout" ? (
                                         <WorkoutEntryCard
-                                            key={record.data.id}
+                                            key={`workout-${record.data.id}`}
                                             entry={record.data}
                                         />
                                     ) : (
                                         <DiaryNoteCard
-                                            key={record.data.id}
+                                            key={`note-${record.data.id}`}
                                             note={record.data}
                                         />
                                     )

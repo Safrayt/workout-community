@@ -6,10 +6,9 @@ import type { Playground } from "../../types/playground";
 import {
     getEntryCountsByPlayground,
     getPlaygroundsWithEntries,
+    getWorkoutPlaygroundIds,
 } from "../../utils/diaryFilters";
 
-import { getRatingTier } from "../../constants/playgroundRating";
-import { calculatePlaygroundRating } from "../../utils/playgroundRating";
 import { pluralizeRu } from "../../utils/pluralize";
 
 import "../../styles/components/diary-map.css";
@@ -26,12 +25,21 @@ type DiaryMapProps = {
 
 };
 
+// Совпадает с тонами "Отличная"/"Хорошая" из constants/playgroundRating.ts
+// — те же оттенки, что человек уже видит на карте всех площадок,
+// но здесь означают другое: не рейтинг, а тип записи.
+const WORKOUT_MARKER_COLOR = "#38a169";
+const NOTE_ONLY_MARKER_COLOR = "#d69e2e";
+
 /**
  * "География тренировок" (UX-DIARY §6–10; UX-DIARY-V2 §11): карта
  * показывает не все площадки платформы, а только те, с которыми
  * связана хоть одна запись пользователя — тренировка или заметка.
  * Клик по метке сразу фильтрует список — отдельная кнопка
  * "Показать" не нужна (§8).
+ *
+ * Цвет метки зависит от типа записи, а не от рейтинга площадки:
+ * зелёный — есть хотя бы одна тренировка, жёлтый — только заметки.
  */
 export default function DiaryMap({
     records,
@@ -48,10 +56,12 @@ export default function DiaryMap({
     const entryCounts =
         getEntryCountsByPlayground(records);
 
+    const workoutPlaygroundIds =
+        getWorkoutPlaygroundIds(records);
+
     const markers = visitedPlaygrounds.map(
         (playground) => {
             const count = entryCounts[playground.id] ?? 0;
-            const rating = calculatePlaygroundRating(playground);
 
             return {
                 id: playground.id,
@@ -60,7 +70,9 @@ export default function DiaryMap({
                 longitude: playground.coordinates.longitude,
                 url: `/playgrounds/${playground.id}`,
                 locality: playground.locality,
-                color: getRatingTier(rating).color,
+                color: workoutPlaygroundIds.has(playground.id)
+                    ? WORKOUT_MARKER_COLOR
+                    : NOTE_ONLY_MARKER_COLOR,
                 shortInfo:
                     `${count} ${pluralizeRu(count, ["запись", "записи", "записей"])}`,
             };

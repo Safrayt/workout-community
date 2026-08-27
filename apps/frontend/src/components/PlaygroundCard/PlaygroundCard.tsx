@@ -7,7 +7,6 @@ import RatingBadge from "../ui/RatingBadge/RatingBadge";
 import "../../styles/components/PlaygroundCard.css";
 
 import type { Playground } from "../../types/playground";
-import type { Event } from "../../types/event";
 
 import {
     playgroundSizes,
@@ -18,13 +17,9 @@ import {
 } from "../../constants/playgroundProperties";
 
 import { calculatePlaygroundRating } from "../../utils/playgroundRating";
-import { formatEventDateShort } from "../../utils/formatEventDate";
 
 type PlaygroundCardProps = {
     playground: Playground;
-
-    /** Ближайшее предстоящее мероприятие на площадке, если есть. */
-    nearestEvent?: Event;
 
     /**
      * Подсвечена ли карточка (площадка выбрана — кликом по самой
@@ -41,7 +36,6 @@ type PlaygroundCardProps = {
 
 export default function PlaygroundCard({
     playground,
-    nearestEvent,
     highlighted = false,
     onHoverChange,
     onSelect,
@@ -128,18 +122,6 @@ export default function PlaygroundCard({
                     {" · "}
                     {playgroundAccessLabels[access]}
                 </p>
-
-                {
-                    nearestEvent && (
-                        <p className="playground-card__event">
-                            <span className="playground-card__event-icon" aria-hidden="true">
-                                📅
-                            </span>
-
-                            {formatEventDateShort(nearestEvent.startDate)}
-                        </p>
-                    )
-                }
 
                 <Link
                     to={`/playgrounds/${id}`}

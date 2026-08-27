@@ -68,7 +68,9 @@ export default function PlaygroundReviewListItem({
             return;
         }
 
-        updateReview(review.id, text);
+        updateReview(review.id, text).catch((error: unknown) => {
+            console.error("Не удалось сохранить отзыв:", error);
+        });
         setIsEditing(false);
     }
 
@@ -81,7 +83,9 @@ export default function PlaygroundReviewListItem({
             return;
         }
 
-        deleteReview(review.id);
+        deleteReview(review.id).catch((error: unknown) => {
+            console.error("Не удалось удалить отзыв:", error);
+        });
     }
 
     return (

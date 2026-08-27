@@ -92,7 +92,14 @@ export default function PlaygroundActions({
                 aria-pressed={isFavorite}
                 onClick={() => {
                     setMoreOpen(false);
-                    toggleFavorite(playground.id);
+                    toggleFavorite(playground.id).catch(
+                        (error: unknown) => {
+                            console.error(
+                                "Не удалось изменить избранное:",
+                                error
+                            );
+                        }
+                    );
                 }}
             >
                 {

@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { useEffect } from "react";
 
 import "../../styles/components/playground-reviews-list.css";
 
@@ -27,7 +28,18 @@ export default function PlaygroundReviewsList() {
 
     const { playgrounds } = usePlaygrounds();
 
-    const { reviews } = useReviews();
+    const { reviews, refreshReviews } = useReviews();
+
+    useEffect(() => {
+        if (!id) {
+            return;
+        }
+
+        refreshReviews(id).catch((error: unknown) => {
+            console.error("Не удалось загрузить отзывы:", error);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     const playground =
         id

@@ -1,6 +1,7 @@
 import type { DiaryRecord } from "./diaryRecord";
 import type { User } from "./user";
 import type { Playground } from "./playground";
+import type { SystemFeedRecord } from "./systemFeedRecord";
 
 /** Переключатель вкладок ленты Главной (UX-HOME §12–14). */
 export type HomeFeedMode = "all" | "following";
@@ -19,3 +20,24 @@ export type HomeFeedRecord = {
 
     commentsCount: number;
 };
+
+/**
+ * View-модель системной записи в ленте (создано мероприятие /
+ * площадка) — тот же принцип, что HomeFeedRecord, но без площадки и
+ * комментариев: система таких данных для этих записей не хранит.
+ */
+export type SystemFeedItem = {
+    record: SystemFeedRecord;
+
+    author: User;
+};
+
+/**
+ * Единица списка ленты Главной — либо запись дневника пользователя,
+ * либо системная запись. Обе сортируются и листаются вместе по
+ * времени создания, но рендерятся разными карточками
+ * (HomeFeedCard / SystemFeedCard).
+ */
+export type HomeFeedItem =
+    | { kind: "diary"; sortKey: string; feedRecord: HomeFeedRecord }
+    | { kind: "system"; sortKey: string; feedRecord: SystemFeedItem };

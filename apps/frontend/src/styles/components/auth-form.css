@@ -1,9 +1,21 @@
+.auth-page {
+    /* Центрирует всю страницу (заголовок + форму) по горизонтали —
+       без этого страницы входа/регистрации выделялись среди
+       остальных страниц портала, прижатые к левому краю. */
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.auth-page .section__title {
+    text-align: center;
+}
+
 .auth-form {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
 
-    max-width: 360px;
+    width: 100%;
 }
 
 .auth-form__error {

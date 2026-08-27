@@ -1,4 +1,5 @@
 import type { WorkoutEntry } from "../../types/workoutEntry";
+import type { DiaryNote } from "../../types/diaryNote";
 
 import { pluralizeRu } from "../../utils/pluralize";
 
@@ -7,6 +8,8 @@ import "../../styles/components/diary-stats.css";
 type DiaryStatsProps = {
 
     entries: WorkoutEntry[];
+
+    notes: DiaryNote[];
 
 };
 
@@ -19,8 +22,9 @@ type DiaryStatsProps = {
  */
 export default function DiaryStats({
     entries,
+    notes,
 }: DiaryStatsProps) {
-    if (entries.length === 0) {
+    if (entries.length === 0 && notes.length === 0) {
         return null;
     }
 
@@ -34,41 +38,19 @@ export default function DiaryStats({
         entries.map((entry) => entry.date)
     ).size;
 
+    const notesCount = notes.length;
+
     return (
         <div className="diary-stats">
             <div className="diary-stats__item">
                 <span className="diary-stats__label">
-                    {
-                        pluralizeRu(
-                            entries.length,
-                            ["тренировка", "тренировки", "тренировок"]
-                        )
-                    }
+                    Тренировок записано
                 </span>
 
                 <span className="diary-stats__value">
                     {entries.length}
                 </span>
             </div>
-
-            {
-                playgroundsCount > 0 && (
-                    <div className="diary-stats__item">
-                        <span className="diary-stats__label">
-                            {
-                                pluralizeRu(
-                                    playgroundsCount,
-                                    ["площадка", "площадки", "площадок"]
-                                )
-                            }
-                        </span>
-
-                        <span className="diary-stats__value">
-                            {playgroundsCount}
-                        </span>
-                    </div>
-                )
-            }
 
             <div className="diary-stats__item">
                 <span className="diary-stats__label">
@@ -84,6 +66,34 @@ export default function DiaryStats({
                     {daysCount}
                 </span>
             </div>
+
+            {
+                playgroundsCount > 0 && (
+                    <div className="diary-stats__item">
+                        <span className="diary-stats__label">
+                            Площадок использовано
+                        </span>
+
+                        <span className="diary-stats__value">
+                            {playgroundsCount}
+                        </span>
+                    </div>
+                )
+            }
+
+            {
+                notesCount > 0 && (
+                    <div className="diary-stats__item">
+                        <span className="diary-stats__label">
+                            Заметок записано
+                        </span>
+
+                        <span className="diary-stats__value">
+                            {notesCount}
+                        </span>
+                    </div>
+                )
+            }
         </div>
     );
 }

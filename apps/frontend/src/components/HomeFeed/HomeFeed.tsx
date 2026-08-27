@@ -5,13 +5,20 @@ import type { DiaryRecord } from "../../types/diaryRecord";
 import type { User } from "../../types/user";
 import type { Playground } from "../../types/playground";
 import type { Comment } from "../../types/comment";
+import type { Event } from "../../types/event";
 import type { HomeFeedMode } from "../../types/homeFeedRecord";
 
 import HomeFeedTabs from "../HomeFeedTabs/HomeFeedTabs";
 import HomeFeedCard from "../HomeFeedCard/HomeFeedCard";
+import SystemFeedCard from "../SystemFeedCard/SystemFeedCard";
 import Button from "../ui/Button/Button";
 
-import { getFeedRecords, buildHomeFeedRecords } from "../../utils/homeFeed";
+import {
+    getFeedRecords,
+    getSystemFeedRecords,
+    mergeFeedRawItems,
+    buildHomeFeedItems,
+} from "../../utils/homeFeed";
 import { HOME_FEED_PAGE_SIZE } from "../../constants/home";
 import { useSimulatedLoad } from "../../hooks/useSimulatedLoad";
 
@@ -22,6 +29,7 @@ type HomeFeedProps = {
     users: User[];
     playgrounds: Playground[];
     comments: Comment[];
+    events: Event[];
     followingIds: string[];
 };
 
@@ -36,6 +44,7 @@ export default function HomeFeed({
     users,
     playgrounds,
     comments,
+    events,
     followingIds,
 }: HomeFeedProps) {
     const [mode, setMode] = useState<HomeFeedMode>("all");
@@ -95,16 +104,28 @@ export default function HomeFeed({
         followingIds
     );
 
-    const visibleRecords = feedRecordsRaw.slice(0, visibleCount);
+    const systemRecordsRaw = getSystemFeedRecords(
+        events,
+        playgrounds,
+        mode,
+        followingIds
+    );
 
-    const feedRecords = buildHomeFeedRecords(
-        visibleRecords,
+    const combinedRawItems = mergeFeedRawItems(
+        feedRecordsRaw,
+        systemRecordsRaw
+    );
+
+    const visibleRawItems = combinedRawItems.slice(0, visibleCount);
+
+    const feedItems = buildHomeFeedItems(
+        visibleRawItems,
         users,
         playgrounds,
         comments
     );
 
-    const hasMore = feedRecordsRaw.length > visibleRecords.length;
+    const hasMore = combinedRawItems.length > visibleRawItems.length;
 
     return (
         <div className="home-feed">
@@ -114,7 +135,7 @@ export default function HomeFeed({
             />
 
             {
-                feedRecords.length === 0 ? (
+                feedItems.length === 0 ? (
                     <HomeFeedEmptyState
                         mode={mode}
                         hasFollowing={followingIds.length > 0}
@@ -124,12 +145,20 @@ export default function HomeFeed({
                     <>
                         <div className="home-feed__list">
                             {
-                                feedRecords.map((feedRecord) => (
-                                    <HomeFeedCard
-                                        key={`${feedRecord.record.type}-${feedRecord.record.data.id}`}
-                                        feedRecord={feedRecord}
-                                    />
-                                ))
+                                feedItems.map((item) =>
+                                    item.kind === "diary" ? (
+                                        <HomeFeedCard
+                                            key={`diary-${item.feedRecord.record.type}-${item.feedRecord.record.data.id}`}
+                                            feedRecord={item.feedRecord}
+                                        />
+                                    ) : (
+                                        <SystemFeedCard
+                                            key={`system-${item.feedRecord.record.type}-${item.feedRecord.record.data.id}`}
+                                            feedRecord={item.feedRecord}
+                                            playgrounds={playgrounds}
+                                        />
+                                    )
+                                )
                             }
                         </div>
 
@@ -175,13 +204,13 @@ function HomeFeedEmptyState({
         return (
             <div className="home-feed__empty">
                 <p className="home-feed__empty-title">
-                    В ленте пока пусто
+                    В ленте пока нет записей
                 </p>
 
                 <p className="home-feed__empty-text">
-                    Здесь будут появляться тренировки
+                    Здесь появятся тренировки, заметки,
                     <br />
-                    и заметки участников сообщества.
+                    события и новые площадки.
                 </p>
 
                 <Button onClick={() => navigate("/diary/create")}>

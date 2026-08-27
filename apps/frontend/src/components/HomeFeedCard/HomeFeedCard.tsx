@@ -5,7 +5,6 @@ import type { HomeFeedRecord } from "../../types/homeFeedRecord";
 
 import Avatar from "../ui/Avatar/Avatar";
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
-import TagBadge from "../ui/TagBadge/TagBadge";
 
 import {
     formatTimeAgo,
@@ -28,10 +27,11 @@ type HomeFeedCardProps = {
  * Карточка записи в Home Feed (UX-HOME §19–24). Использует ту же
  * вёрстку и CSS-классы, что и карточки Дневника (WorkoutEntryCard /
  * DiaryNoteCard) — фото 4:3 → тип+дата → название → площадка →
- * описание → теги (§25 в UX-DIARY) — чтобы запись выглядела
- * одинаково знакомо в обоих местах. Поверх добавлены только автор
- * (шапка) и счётчик комментариев (подвал), которых в личном
- * Дневнике нет.
+ * описание — чтобы запись выглядела одинаково знакомо в обоих
+ * местах. Теги здесь намеренно не показываются (в отличие от
+ * дневника) — в плотной ленте на главной они удлиняли бы плашку.
+ * Поверх добавлены только автор (шапка) и счётчик комментариев
+ * (подвал), которых в личном Дневнике нет.
  *
  * Вся карточка ведёт на саму запись, но автор, площадка и счётчик
  * комментариев — самостоятельные ссылки: клик по ним не должен
@@ -63,8 +63,6 @@ export default function HomeFeedCard({
         : record.data.title
           ? record.data.text
           : undefined;
-
-    const tags = record.data.tags;
 
     const dateDiverges = isActivityDateDivergent(
         record.date,
@@ -102,13 +100,13 @@ export default function HomeFeedCard({
                     onClick={stopBubbling}
                 >
                     <Avatar
-                        name={author.name}
+                        name={author.nickname}
                         avatarUrl={author.avatarUrl}
                         size="sm"
                     />
 
                     <span className="home-feed-card__author-name">
-                        {author.name}
+                        {author.nickname}
                     </span>
                 </Link>
             </div>
@@ -167,21 +165,6 @@ export default function HomeFeedCard({
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(description)}
                         </p>
-                    )
-                }
-
-                {
-                    tags && tags.length > 0 && (
-                        <div className="tag-list">
-                            {
-                                tags.map((tag) => (
-                                    <TagBadge
-                                        key={tag}
-                                        label={tag}
-                                    />
-                                ))
-                            }
-                        </div>
                     )
                 }
 

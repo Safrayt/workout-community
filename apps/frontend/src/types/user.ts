@@ -4,11 +4,7 @@ import type { PrivacySettings } from "./privacySettings";
 export type User = {
     id: string;
 
-    name: string;
-
     nickname: string;
-
-    locality: string;
 
     bio: string;
 

@@ -1,6 +1,7 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
@@ -10,8 +11,10 @@ import type {
 } from "../types/favorite";
 
 import {
-    favorites as initialFavorites,
-} from "../data/favorites";
+    addFavoritePlayground,
+    listFavorites,
+    removeFavoritePlayground,
+} from "../api/social";
 
 import {
     useCurrentUser,
@@ -27,15 +30,15 @@ type FavoriteContextType = {
 
     addFavorite: (
         playgroundId: string
-    ) => void;
+    ) => Promise<void>;
 
     removeFavorite: (
         playgroundId: string
-    ) => void;
+    ) => Promise<void>;
 
     toggleFavorite: (
         playgroundId: string
-    ) => void;
+    ) => Promise<void>;
 
     checkFavorite: (
         playgroundId: string
@@ -58,9 +61,7 @@ export function FavoriteProvider({
     const [
         favorites,
         setFavorites,
-    ] = useState<PlaygroundFavorite[]>(
-        initialFavorites
-    );
+    ] = useState<PlaygroundFavorite[]>([]);
 
 
     const {
@@ -71,8 +72,19 @@ export function FavoriteProvider({
         currentUser.id;
 
 
+    useEffect(() => {
+        listFavorites()
+            .then(setFavorites)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить избранное:",
+                    error
+                );
+            });
+    }, []);
 
-    function addFavorite(
+
+    async function addFavorite(
         playgroundId: string
     ) {
         if (
@@ -85,19 +97,8 @@ export function FavoriteProvider({
             return;
         }
 
-
-        const newFavorite: PlaygroundFavorite =
-        {
-            id: crypto.randomUUID(),
-
-            userId: currentUserId,
-
-            playgroundId,
-
-            createdAt:
-                new Date().toISOString(),
-        };
-
+        const newFavorite =
+            await addFavoritePlayground(playgroundId);
 
         setFavorites(
             (previous) => [
@@ -109,9 +110,11 @@ export function FavoriteProvider({
 
 
 
-    function removeFavorite(
+    async function removeFavorite(
         playgroundId: string
     ) {
+        await removeFavoritePlayground(playgroundId);
+
         setFavorites(
             (previous) =>
                 previous.filter(
@@ -126,7 +129,7 @@ export function FavoriteProvider({
 
 
 
-    function toggleFavorite(
+    async function toggleFavorite(
         playgroundId: string
     ) {
         if (
@@ -136,12 +139,12 @@ export function FavoriteProvider({
                 playgroundId
             )
         ) {
-            removeFavorite(playgroundId);
+            await removeFavorite(playgroundId);
 
             return;
         }
 
-        addFavorite(playgroundId);
+        await addFavorite(playgroundId);
     }
 
 

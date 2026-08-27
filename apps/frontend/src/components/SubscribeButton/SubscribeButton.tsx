@@ -22,10 +22,19 @@ export default function SubscribeButton({
 
     const isFollowing = checkSubscription(userId);
 
+    function handleClick() {
+        toggleSubscription(userId).catch((error: unknown) => {
+            console.error(
+                "Не удалось изменить подписку:",
+                error
+            );
+        });
+    }
+
     return (
         <Button
             variant={isFollowing ? "secondary" : "primary"}
-            onClick={() => toggleSubscription(userId)}
+            onClick={handleClick}
         >
             {isFollowing ? "Отписаться" : "Подписаться"}
         </Button>

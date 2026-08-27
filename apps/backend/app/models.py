@@ -9,11 +9,14 @@ class UserBase(SQLModel):
     Поля, общие для всех вариантов пользователя:
     и для таблицы в базе, и для данных, которые приходят/уходят по API.
     Вынесены отдельно, чтобы не дублировать одно и то же в трёх местах.
+
+    Ни имени, ни города здесь нет — на портале нигде не используется
+    ничего, кроме nickname (см. историю: раньше были name/locality,
+    но фронтенд их никогда не показывал, только собирал при
+    регистрации и тут же нигде не отображал).
     """
 
-    name: str
     nickname: str
-    locality: str
     bio: str = ""
     avatar_url: Optional[str] = None
 
@@ -70,8 +73,6 @@ class UserUpdate(SQLModel):
     и логина в будущем понадобятся отдельные защищённые эндпоинты.
     """
 
-    name: Optional[str] = None
-    locality: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
 

@@ -3,10 +3,9 @@ import PlaygroundCard from "../../components/PlaygroundCard/PlaygroundCard";
 import "../../styles/components/playgrounds-list.css";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
-import { useEvents } from "../../context/EventContext";
 
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
@@ -26,9 +25,6 @@ import {
     hasActivePlaygroundFilters,
     countActivePlaygroundFilters,
 } from "../../utils/playgroundFilters";
-import {
-    getNearestUpcomingEventsByPlayground,
-} from "../../utils/playgroundEvents";
 import { pluralizeRu } from "../../utils/pluralize";
 
 
@@ -36,15 +32,6 @@ export default function Playgrounds() {
     const {
         playgrounds,
     } = usePlaygrounds();
-
-    const {
-        events,
-    } = useEvents();
-
-    const nearestEventsByPlayground = useMemo(
-        () => getNearestUpcomingEventsByPlayground(events),
-        [events]
-    );
 
     const [filters, setFilters] =
         useState(emptyPlaygroundFilters);
@@ -64,22 +51,6 @@ export default function Playgrounds() {
     // карточки), но карту не двигает и не масштабирует.
     const [focusPlaygroundId, setFocusPlaygroundId] =
         useState<string | null>(null);
-
-    // При выборе площадки (клик по карточке или по маркеру) прокручиваем
-    // список так, чтобы соответствующая карточка была видна — важно при
-    // выборе кликом по маркеру, когда карточка может быть вне экрана.
-    useEffect(() => {
-        if (!selectedPlaygroundId) {
-            return;
-        }
-
-        document
-            .getElementById(`playground-card-${selectedPlaygroundId}`)
-            ?.scrollIntoView({
-                behavior: "smooth",
-                block: "nearest",
-            });
-    }, [selectedPlaygroundId]);
 
     const filteredPlaygrounds =
         filterPlaygrounds(
@@ -219,7 +190,6 @@ export default function Playgrounds() {
                                         key={playground.id}
 
                                         playground={playground}
-                                        nearestEvent={nearestEventsByPlayground[playground.id]}
                                         highlighted={playground.id === selectedPlaygroundId}
                                         onHoverChange={(hovering) =>
                                             setHoveredPlaygroundId(hovering ? playground.id : null)

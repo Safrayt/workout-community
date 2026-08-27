@@ -7,7 +7,6 @@ import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 
-import TagBadge from "../ui/TagBadge/TagBadge";
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
 import "../../styles/components/workout-entry-card.css";
@@ -22,8 +21,10 @@ type WorkoutEntryCardProps = {
  * UX-DIARY-V2 §9 — визуальный маркер типа записи).
  *
  * Приоритет информации: фото → тип+дата → название → площадка →
- * краткое описание → теги. Вся карточка кликабельна — искать
- * маленькую кнопку "Подробнее" не нужно (§25).
+ * краткое описание. Теги здесь не показываются — они удлиняли бы
+ * плашку в списке; смотреть их можно на странице самой записи. Вся
+ * карточка кликабельна — искать маленькую кнопку "Подробнее" не
+ * нужно (§25).
  */
 export default function WorkoutEntryCard({
     entry,
@@ -78,27 +79,16 @@ export default function WorkoutEntryCard({
                 }
 
                 {
-                    entry.description && (
+                    // Описание показываем только когда нет фото —
+                    // если фото есть, в карточке остаётся только
+                    // название, чтобы плашки с фото и без фото были
+                    // одного размера (высоту описания без фото
+                    // ограничивает workout-entry-card__description
+                    // в CSS).
+                    !mainPhoto && entry.description && (
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(entry.description)}
                         </p>
-                    )
-                }
-
-                {
-                    entry.tags && entry.tags.length > 0 && (
-                        <div className="tag-list">
-                            {
-                                entry.tags.map(
-                                    (tag) => (
-                                        <TagBadge
-                                            key={tag}
-                                            label={tag}
-                                        />
-                                    )
-                                )
-                            }
-                        </div>
                     )
                 }
             </div>

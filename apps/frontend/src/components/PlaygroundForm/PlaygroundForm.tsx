@@ -14,6 +14,10 @@ import { useState } from "react";
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import { getPlaygroundMarkers } from "../../utils/maps";
 import {
+    DEFAULT_MAP_PICKER_CENTER,
+    DEFAULT_MAP_PICKER_ZOOM,
+} from "../../constants/map";
+import {
     reverseGeocode,
 } from "../../services/geocoding";
 
@@ -187,6 +191,8 @@ export default function PlaygroundForm({
                 <PlaygroundsMap
                     markers={getPlaygroundMarkers(mapPlaygrounds)}
                     showDetailsLink={false}
+                    initialCenter={DEFAULT_MAP_PICKER_CENTER}
+                    initialZoom={DEFAULT_MAP_PICKER_ZOOM}
                     selectedLatitude={
                         playground.coordinates?.latitude
                     }

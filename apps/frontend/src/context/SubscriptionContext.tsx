@@ -1,6 +1,7 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
     type ReactNode,
 } from "react";
@@ -10,8 +11,10 @@ import type {
 } from "../types/subscription";
 
 import {
-    subscriptions as initialSubscriptions,
-} from "../data/subscriptions";
+    listSubscriptions,
+    subscribeToUser,
+    unsubscribeFromUser,
+} from "../api/social";
 
 import {
     useCurrentUser,
@@ -23,19 +26,27 @@ import {
 
 
 type SubscriptionContextType = {
+    /**
+     * Накопительный кеш: подписки текущего пользователя (загружаются
+     * сразу при монтировании) + подписки любых других пользователей,
+     * чью страницу "Подписки" открывали в этой сессии (через
+     * refreshSubscriptions) — см. страницу Subscriptions.tsx.
+     */
     subscriptions: Subscription[];
+
+    refreshSubscriptions: (userId: string) => Promise<void>;
 
     subscribe: (
         followingId: string
-    ) => void;
+    ) => Promise<void>;
 
     unsubscribe: (
         followingId: string
-    ) => void;
+    ) => Promise<void>;
 
     toggleSubscription: (
         followingId: string
-    ) => void;
+    ) => Promise<void>;
 
     checkSubscription: (
         followingId: string
@@ -58,9 +69,7 @@ export function SubscriptionProvider({
     const [
         subscriptions,
         setSubscriptions,
-    ] = useState<Subscription[]>(
-        initialSubscriptions
-    );
+    ] = useState<Subscription[]>([]);
 
 
     const {
@@ -71,12 +80,36 @@ export function SubscriptionProvider({
         currentUser.id;
 
 
+    useEffect(() => {
+        listSubscriptions(currentUserId)
+            .then(setSubscriptions)
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить подписки:",
+                    error
+                );
+            });
+    }, [currentUserId]);
 
-    function subscribe(
+
+    async function refreshSubscriptions(userId: string) {
+        const fetched = await listSubscriptions(userId);
+
+        setSubscriptions((current) => [
+            ...current.filter(
+                (subscription) => subscription.followerId !== userId
+            ),
+            ...fetched,
+        ]);
+    }
+
+
+    async function subscribe(
         followingId: string
     ) {
         // Нельзя подписаться на самого себя и нельзя дублировать
-        // подписку.
+        // подписку — бэкенд тоже это проверяет (400/идемпотентно), но
+        // короткое замыкание здесь избавляет от лишнего запроса.
         if (
             followingId === currentUserId ||
             isSubscribed(
@@ -88,19 +121,8 @@ export function SubscriptionProvider({
             return;
         }
 
-
-        const newSubscription: Subscription =
-        {
-            id: crypto.randomUUID(),
-
-            followerId: currentUserId,
-
-            followingId,
-
-            createdAt:
-                new Date().toISOString(),
-        };
-
+        const newSubscription =
+            await subscribeToUser(followingId);
 
         setSubscriptions(
             (previous) => [
@@ -112,9 +134,11 @@ export function SubscriptionProvider({
 
 
 
-    function unsubscribe(
+    async function unsubscribe(
         followingId: string
     ) {
+        await unsubscribeFromUser(followingId);
+
         setSubscriptions(
             (previous) =>
                 previous.filter(
@@ -129,7 +153,7 @@ export function SubscriptionProvider({
 
 
 
-    function toggleSubscription(
+    async function toggleSubscription(
         followingId: string
     ) {
         if (
@@ -139,12 +163,12 @@ export function SubscriptionProvider({
                 followingId
             )
         ) {
-            unsubscribe(followingId);
+            await unsubscribe(followingId);
 
             return;
         }
 
-        subscribe(followingId);
+        await subscribe(followingId);
     }
 
 
@@ -165,6 +189,7 @@ export function SubscriptionProvider({
         <SubscriptionContext.Provider
             value={{
                 subscriptions,
+                refreshSubscriptions,
                 subscribe,
                 unsubscribe,
                 toggleSubscription,

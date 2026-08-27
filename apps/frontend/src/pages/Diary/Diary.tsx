@@ -60,7 +60,6 @@ import {
     filterDiaryRecords,
     hasActiveDiaryFilters,
     getEntryCountsByDate,
-    getPlaygroundsWithEntries,
 } from "../../utils/diaryFilters";
 
 import { getYearsWithEntries } from "../../utils/diaryDateFilter";
@@ -133,12 +132,6 @@ export default function Diary() {
             .map((tag) => tag.name)
             .sort((a, b) => a.localeCompare(b, "ru"));
 
-    const visitedPlaygrounds =
-        getPlaygroundsWithEntries(
-            allRecords,
-            playgrounds
-        );
-
     const availableYears =
         getYearsWithEntries(allRecords);
 
@@ -150,6 +143,21 @@ export default function Diary() {
             allRecords,
             filters
         );
+
+    // Карта показывает метки всех площадок, подходящих под остальные
+    // фильтры (тип, дата, теги) — но не сужается до одной конкретной
+    // площадки, иначе выбор метки прятал бы все остальные метки с
+    // карты при следующей перерисовке.
+    const mapRecords =
+        filterDiaryRecords(
+            allRecords,
+            { ...filters, playgroundId: "" }
+        );
+
+    const selectedPlayground =
+        filters.playgroundId
+            ? getPlaygroundById(playgrounds, filters.playgroundId)
+            : undefined;
 
     const totalPages =
         getTotalPages(
@@ -186,6 +194,7 @@ export default function Diary() {
 
             <DiaryStats
                 entries={userEntries}
+                notes={userNotes}
             />
 
             {
@@ -214,7 +223,7 @@ export default function Diary() {
                         {/* География тренировок (UX §6–10; UX-DIARY-V2 §11) */}
                         <CollapsibleSection title="География">
                             <DiaryMap
-                                records={allRecords}
+                                records={mapRecords}
                                 playgrounds={playgrounds}
                                 selectedPlaygroundId={filters.playgroundId}
                                 onSelectPlayground={(playgroundId) =>
@@ -266,25 +275,19 @@ export default function Diary() {
                                 }
                             />
 
-                            <Select
-                                label="Площадка"
-                                emptyOptionLabel="Все площадки"
-                                value={filters.playgroundId}
-                                options={
-                                    visitedPlaygrounds.map(
-                                        (playground) => ({
-                                            value: playground.id,
-                                            label: playground.name,
-                                        })
-                                    )
-                                }
-                                onChange={(e) =>
-                                    updateFilters({
-                                        ...filters,
-                                        playgroundId: e.target.value,
-                                    })
-                                }
-                            />
+                            <div className="input">
+                                <span className="input__label">
+                                    Площадка
+                                </span>
+
+                                <p className="input__field diary-playground-filter-readonly">
+                                    {
+                                        selectedPlayground
+                                            ? selectedPlayground.name
+                                            : "Все площадки"
+                                    }
+                                </p>
+                            </div>
 
                             <div className="diary-date-filter">
                                 <Select
@@ -366,7 +369,7 @@ export default function Diary() {
                                 }
                             </div>
 
-                            <div className="input">
+                            <div className="input diary-tag-filter">
                                 <span className="input__label">
                                     Теги
                                 </span>
@@ -388,11 +391,7 @@ export default function Diary() {
                         {/* Активные фильтры (UX §19) */}
                         <DiaryActiveFilters
                             filters={filters}
-                            playground={
-                                filters.playgroundId
-                                    ? getPlaygroundById(playgrounds, filters.playgroundId)
-                                    : undefined
-                            }
+                            playground={selectedPlayground}
                             onChange={updateFilters}
                         />
 
@@ -451,13 +450,13 @@ export default function Diary() {
 
                                                     return record.type === "workout" ? (
                                                         <WorkoutEntryCard
-                                                            key={record.data.id}
+                                                            key={`workout-${record.data.id}`}
                                                             entry={record.data}
                                                             playground={playground}
                                                         />
                                                     ) : (
                                                         <DiaryNoteCard
-                                                            key={record.data.id}
+                                                            key={`note-${record.data.id}`}
                                                             note={record.data}
                                                             playground={playground}
                                                         />

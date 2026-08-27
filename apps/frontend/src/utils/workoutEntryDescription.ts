@@ -16,25 +16,37 @@ export function getDescriptionPreview(
     ].join("\n");
 }
 
-const MAX_CARD_DESCRIPTION_LENGTH = 100;
+const MAX_CARD_DESCRIPTION_LENGTH = 320;
 
 /**
  * Короткий превью описания для компактной карточки списка дневника
  * (UX-DIARY §26: "не нужно показывать весь текст описания") — в
  * отличие от getDescriptionPreview (до 5 строк, для страницы
- * записи), здесь ограничение по символам и без переносов строк.
+ * записи), здесь ограничение по символам, но переносы строк из
+ * исходного текста сохраняются (карточка рендерит их через
+ * white-space: pre-line в CSS) — только лишние пробелы/табы внутри
+ * каждой строки схлопываются в один пробел.
+ *
+ * 320 символов — заведомо больше, чем помещается в 5 строк карточки
+ * (workout-entry-card__description ограничена в CSS через
+ * -webkit-line-clamp: 5). Так реальную визуальную обрезку делает
+ * CSS по границе строки, а не эта функция по количеству символов —
+ * иначе текст обрывался заметно раньше, чем позволяет место в
+ * плашке, и часть плашки без картинки оставалась пустой.
  */
 export function getCardDescriptionPreview(
     description: string,
     maxLength: number = MAX_CARD_DESCRIPTION_LENGTH
 ) {
-    const singleLine = description
-        .replace(/\s+/g, " ")
+    const withNormalizedLines = description
+        .split("\n")
+        .map((line) => line.replace(/[ \t]+/g, " ").trim())
+        .join("\n")
         .trim();
 
-    if (singleLine.length <= maxLength) {
-        return singleLine;
+    if (withNormalizedLines.length <= maxLength) {
+        return withNormalizedLines;
     }
 
-    return `${singleLine.slice(0, maxLength).trimEnd()}...`;
+    return `${withNormalizedLines.slice(0, maxLength).trimEnd()}...`;
 }

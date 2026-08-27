@@ -11,7 +11,7 @@
 }
 
 .home-feed-card__author-row {
-    padding: var(--space-3) var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
 }
 
 .home-feed-card__author {
@@ -20,6 +20,19 @@
     gap: var(--space-2);
 
     color: var(--color-text);
+}
+
+/*
+ * Аватар автора в шапке карточки ленты крупнее обычного "sm"
+ * (32px) — переопределяем размер только здесь, не трогая глобальный
+ * .avatar--sm, который также используется в комментариях, списке
+ * подписок и участниках мероприятия (там 32px остаётся уместным).
+ */
+.home-feed-card__author .avatar--sm {
+    width: 64px;
+    height: 64px;
+
+    font-size: 24px;
 }
 
 .home-feed-card__author:hover .home-feed-card__author-name {
@@ -56,4 +69,37 @@
 
 .home-feed-card__comments:hover {
     color: var(--color-text);
+}
+
+/*
+ * Дополнительные данные системной записи (UX-документ §7): время
+ * проведения события + площадка, либо адрес новой площадки. Всегда
+ * отдельные строки с иконкой — компактный блок, не тянущий на себя
+ * внимание больше заголовка (UX-документ §10).
+ */
+.home-feed-card__extra {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    margin: 0 0 var(--space-2);
+}
+
+.home-feed-card__extra-line {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.home-feed-card__extra-line--link {
+    display: inline-block;
+
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.home-feed-card__extra-line--link:hover {
+    color: var(--color-text);
+    text-decoration: underline;
 }

@@ -204,11 +204,18 @@ class Playground(PlaygroundBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
+    # cascade="all, delete-orphan" — при удалении площадки её фотографии
+    # и записи истории удаляются вместе с ней. Без этого SQLAlchemy
+    # при удалении Playground пытается просто обнулить playground_id
+    # у связанных записей, а это поле обязательное (NOT NULL) —
+    # получается IntegrityError вместо удаления.
     photos: List[PlaygroundPhoto] = Relationship(
-        back_populates="playground"
+        back_populates="playground",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
     history: List[PlaygroundHistoryEntry] = Relationship(
-        back_populates="playground"
+        back_populates="playground",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
 

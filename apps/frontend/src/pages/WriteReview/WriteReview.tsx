@@ -19,6 +19,8 @@ import { useReviews } from "../../context/ReviewContext";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 
+import { ApiError } from "../../api/errors";
+
 export default function WriteReview() {
 
     const { id } = useParams();
@@ -38,6 +40,9 @@ export default function WriteReview() {
     const [errors, setErrors] =
         useState<ValidationError[]>([]);
 
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     if (!playground) {
 
         return (
@@ -50,7 +55,7 @@ export default function WriteReview() {
 
     }
 
-    function handleSubmit(
+    async function handleSubmit(
         event: React.FormEvent
     ) {
         event.preventDefault();
@@ -72,9 +77,20 @@ export default function WriteReview() {
             return;
         }
 
-        addReview(newReview);
+        setSubmitError(null);
+        setIsSubmitting(true);
 
-        navigate(`/playgrounds/${playground.id}/reviews`);
+        try {
+            await addReview(newReview);
+            navigate(`/playgrounds/${playground.id}/reviews`);
+        } catch (err) {
+            setSubmitError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Не удалось опубликовать отзыв. Попробуйте ещё раз."
+            );
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -100,12 +116,19 @@ export default function WriteReview() {
                     rows={6}
                 />
 
+                {submitError && (
+                    <p className="auth-form__error" role="alert">
+                        {submitError}
+                    </p>
+                )}
+
                 <ActionGroup>
                     <Button
                         type="submit"
                         variant="primary"
+                        disabled={isSubmitting}
                     >
-                        Опубликовать отзыв
+                        {isSubmitting ? "Публикуем…" : "Опубликовать отзыв"}
                     </Button>
                 </ActionGroup>
 

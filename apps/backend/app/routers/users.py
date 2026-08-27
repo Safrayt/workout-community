@@ -53,6 +53,29 @@ def list_users(
     return list(users)
 
 
+@router.get("/by-username/{username}", response_model=UserRead)
+def get_user_by_username(
+    username: str,
+    session: Session = Depends(get_session),
+) -> User:
+    """
+    Поиск по nickname (регистронезависимо) — для публичных профилей
+    вида /u/:username на фронтенде. Объявлен ДО GET /{user_id}: путь
+    здесь из двух сегментов ("by-username" + значение), а не из
+    одного, так что с {user_id}: int в принципе не пересекается,
+    независимо от порядка — но держим рядом с остальными
+    /users/... для читаемости.
+    """
+    user = session.exec(
+        select(User).where(User.nickname.ilike(username))
+    ).first()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
+
+
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(
     user_id: int,

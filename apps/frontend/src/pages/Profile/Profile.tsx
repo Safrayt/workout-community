@@ -58,7 +58,12 @@ import {
 } from "../../utils/events";
 
 import {
+    getAttendedEventsCount,
+} from "../../utils/eventRegistrations";
+
+import {
     getVisitedPlaygroundsCount,
+    getCreatedPlaygrounds,
 } from "../../utils/playgrounds";
 
 import {
@@ -208,26 +213,47 @@ export default function Profile() {
         user.id
     );
 
+    const createdPlaygroundsCount = getCreatedPlaygrounds(
+        playgrounds,
+        user.id
+    ).length;
+
+    const attendedEventsCount = getAttendedEventsCount(
+        registrations,
+        events,
+        user.id
+    );
+
     const statsItems = [
         {
             key: "workouts",
             value: userEntries.length,
-            label: "Тренировок",
+            label: "Тренировок записано",
         },
         {
             key: "playgrounds",
             value: visitedPlaygroundsCount,
-            label: "Площадок",
-        },
-        {
-            key: "events",
-            value: createdEvents.length,
-            label: "Событий",
+            label: "Площадок использовано",
         },
         {
             key: "achievements",
             value: unlockedAchievements.length,
-            label: "Достижений",
+            label: "Достижений получено",
+        },
+        {
+            key: "attended-events",
+            value: attendedEventsCount,
+            label: "Событий посещено",
+        },
+        {
+            key: "created-playgrounds",
+            value: createdPlaygroundsCount,
+            label: "Площадок добавлено",
+        },
+        {
+            key: "events",
+            value: createdEvents.length,
+            label: "Событий создано",
         },
     ];
 
@@ -284,12 +310,12 @@ export default function Profile() {
                                         .map((record) =>
                                             record.type === "workout" ? (
                                                 <WorkoutEntryCard
-                                                    key={record.data.id}
+                                                    key={`workout-${record.data.id}`}
                                                     entry={record.data}
                                                 />
                                             ) : (
                                                 <DiaryNoteCard
-                                                    key={record.data.id}
+                                                    key={`note-${record.data.id}`}
                                                     note={record.data}
                                                 />
                                             )

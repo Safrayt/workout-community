@@ -6,14 +6,13 @@ from sqlmodel import Session, select
 from app.auth import get_current_user, get_optional_current_user
 from app.database import get_session
 from app.models import User
-from app.models_playground import Playground, PlaygroundRead
+from app.models_playground import Playground
 from app.models_social import (
     PlaygroundFavorite,
     PlaygroundFavoriteRead,
     Subscription,
     SubscriptionRead,
 )
-from app.routers.playgrounds import _to_playground_read
 
 router = APIRouter(tags=["social"])
 
@@ -197,33 +196,26 @@ def remove_favorite(
         session.commit()
 
 
-@router.get("/favorites", response_model=List[PlaygroundRead])
+@router.get("/favorites", response_model=List[PlaygroundFavoriteRead])
 def list_favorites(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> List[PlaygroundRead]:
+) -> List[PlaygroundFavorite]:
     """
-    Сразу площадки целиком (а не просто список favorite-записей) — как
-    getFavoritePlaygrounds на фронтенде, которая тоже возвращает
-    Playground[], а не PlaygroundFavorite[]: экрану "Избранное" нужны
-    карточки площадок, а не сырые связи.
+    Сырые связи (не полные площадки) — фронтенд сам джойнит их с уже
+    загруженным (через PlaygroundContext) списком площадок через
+    getFavoritePlaygrounds(playgrounds, favorites, userId), точно так
+    же, как это устроено для events+playgrounds и других связей в
+    проекте. Более раннее решение отдавать сразу полные PlaygroundRead
+    было отступлением от этого паттерна — исправлено.
     """
-    favorites = session.exec(
-        select(PlaygroundFavorite).where(
-            PlaygroundFavorite.user_id == current_user.id
-        )
-    ).all()
-
-    playgrounds = [
-        session.get(Playground, favorite.playground_id)
-        for favorite in favorites
-    ]
-
-    return [
-        _to_playground_read(pg, session)
-        for pg in playgrounds
-        if pg is not None
-    ]
+    return list(
+        session.exec(
+            select(PlaygroundFavorite).where(
+                PlaygroundFavorite.user_id == current_user.id
+            )
+        ).all()
+    )
 
 
 @router.get("/favorites/check", response_model=bool)

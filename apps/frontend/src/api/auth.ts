@@ -12,9 +12,7 @@ type TokenResponse = {
 };
 
 export type RegisterData = {
-    name: string;
     nickname: string;
-    locality: string;
     password: string;
     bio?: string;
 };

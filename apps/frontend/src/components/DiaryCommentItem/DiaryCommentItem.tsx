@@ -18,6 +18,8 @@ import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import UserLink from "../UserLink/UserLink";
 
+import { linkifyText } from "../../utils/linkifyText";
+
 import { formatDate } from "../../utils/formatDate";
 
 type Props = {
@@ -142,7 +144,7 @@ export default function DiaryCommentItem({
                     ) : (
                         <>
                             <p className="diary-comments__text">
-                                {comment.text}
+                                {linkifyText(comment.text)}
                             </p>
 
                             {

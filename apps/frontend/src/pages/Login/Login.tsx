@@ -53,42 +53,44 @@ export default function Login() {
     }
 
     return (
-        <Section title="Вход">
-            <form className="auth-form" onSubmit={handleSubmit}>
-                <Input
-                    id="login-nickname"
-                    label="Username"
-                    autoComplete="username"
-                    value={nickname}
-                    onChange={(event) => setNickname(event.target.value)}
-                />
+        <div className="auth-page">
+            <Section title="Вход">
+                <form className="auth-form" onSubmit={handleSubmit}>
+                    <Input
+                        id="login-nickname"
+                        label="Username"
+                        autoComplete="username"
+                        value={nickname}
+                        onChange={(event) => setNickname(event.target.value)}
+                    />
 
-                <Input
-                    id="login-password"
-                    label="Пароль"
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                />
+                    <Input
+                        id="login-password"
+                        label="Пароль"
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                    />
 
-                {error && (
-                    <p className="auth-form__error" role="alert">
-                        {error}
+                    {error && (
+                        <p className="auth-form__error" role="alert">
+                            {error}
+                        </p>
+                    )}
+
+                    <ActionGroup>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? "Входим…" : "Войти"}
+                        </Button>
+                    </ActionGroup>
+
+                    <p className="auth-form__hint">
+                        Ещё нет аккаунта?{" "}
+                        <Link to="/register">Зарегистрироваться</Link>
                     </p>
-                )}
-
-                <ActionGroup>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Входим…" : "Войти"}
-                    </Button>
-                </ActionGroup>
-
-                <p className="auth-form__hint">
-                    Ещё нет аккаунта?{" "}
-                    <Link to="/register">Зарегистрироваться</Link>
-                </p>
-            </form>
-        </Section>
+                </form>
+            </Section>
+        </div>
     );
 }

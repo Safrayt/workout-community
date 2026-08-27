@@ -1,5 +1,3 @@
-import type { WorkoutEntry } from "../types/workoutEntry";
-import type { DiaryNote } from "../types/diaryNote";
 import type { DiaryRecord } from "../types/diaryRecord";
 import type { Playground } from "../types/playground";
 import type { DiaryFilters } from "../types/diaryFilters";
@@ -113,6 +111,28 @@ export function getEntryCountsByDate(
 }
 
 /**
+ * Площадки, где есть хотя бы одна тренировка (не только заметки) —
+ * определяет цвет метки на карте "География": зелёный для площадок
+ * с тренировкой, жёлтый для площадок, отмеченных только в заметках
+ * (см. DiaryMap.tsx).
+ */
+export function getWorkoutPlaygroundIds(
+    records: DiaryRecord[]
+): Set<string> {
+    const ids = new Set<string>();
+
+    records.forEach((record) => {
+        const playgroundId = record.data.playgroundId;
+
+        if (playgroundId && record.type === "workout") {
+            ids.add(playgroundId);
+        }
+    });
+
+    return ids;
+}
+
+/**
  * Только те площадки, с которыми реально связана хотя бы одна
  * запись пользователя (тренировка или заметка) — не все площадки
  * платформы (UX-DIARY §7; UX-DIARY-V2 §11).
@@ -129,46 +149,5 @@ export function getPlaygroundsWithEntries(
 
     return playgrounds.filter(
         (playground) => usedIds.has(playground.id)
-    );
-}
-
-/**
- * Записи (обоих типов) пользователя, связанные с конкретной
- * площадкой — используется на странице площадки, "Мои записи"
- * (UX-DIARY-V2 §14).
- */
-export function getRecordsForPlayground(
-    entries: WorkoutEntry[],
-    notes: DiaryNote[],
-    userId: string,
-    playgroundId: string
-): DiaryRecord[] {
-    const matchingEntries = entries.filter(
-        (entry) =>
-            entry.userId === userId &&
-            entry.playgroundId === playgroundId
-    );
-
-    const matchingNotes = notes.filter(
-        (note) =>
-            note.userId === userId &&
-            note.playgroundId === playgroundId
-    );
-
-    return [
-        ...matchingEntries.map((entry) => ({
-            type: "workout" as const,
-            date: entry.date,
-            createdAt: entry.createdAt,
-            data: entry,
-        })),
-        ...matchingNotes.map((note) => ({
-            type: "note" as const,
-            date: note.date,
-            createdAt: note.createdAt,
-            data: note,
-        })),
-    ].sort(
-        (a, b) => b.date.localeCompare(a.date)
     );
 }

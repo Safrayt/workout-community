@@ -29,3 +29,30 @@
 .diary-record-type-badge--note .diary-record-type-badge__dot {
     background: #b5762b;
 }
+
+/*
+ * Системные записи ленты (создано мероприятие / новая площадка) —
+ * отдельные цвета, чтобы визуально не путались с личными записями
+ * дневника (тренировка/заметка) в общей ленте Главной.
+ */
+.diary-record-type-badge--event_created {
+    color: #6b4fbb;
+}
+
+.diary-record-type-badge--event_created .diary-record-type-badge__dot {
+    background: #6b4fbb;
+}
+
+/*
+ * "Новая площадка" использует светло-зелёный (не совпадающий с
+ * тёмно-зелёным цветом "Тренировки" — UX-документ §11: цвета типов
+ * должны быть визуально различимы, чтобы не путать личную запись
+ * дневника с системным оповещением).
+ */
+.diary-record-type-badge--playground_created {
+    color: #4caf50;
+}
+
+.diary-record-type-badge--playground_created .diary-record-type-badge__dot {
+    background: #4caf50;
+}

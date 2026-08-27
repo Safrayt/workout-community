@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 
 import "../../styles/components/playground-reviews.css";
 
@@ -27,7 +28,14 @@ type Props = {
 export default function PlaygroundReviews({
     playgroundId,
 }: Props) {
-    const { reviews } = useReviews();
+    const { reviews, refreshReviews } = useReviews();
+
+    useEffect(() => {
+        refreshReviews(playgroundId).catch((error: unknown) => {
+            console.error("Не удалось загрузить отзывы:", error);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playgroundId]);
 
     const { getUserById } = useUserDirectory();
 

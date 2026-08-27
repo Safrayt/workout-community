@@ -1,5 +1,7 @@
 import "../../styles/components/workout-entry-content.css";
 
+import { linkifyText } from "../../utils/linkifyText";
+
 type Props = {
 
     description?: string;
@@ -13,6 +15,9 @@ type Props = {
  * комфортный текст, увеличенный межстрочный интервал, ограниченная
  * ширина строки. Если описания нет — блок не рендерится вовсе,
  * без подписи "Описание:" и пустого места под ней (§13).
+ *
+ * Ссылки в тексте (http://, https://, www.) автоматически становятся
+ * кликабельными — см. linkifyText.
  */
 export default function WorkoutEntryContent({
     description,
@@ -25,7 +30,7 @@ export default function WorkoutEntryContent({
     return (
 
         <div className="workout-entry-content">
-            {description}
+            {linkifyText(description)}
         </div>
 
     );

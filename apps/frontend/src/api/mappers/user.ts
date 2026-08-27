@@ -11,9 +11,7 @@ import type { PrivacySettings } from "../../types/privacySettings";
  */
 export type ApiUser = {
     id: number;
-    name: string;
     nickname: string;
-    locality: string;
     bio: string;
     avatar_url: string | null;
     experience: number;
@@ -59,9 +57,7 @@ export function mapApiUserToUser(apiUser: ApiUser): User {
 
     return {
         id: String(apiUser.id),
-        name: apiUser.name,
         nickname: apiUser.nickname,
-        locality: apiUser.locality,
         bio: apiUser.bio,
         avatarUrl: apiUser.avatar_url ?? undefined,
         experience: apiUser.experience,
@@ -83,8 +79,6 @@ export function mapUserPatchToApi(
 ): Record<string, unknown> {
     const apiPatch: Record<string, unknown> = {};
 
-    if (patch.name !== undefined) apiPatch.name = patch.name;
-    if (patch.locality !== undefined) apiPatch.locality = patch.locality;
     if (patch.bio !== undefined) apiPatch.bio = patch.bio;
 
     if (patch.avatarUrl !== undefined) {

@@ -8,6 +8,7 @@ from app.auth import get_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
+from app.models_event import Event
 from app.models_playground import (
     Playground,
     PlaygroundCreate,
@@ -19,6 +20,8 @@ from app.models_playground import (
     PlaygroundRead,
     PlaygroundUpdate,
 )
+from app.models_review import PlaygroundReview
+from app.models_social import PlaygroundFavorite
 
 router = APIRouter(prefix="/playgrounds", tags=["playgrounds"])
 
@@ -342,9 +345,51 @@ def delete_playground(
     """
     Удаляет площадку. Только создатель площадки может это делать —
     иначе 403 Forbidden.
+
+    Площадку с привязанными мероприятиями удалить нельзя (400) —
+    иначе мероприятие осталось бы ссылаться на несуществующую
+    площадку. Фото и записи истории площадки удаляются каскадом
+    (см. cascade в models_playground.Playground), но файлы фото на
+    диске каскад не трогает — их удаляем здесь сами. Отзывы и
+    отметки "в избранном" не имеют ORM-связи с Playground, поэтому
+    тоже удаляются здесь вручную, иначе остались бы в базе с
+    playground_id, указывающим на уже удалённую площадку.
     """
     playground = _get_playground_or_404(playground_id, session)
     _ensure_is_owner(playground, current_user)
+
+    has_events = session.exec(
+        select(Event).where(Event.playground_id == playground_id)
+    ).first()
+
+    if has_events is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Нельзя удалить площадку, для которой уже созданы "
+                "мероприятия. Сначала удалите или перенесите эти "
+                "мероприятия на другую площадку."
+            ),
+        )
+
+    for photo in playground.photos:
+        delete_image(photo.url)
+
+    reviews = session.exec(
+        select(PlaygroundReview).where(
+            PlaygroundReview.playground_id == playground_id
+        )
+    ).all()
+    for review in reviews:
+        session.delete(review)
+
+    favorites = session.exec(
+        select(PlaygroundFavorite).where(
+            PlaygroundFavorite.playground_id == playground_id
+        )
+    ).all()
+    for favorite in favorites:
+        session.delete(favorite)
 
     session.delete(playground)
     session.commit()

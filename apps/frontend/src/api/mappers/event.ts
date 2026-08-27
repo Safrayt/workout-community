@@ -40,6 +40,7 @@ export function mapApiEventToEvent(apiEvent: ApiEvent): Event {
         playgroundId: String(apiEvent.playground_id),
         creatorId: String(apiEvent.creator_id),
         startDate: apiEvent.start_date,
+        createdAt: apiEvent.created_at,
         expectedParticipants: apiEvent.expected_participants,
         posterUrl: resolveMediaUrl(apiEvent.poster_url),
     };

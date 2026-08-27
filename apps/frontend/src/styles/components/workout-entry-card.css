@@ -40,8 +40,10 @@
 
 .workout-entry-card__meta {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
 
     margin: 0 0 var(--space-1);
 }
@@ -68,4 +70,23 @@
     margin: 0 0 var(--space-2);
 
     color: var(--color-text-secondary);
+
+    /*
+     * Сохраняем переносы строк из исходного текста записи (пробелы
+     * и табы внутри строк схлопываются в getCardDescriptionPreview,
+     * а сам перенос строки — нет).
+     */
+    white-space: pre-line;
+
+    /*
+     * Плашка без фото не должна становиться выше плашки с фото
+     * (фото ограничено max-height: 220px). Обрезаем текст по
+     * количеству строк — при line-height: 1.5 и font-size-base: 1rem
+     * 5 строк ≈ 120px, что заведомо меньше высоты фото с большим
+     * запасом.
+     */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
 }

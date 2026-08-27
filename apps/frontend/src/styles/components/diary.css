@@ -46,6 +46,13 @@
     }
 }
 
+.diary-tag-filter {
+    /* Фильтр по тегам — на отдельной строке, а не в общем ряду с
+       фильтрами по типу/площадке/дате: тегов может быть много, и
+       им нужна вся ширина, а не одна колонка сетки. */
+    grid-column: 1 / -1;
+}
+
 .workout-entries-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -85,4 +92,15 @@
     max-width: 420px;
 
     color: var(--color-text-secondary);
+}
+
+.diary-playground-filter-readonly {
+    /* Не поле ввода, а просто отражение того, что выбрано на карте
+       "География" — специально приглушено и без курсора-указателя
+       на редактируемость, чтобы не выглядело как обычный Select. */
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    background: var(--color-background);
+    cursor: default;
 }

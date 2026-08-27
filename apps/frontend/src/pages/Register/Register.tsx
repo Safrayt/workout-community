@@ -17,20 +17,16 @@ export default function Register() {
     const { register } = useAuth();
     const navigate = useNavigate();
 
-    const [name, setName] = useState("");
     const [nickname, setNickname] = useState("");
-    const [locality, setLocality] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     function validate(): string | null {
-        if (!name.trim()) return "Введите имя.";
         if (!nickname.trim()) return "Введите username.";
         if (!/^[a-zA-Z0-9_]+$/.test(nickname.trim())) {
             return "Username может содержать только латинские буквы, цифры и подчёркивание.";
         }
-        if (!locality.trim()) return "Укажите город.";
         if (password.length < MIN_PASSWORD_LENGTH) {
             return `Пароль должен быть не короче ${MIN_PASSWORD_LENGTH} символов.`;
         }
@@ -53,9 +49,7 @@ export default function Register() {
 
         try {
             await register({
-                name: name.trim(),
                 nickname: nickname.trim(),
-                locality: locality.trim(),
                 password,
             });
             navigate("/", { replace: true });
@@ -71,57 +65,45 @@ export default function Register() {
     }
 
     return (
-        <Section title="Регистрация">
-            <form className="auth-form" onSubmit={handleSubmit}>
-                <Input
-                    id="register-name"
-                    label="Имя"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                />
+        <div className="auth-page">
+            <Section title="Регистрация">
+                <form className="auth-form" onSubmit={handleSubmit}>
+                    <Input
+                        id="register-nickname"
+                        label="Username"
+                        autoComplete="username"
+                        value={nickname}
+                        onChange={(event) => setNickname(event.target.value)}
+                    />
 
-                <Input
-                    id="register-nickname"
-                    label="Username"
-                    autoComplete="username"
-                    value={nickname}
-                    onChange={(event) => setNickname(event.target.value)}
-                />
+                    <Input
+                        id="register-password"
+                        label="Пароль"
+                        type="password"
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                    />
 
-                <Input
-                    id="register-locality"
-                    label="Город"
-                    autoComplete="address-level2"
-                    value={locality}
-                    onChange={(event) => setLocality(event.target.value)}
-                />
+                    {error && (
+                        <p className="auth-form__error" role="alert">
+                            {error}
+                        </p>
+                    )}
 
-                <Input
-                    id="register-password"
-                    label="Пароль"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                />
+                    <ActionGroup>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting
+                                ? "Создаём аккаунт…"
+                                : "Зарегистрироваться"}
+                        </Button>
+                    </ActionGroup>
 
-                {error && (
-                    <p className="auth-form__error" role="alert">
-                        {error}
+                    <p className="auth-form__hint">
+                        Уже есть аккаунт? <Link to="/login">Войти</Link>
                     </p>
-                )}
-
-                <ActionGroup>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Создаём аккаунт…" : "Зарегистрироваться"}
-                    </Button>
-                </ActionGroup>
-
-                <p className="auth-form__hint">
-                    Уже есть аккаунт? <Link to="/login">Войти</Link>
-                </p>
-            </form>
-        </Section>
+                </form>
+            </Section>
+        </div>
     );
 }
