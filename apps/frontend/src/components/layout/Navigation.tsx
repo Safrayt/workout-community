@@ -21,6 +21,8 @@ export default function Navigation() {
 
             <NavLink to="/diary">Дневник</NavLink>
 
+            <NavLink to="/complexes">Комплексы</NavLink>
+
             <NavLink to="/profile">Профиль</NavLink>
 
             <button

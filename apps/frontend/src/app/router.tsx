@@ -34,6 +34,8 @@ import WriteReview from "../pages/WriteReview/WriteReview";
 import PlaygroundEventsList from "../pages/PlaygroundEventsList/PlaygroundEventsList";
 import Achievements from "../pages/Achievements/Achievements";
 import PersonalTags from "../pages/PersonalTags/PersonalTags";
+import Complexes from "../pages/Complexes/Complexes";
+import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
 
 export const router = createBrowserRouter([
   {
@@ -179,6 +181,14 @@ export const router = createBrowserRouter([
             {
           path: "playgrounds/add",
           element: <AddPlayground />,
+      },
+      {
+          path: "complexes",
+          element: <Complexes />,
+      },
+      {
+          path: "complexes/:id",
+          element: <ComplexDetails />,
       },
     ],
   },

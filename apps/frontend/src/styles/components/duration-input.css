@@ -1,0 +1,16 @@
+.duration-input {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.duration-input__label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.duration-input__fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 90px));
+    gap: var(--space-3);
+}

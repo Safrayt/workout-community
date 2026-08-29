@@ -1,0 +1,31 @@
+.complex-scheme {
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+}
+
+.complex-scheme__steps {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin: 0 0 var(--space-2) 0;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.complex-scheme__step {
+    display: inline-block;
+}
+
+.complex-scheme__arrow {
+    color: var(--color-text-secondary);
+}
+
+.complex-scheme__display {
+    font-size: var(--font-size-base);
+    margin: 0 0 var(--space-2) 0;
+}
+
+.complex-scheme__total {
+    color: var(--color-text-secondary);
+    margin: 0;
+}

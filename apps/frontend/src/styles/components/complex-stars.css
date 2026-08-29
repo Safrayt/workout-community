@@ -1,0 +1,19 @@
+.complex-stars {
+    display: inline-flex;
+    gap: 2px;
+    vertical-align: middle;
+}
+
+.complex-stars__star {
+    color: var(--color-border);
+    font-size: var(--font-size-lg);
+    line-height: 1;
+}
+
+.complex-stars--sm .complex-stars__star {
+    font-size: var(--font-size-base);
+}
+
+.complex-stars__star--filled {
+    color: var(--color-warning);
+}

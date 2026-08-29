@@ -8,6 +8,7 @@ from app.auth import get_current_user, get_optional_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
+from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
 from app.models_diary import (
     Comment,
     CommentCreate,
@@ -253,6 +254,12 @@ def delete_workout_entry(
         session.delete(photo)
 
     _delete_comments_for_record(entry_id, DiaryRecordType.workout, session)
+
+    # Выполнения комплексов, подтверждённые этой записью, не
+    # удаляются вместе с ней — только теряют подтверждающую ссылку
+    # (см. app/routers/complexes.py:clear_diary_link и п.27
+    # UX-документа по комплексам).
+    _clear_complex_diary_link(entry_id, session)
 
     session.delete(entry)
     session.commit()

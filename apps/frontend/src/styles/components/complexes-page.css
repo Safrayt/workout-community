@@ -1,0 +1,26 @@
+.complexes-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.complexes-page__title {
+    margin: 0;
+}
+
+.complexes-page__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+.complexes-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.complexes-page__loading,
+.complexes-page__empty {
+    color: var(--color-text-secondary);
+}

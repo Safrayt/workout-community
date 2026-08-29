@@ -15,6 +15,7 @@ import WorkoutEntryPlaygroundPreview from "../../components/WorkoutEntryPlaygrou
 import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEntryActions";
 import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
 import DiaryComments from "../../components/DiaryComments/DiaryComments";
+import WorkoutEntryComplexes from "../../components/WorkoutEntryComplexes/WorkoutEntryComplexes";
 
 import type {
     NewWorkoutEntry,
@@ -201,6 +202,12 @@ export default function WorkoutEntryDetails() {
             {/* Второстепенный блок тегов (UX §14–15) */}
             <WorkoutEntryTags
                 tags={entry.tags}
+            />
+
+            {/* Сгенерированный блок выполненных комплексов (см. UX-документ
+                «Система стандартных комплексов», §23) */}
+            <WorkoutEntryComplexes
+                entryId={entry.id}
             />
 
             {/* Компактный preview площадки (UX §16–18, §27) */}

@@ -1,0 +1,43 @@
+.complex-movement-variants {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.complex-movement-variants__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.complex-movement-variants__name {
+    font-weight: 600;
+    margin: 0;
+}
+
+.complex-movement-variants__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.complex-movement-variants__option {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.complex-movement-variants__option:hover {
+    border-color: var(--color-primary);
+}
+
+.complex-movement-variants__option--selected {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+}

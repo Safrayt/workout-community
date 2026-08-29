@@ -1,0 +1,58 @@
+.diary-entry-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.diary-entry-picker__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.diary-entry-picker__empty {
+    color: var(--color-text-secondary);
+}
+
+.diary-entry-picker__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    text-align: left;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.diary-entry-picker__item:hover {
+    border-color: var(--color-primary);
+}
+
+.diary-entry-picker__item--selected {
+    border-color: var(--color-primary);
+    background: var(--color-background);
+}
+
+.diary-entry-picker__date {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.diary-entry-picker__title {
+    font-weight: 600;
+}
+
+.diary-entry-picker__description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}

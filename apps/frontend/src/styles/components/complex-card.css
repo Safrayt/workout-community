@@ -1,0 +1,57 @@
+.complex-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+}
+
+.complex-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.complex-card__name {
+    font-size: var(--font-size-lg);
+    margin: 0;
+}
+
+.complex-card__movements {
+    color: var(--color-text);
+    margin: 0;
+    font-weight: 500;
+}
+
+.complex-card__exercise {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.complex-card__variants {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.complex-card__status {
+    margin-top: var(--space-2);
+}
+
+.complex-card__result {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+.complex-card__not-done {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.complex-card__link {
+    text-decoration: none;
+    margin-top: var(--space-2);
+}
