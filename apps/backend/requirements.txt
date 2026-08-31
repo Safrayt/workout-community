@@ -1,7 +1,8 @@
-fastapi==0.115.6
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
 sqlmodel==0.0.22
-python-dotenv==1.0.1
+python-dotenv==1.2.3
 bcrypt==4.2.1
-pyjwt==2.10.1
-python-multipart==0.0.20
+pyjwt==2.13.0
+python-multipart==0.0.32
+Pillow==12.3.0

@@ -5,9 +5,20 @@ from sqlmodel import Session, select
 from app.auth import create_access_token, hash_password, verify_password
 from app.database import get_session
 from app.models import User, UserCreate, UserRead
+from app.rate_limit import RateLimiter
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Ограничения подобраны так, чтобы не мешать обычному использованию
+# (в том числе нескольким людям за одним NAT/офисным IP), но заметно
+# затруднить автоматический перебор пароля или массовую регистрацию.
+_login_rate_limit = RateLimiter(max_requests=10, window_seconds=300)
+_register_rate_limit = RateLimiter(max_requests=5, window_seconds=600)
+
+# Используется в login(), когда пользователь с таким nickname не
+# найден — см. комментарий там про тайминг-атаку.
+_DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-constant-time-check")
 
 
 class TokenResponse(BaseModel):
@@ -21,7 +32,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-@router.post("/register", response_model=TokenResponse)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    dependencies=[Depends(_register_rate_limit)],
+)
 def register(
     user_data: UserCreate,
     session: Session = Depends(get_session),
@@ -59,7 +74,11 @@ def register(
     return TokenResponse(access_token=access_token)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(_login_rate_limit)],
+)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
@@ -79,10 +98,16 @@ def login(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if user is None:
-        raise invalid_credentials
+    # Пароль проверяем даже для несуществующего пользователя (против
+    # заведомо неверного хеша-заглушки) — иначе ответ для
+    # "нет такого nickname" стабильно приходит быстрее, чем для
+    # "nickname есть, пароль неверный", и по разнице во времени
+    # ответа можно перебором узнавать существующие никнеймы, даже
+    # не имея доступа к паролям.
+    password_hash = user.password_hash if user else _DUMMY_PASSWORD_HASH
+    password_is_valid = verify_password(form_data.password, password_hash)
 
-    if not verify_password(form_data.password, user.password_hash):
+    if user is None or not password_is_valid:
         raise invalid_credentials
 
     access_token = create_access_token(user_id=user.id)

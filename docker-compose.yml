@@ -1,0 +1,52 @@
+# Запуск всего проекта одной командой: docker compose up -d --build
+#
+# Что происходит:
+# - собираются два образа (backend и frontend) по их Dockerfile;
+# - backend слушает порт 8000 только "внутри" (наружу не торчит —
+#   к нему обращаются либо frontend/Caddy, либо вы сами через
+#   docker compose exec, в интернет напрямую он не смотрит);
+# - frontend (Caddy) торчит наружу на портах 80 и 443 — это
+#   единственная дверь в приложение снаружи;
+# - данные (база данных и загруженные фото) хранятся в именованных
+#   volumes ("backend_data", "backend_uploads") — они переживают
+#   `docker compose down` и пересборку образов; удаляются только
+#   явной командой `docker compose down -v`.
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      SECRET_KEY: ${SECRET_KEY:?Укажите SECRET_KEY в .env — см. .env.example}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
+      DATABASE_URL: sqlite:////app/data/app.db
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      # Caddy хранит сюда полученные HTTPS-сертификаты, чтобы не
+      # перезапрашивать их у Let's Encrypt при каждом перезапуске
+      # контейнера (у Let's Encrypt есть лимит запросов в неделю).
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  backend_data:
+  backend_uploads:
+  caddy_data:
+  caddy_config:

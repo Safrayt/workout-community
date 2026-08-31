@@ -28,6 +28,7 @@ export type ApiUser = {
     achievements_visible: boolean;
     events_visible: boolean;
     subscriptions_visible: boolean;
+    is_admin: boolean;
 };
 
 function omitUndefined(
@@ -64,6 +65,7 @@ export function mapApiUserToUser(apiUser: ApiUser): User {
         createdAt: apiUser.created_at,
         socialLinks,
         privacySettings,
+        isAdmin: apiUser.is_admin,
     };
 }
 

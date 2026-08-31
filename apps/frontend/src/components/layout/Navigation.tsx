@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/CurrentUserContext";
 
 export default function Navigation() {
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     function handleLogout() {
@@ -25,13 +25,24 @@ export default function Navigation() {
 
             <NavLink to="/profile">Профиль</NavLink>
 
-            <button
-                type="button"
-                className="app-navigation__logout"
-                onClick={handleLogout}
-            >
-                Выйти
-            </button>
+            {
+                user ? (
+                    <button
+                        type="button"
+                        className="app-navigation__logout"
+                        onClick={handleLogout}
+                    >
+                        Выйти
+                    </button>
+                ) : (
+                    <NavLink
+                        to="/login"
+                        className="app-navigation__login"
+                    >
+                        Войти
+                    </NavLink>
+                )
+            }
         </nav>
     );
 }

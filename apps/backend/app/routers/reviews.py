@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from app.auth import get_current_user
+from app.auth import ensure_owner_or_admin, get_current_user
 from app.database import get_session
 from app.models import User
 from app.models_playground import Playground
@@ -127,11 +127,15 @@ def delete_review(
 ) -> None:
     review = _get_review_or_404(review_id, session)
 
-    if review.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Удалять этот отзыв может только его автор",
-        )
+    # Администратору можно удалить любой отзыв (модерация) — но не
+    # редактировать чужой (см. update_review выше, там проверка не
+    # тронута): выдавать чужой текст за отредактированный от чужого
+    # имени не должно быть можно даже модератору.
+    ensure_owner_or_admin(
+        review.user_id,
+        current_user,
+        detail="Удалять этот отзыв может только его автор",
+    )
 
     session.delete(review)
     session.commit()

@@ -82,7 +82,7 @@ export default function EventDetails() {
     }
 
     const isOwner =
-        event.creatorId === currentUser.id;
+        event.creatorId === currentUser.id || currentUser.isAdmin;
 
     const isUpcoming =
         getEventStatus(event) === "upcoming";

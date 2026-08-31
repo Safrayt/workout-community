@@ -22,6 +22,8 @@ __pycache__/
 .venv/
 venv/
 .env
+apps/backend/.env.example
+apps/frontend/.env.example
 
 # ==========================
 # Node.js

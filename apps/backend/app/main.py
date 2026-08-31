@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.config import ALLOWED_HOSTS, CORS_ORIGINS, ENABLE_DOCS
 from app.database import create_db_and_tables
 from app.files import UPLOAD_ROOT, ensure_upload_dirs
 from app.routers import (
@@ -23,20 +25,48 @@ ensure_upload_dirs()
 app = FastAPI(
     title="Workout Community API",
     version="0.1.0",
+    # На проде по умолчанию выключено (см. ENABLE_DOCS в config.py) —
+    # незачем отдавать всем желающим полную карту API.
+    docs_url="/docs" if ENABLE_DOCS else None,
+    redoc_url="/redoc" if ENABLE_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_DOCS else None,
 )
 
-# Разрешаем фронтенду (Vite dev-server) обращаться к API из браузера.
-# Список адресов можно будет расширить, когда появится продакшен-домен.
+# Защита от подмены заголовка Host (например, для отравления кэша
+# или ссылок для сброса пароля, если такие появятся в будущем).
+# В разработке ALLOWED_HOSTS по умолчанию "*" — без ограничений.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+
+# Разрешаем фронтенду обращаться к API из браузера. Список адресов
+# берётся из переменной окружения CORS_ORIGINS (см. config.py) —
+# на локальной разработке это Vite dev-server, на проде — реальный
+# домен(ы), заданные при деплое.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """
+    Базовые заголовки безопасности уровня приложения — как
+    дополнительный слой поверх того, что при деплое настраивается в
+    nginx (HSTS туда и относится: имеет смысл только когда HTTPS уже
+    гарантированно работает, поэтому здесь не выставляется).
+    """
+    response = await call_next(request)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+    return response
+
 
 # Отдаёт загруженные файлы напрямую по ссылке вида
 # http://127.0.0.1:8000/uploads/playgrounds/<файл>.jpg

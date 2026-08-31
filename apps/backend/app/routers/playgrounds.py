@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
-from app.auth import get_current_user
+from app.auth import ensure_owner_or_admin, get_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
@@ -67,11 +67,12 @@ def _get_playground_or_404(
 
 
 def _ensure_is_owner(playground: Playground, current_user: User) -> None:
-    if playground.creator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Редактировать эту площадку может только её создатель",
-        )
+    # Администратору можно всегда — см. ensure_owner_or_admin в app/auth.py.
+    ensure_owner_or_admin(
+        playground.creator_id,
+        current_user,
+        detail="Редактировать эту площадку может только её создатель",
+    )
 
 
 def _to_playground_read(

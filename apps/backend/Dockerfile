@@ -1,0 +1,30 @@
+# Образ для бэкенда (FastAPI). Собирается один раз, дальше просто
+# переиспользуется — на любом сервере с Docker будет работать
+# одинаково, без ручной установки Python и зависимостей.
+
+FROM python:3.12-slim
+
+# Не даём Python писать .pyc-файлы и буферизовать вывод — так логи
+# сразу видно через `docker compose logs`, а не после накопления буфера.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Сначала копируем только requirements.txt и ставим зависимости —
+# Docker кеширует этот слой, и при изменении только кода приложения
+# (без изменения зависимостей) пересборка образа займёт секунды,
+# а не минуты на переустановку всех пакетов заново.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Теперь копируем код приложения.
+COPY app ./app
+
+# Папки для данных, которые должны сохраняться между перезапусками
+# контейнера (см. docker-compose.yml — сюда подключаются volumes).
+RUN mkdir -p /app/data /app/uploads
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

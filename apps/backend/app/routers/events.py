@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
-from app.auth import get_current_user
+from app.auth import ensure_owner_or_admin, get_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
@@ -29,11 +29,12 @@ def _get_event_or_404(event_id: int, session: Session) -> Event:
 
 
 def _ensure_is_owner(event: Event, current_user: User) -> None:
-    if event.creator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Изменять это мероприятие может только его создатель",
-        )
+    # Администратору можно всегда — см. ensure_owner_or_admin в app/auth.py.
+    ensure_owner_or_admin(
+        event.creator_id,
+        current_user,
+        detail="Изменять это мероприятие может только его создатель",
+    )
 
 
 def _count_registered_participants(event_id: int, session: Session) -> int:

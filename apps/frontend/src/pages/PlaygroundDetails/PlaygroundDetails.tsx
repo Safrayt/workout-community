@@ -108,7 +108,7 @@ export default function PlaygroundDetails() {
         );
 
     const isOwner =
-        playground.creatorId === currentUser.id;
+        playground.creatorId === currentUser.id || currentUser.isAdmin;
 
     async function handleDelete() {
         if (!playground) {

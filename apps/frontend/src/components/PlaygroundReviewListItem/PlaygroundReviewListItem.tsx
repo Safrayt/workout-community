@@ -38,6 +38,13 @@ export default function PlaygroundReviewListItem({
 
     const isOwnReview = review.userId === currentUser.id;
 
+    // Редактировать может только автор (бэкенд тоже это проверяет —
+    // см. update_review в app/routers/reviews.py), а вот удалить —
+    // ещё и администратор, в рамках модерации (см. delete_review там
+    // же и ensure_owner_or_admin в app/auth.py).
+    const canEdit = isOwnReview;
+    const canDelete = isOwnReview || currentUser.isAdmin;
+
     const [isEditing, setIsEditing] = useState(false);
 
     const [text, setText] = useState(review.text);
@@ -150,24 +157,32 @@ export default function PlaygroundReviewListItem({
                             </p>
 
                             {
-                                isOwnReview && (
+                                (canEdit || canDelete) && (
 
                                     <div className="playground-reviews-list__owner-actions">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={handleStartEdit}
-                                        >
-                                            Редактировать
-                                        </Button>
+                                        {
+                                            canEdit && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={handleStartEdit}
+                                                >
+                                                    Редактировать
+                                                </Button>
+                                            )
+                                        }
 
-                                        <Button
-                                            type="button"
-                                            variant="danger"
-                                            onClick={handleDelete}
-                                        >
-                                            Удалить
-                                        </Button>
+                                        {
+                                            canDelete && (
+                                                <Button
+                                                    type="button"
+                                                    variant="danger"
+                                                    onClick={handleDelete}
+                                                >
+                                                    Удалить
+                                                </Button>
+                                            )
+                                        }
                                     </div>
 
                                 )

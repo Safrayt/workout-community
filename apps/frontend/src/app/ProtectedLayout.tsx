@@ -26,6 +26,15 @@ import { UserDirectoryProvider } from "../context/UserDirectoryContext";
  * верху дерева, они бы монтировались и для /login тоже, где
  * пользователя ещё нет.
  */
+/**
+ * Пути, доступные без входа в систему. Сейчас это только карта и
+ * список площадок — единственная страница, для которой это явно
+ * попросили; бэкенд для GET /playgrounds и без токена отдаёт данные
+ * (см. routers/playgrounds.py). Всё остальное (детали площадки,
+ * добавление, редактирование и т.д.) по-прежнему требует входа.
+ */
+const PUBLIC_PATHS = ["/playgrounds"];
+
 export default function ProtectedLayout() {
     const { user, isLoading } = useAuth();
     const location = useLocation();
@@ -39,6 +48,19 @@ export default function ProtectedLayout() {
     }
 
     if (!user) {
+        if (PUBLIC_PATHS.includes(location.pathname)) {
+            // Гостю показываем карту площадок в обычном макете
+            // (шапка/навигация не зависят от текущего пользователя),
+            // но без остальных провайдеров — они рассчитаны на
+            // вошедшего пользователя и здесь не нужны: сама
+            // страница Playgrounds использует только usePlaygrounds().
+            return (
+                <PlaygroundProvider>
+                    <Layout />
+                </PlaygroundProvider>
+            );
+        }
+
         return (
             <Navigate
                 to="/login"

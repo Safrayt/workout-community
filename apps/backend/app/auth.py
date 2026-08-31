@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -8,17 +7,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
 
+from app.config import SECRET_KEY
 from app.database import get_session
 from app.models import User
 
-# Секретный ключ, которым подписываются токены. В разработке подходит
-# значение по умолчанию, но в проде ОБЯЗАТЕЛЬНО задать свой через
-# переменную окружения SECRET_KEY — иначе кто угодно, кто знает этот
-# ключ, сможет подделать токен от имени любого пользователя.
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "dev-only-secret-change-me",
-)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # токен действует 24 часа
 
@@ -121,3 +113,27 @@ def get_optional_current_user(
         return None
 
     return session.get(User, int(user_id))
+
+
+def ensure_owner_or_admin(
+    owner_id: int,
+    current_user: User,
+    detail: str,
+) -> None:
+    """
+    Общая проверка для эндпоинтов вида "менять/удалять может только
+    автор" (площадки, мероприятия, отзывы и т.п.) — с добавлением
+    того, что администратору (is_admin) можно всегда, независимо от
+    того, кто автор. Используется вместо точечных сравнений
+    `X.creator_id != current_user.id` в роутерах, чтобы обход для
+    админа не пришлось задавать в каждом месте отдельно и не забыть
+    где-то одном.
+    """
+    if current_user.is_admin:
+        return
+
+    if owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail,
+        )

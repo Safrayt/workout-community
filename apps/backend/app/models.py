@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
 
@@ -54,6 +55,15 @@ class User(UserBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
+    # Модератор портала: может редактировать/удалять чужие площадки
+    # и мероприятия, удалять чужие отзывы (см. app/auth.py,
+    # ensure_owner_or_admin). Намеренно нет ни в UserCreate, ни в
+    # UserUpdate — этим полем нельзя управлять через API вообще,
+    # только напрямую в базе (см. DEPLOY.md, "Как назначить
+    # администратора"), чтобы никто не мог назначить себя админом
+    # через обычный запрос на регистрацию/обновление профиля.
+    is_admin: bool = False
+
 
 class UserCreate(UserBase):
     """
@@ -63,6 +73,34 @@ class UserCreate(UserBase):
     """
 
     password: str
+
+    @field_validator("nickname")
+    @classmethod
+    def _validate_nickname(cls, value: str) -> str:
+        trimmed = value.strip()
+
+        if len(trimmed) < 2:
+            raise ValueError("Nickname должен содержать не менее 2 символов")
+
+        if len(trimmed) > 32:
+            raise ValueError("Nickname должен содержать не более 32 символов")
+
+        return trimmed
+
+    @field_validator("password")
+    @classmethod
+    def _validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Пароль должен содержать не менее 8 символов")
+
+        # bcrypt (см. hash_password в auth.py) физически не может
+        # учитывать пароль длиннее 72 байт — если не проверить здесь,
+        # при хешировании упадёт с необработанным исключением вместо
+        # понятной ошибки 422.
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Пароль слишком длинный (максимум 72 байта)")
+
+        return value
 
 
 class UserUpdate(SQLModel):
@@ -101,3 +139,7 @@ class UserRead(UserBase):
     id: int
     experience: int
     created_at: datetime
+    # Можно отдавать клиенту (в отличие от записи через API) — так
+    # фронтенд знает, показывать ли этому пользователю кнопки
+    # модерации на чужом контенте (см. isAdmin в types/user.ts).
+    is_admin: bool
