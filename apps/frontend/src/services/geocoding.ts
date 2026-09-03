@@ -1,68 +1,23 @@
+import { apiFetch, buildQuery } from "../api/client";
+
 export type ReverseGeocodeResult = {
     locality: string;
 
     address: string;
 };
 
-function buildShortAddress(
-    address: Record<string, string | undefined>
-) {
-    const district =
-        address.suburb ??
-        address.city_district ??
-        address.district ??
-        address.neighbourhood;
-
-    return [
-        district,
-        address.road,
-        address.house_number,
-    ]
-        .filter(
-            (part): part is string => Boolean(part)
-        )
-        .join(", ");
-}
-
+/**
+ * Раньше стучался напрямую в nominatim.openstreetmap.org из браузера.
+ * Теперь идёт через наш бэкенд (app/routers/external.py), который
+ * добавляет корректный User-Agent (Nominatim требует его по своей
+ * usage policy) и кэширует результат на 7 дней по координатам — адрес
+ * по ним практически никогда не меняется. См. аудит "сырых мест".
+ */
 export async function reverseGeocode(
     latitude: number,
     longitude: number
 ): Promise<ReverseGeocodeResult> {
-
-    const url =
-        `https://nominatim.openstreetmap.org/reverse` +
-        `?lat=${latitude}` +
-        `&lon=${longitude}` +
-        `&format=jsonv2`;
-
-    const response =
-        await fetch(
-            url,
-            {
-                headers: {
-                    Accept: "application/json",
-                },
-            }
-        );
-
-    if (!response.ok) {
-        throw new Error(
-            "Unable to load address."
-        );
-    }
-
-    const data =
-        await response.json();
-
-    return {
-        locality:
-            data.address.city ??
-            data.address.town ??
-            data.address.village ??
-            data.address.hamlet ??
-            "",
-
-        address:
-            buildShortAddress(data.address ?? {}),
-    };
+    return apiFetch<ReverseGeocodeResult>(
+        `/external/geocode/reverse${buildQuery({ latitude, longitude })}`
+    );
 }

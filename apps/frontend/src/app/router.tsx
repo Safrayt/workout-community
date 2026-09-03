@@ -36,6 +36,7 @@ import Achievements from "../pages/Achievements/Achievements";
 import PersonalTags from "../pages/PersonalTags/PersonalTags";
 import Complexes from "../pages/Complexes/Complexes";
 import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
+import NotFound from "../pages/NotFound/NotFound";
 
 export const router = createBrowserRouter([
   {
@@ -190,6 +191,22 @@ export const router = createBrowserRouter([
           path: "complexes/:id",
           element: <ComplexDetails />,
       },
+      {
+          // Любой не совпавший путь внутри защищённой части сайта —
+          // так залогиненный пользователь при опечатке в URL видит
+          // 404 в привычном лэйауте (с шапкой/навигацией), а не
+          // выпадает из него.
+          path: "*",
+          element: <NotFound />,
+      },
     ],
+  },
+  {
+      // Если человек не залогинен и ошибся в URL — ProtectedLayout
+      // до рендера детей его и так редиректнёт на /login, так что
+      // этот верхнеуровневый catch-all нужен только для путей,
+      // которые не подпадают вообще ни под один родительский маршрут.
+      path: "*",
+      element: <NotFound />,
   },
 ]);

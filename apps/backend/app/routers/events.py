@@ -168,8 +168,28 @@ def delete_event(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> None:
+    """
+    В отличие от Playground (см. delete_playground в
+    routers/playgrounds.py), мероприятие никак не блокирует удаление
+    из-за наличия регистраций — участие в мероприятии не обязано
+    "переживать" отмену самого мероприятия. Но регистрации при этом
+    нужно удалить явно ДО удаления события: между Event и
+    EventRegistration нет ORM-связи с cascade (только обычные
+    foreign_key-поля), а PostgreSQL (в отличие от SQLite по
+    умолчанию) реально проверяет внешние ключи — без этой явной
+    очистки удаление мероприятия с хотя бы одним зарегистрированным
+    участником падало бы с ошибкой нарушения внешнего ключа.
+    """
     event = _get_event_or_404(event_id, session)
     _ensure_is_owner(event, current_user)
+
+    registrations = session.exec(
+        select(EventRegistration).where(
+            EventRegistration.event_id == event_id
+        )
+    ).all()
+    for registration in registrations:
+        session.delete(registration)
 
     session.delete(event)
     session.commit()

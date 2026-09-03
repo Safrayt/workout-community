@@ -1,29 +1,60 @@
 # Запуск всего проекта одной командой: docker compose up -d --build
 #
 # Что происходит:
-# - собираются два образа (backend и frontend) по их Dockerfile;
+# - собираются два образа (backend и frontend) по их Dockerfile, плюс
+#   готовый официальный образ postgres для базы данных;
 # - backend слушает порт 8000 только "внутри" (наружу не торчит —
 #   к нему обращаются либо frontend/Caddy, либо вы сами через
-#   docker compose exec, в интернет напрямую он не смотрит);
+#   docker compose exec, в интернет напрямую он не смотрит); db (сам
+#   PostgreSQL) точно так же наружу не торчит — только backend внутри
+#   docker-сети имеет к нему доступ;
 # - frontend (Caddy) торчит наружу на портах 80 и 443 — это
 #   единственная дверь в приложение снаружи;
-# - данные (база данных и загруженные фото) хранятся в именованных
-#   volumes ("backend_data", "backend_uploads") — они переживают
-#   `docker compose down` и пересборку образов; удаляются только
-#   явной командой `docker compose down -v`.
+# - данные (база данных PostgreSQL и загруженные фото) хранятся в
+#   именованных volumes ("postgres_data", "backend_uploads") — они
+#   переживают `docker compose down` и пересборку образов; удаляются
+#   только явной командой `docker compose down -v`.
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-workout}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Укажите POSTGRES_PASSWORD в .env — см. .env.example}
+      POSTGRES_DB: ${POSTGRES_DB:-workout}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # backend ждёт, пока Postgres реально готов принимать
+      # подключения (не просто пока контейнер запущен — самому
+      # PostgreSQL нужно несколько секунд после старта, чтобы
+      # проинициализироваться), прежде чем сам начнёт стартовать —
+      # см. depends_on у backend ниже.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-workout}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: ./apps/backend
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       ENVIRONMENT: production
       SECRET_KEY: ${SECRET_KEY:?Укажите SECRET_KEY в .env — см. .env.example}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
-      DATABASE_URL: sqlite:////app/data/app.db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-workout}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-workout}
     volumes:
+      # backend_data оставлен даже после перехода на Postgres — там
+      # лежит старый файл SQLite (app.db), если вы переносили данные
+      # с него через migrate_to_postgres.py (см. DEPLOY.md). Можно
+      # ничего не удалять — он просто больше не используется
+      # приложением напрямую.
       - backend_data:/app/data
       - backend_uploads:/app/uploads
 
@@ -46,6 +77,7 @@ services:
       - caddy_config:/config
 
 volumes:
+  postgres_data:
   backend_data:
   backend_uploads:
   caddy_data:

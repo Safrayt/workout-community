@@ -21,6 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Теперь копируем код приложения.
 COPY app ./app
 
+# Одноразовый скрипт переноса данных со старой SQLite-базы на
+# PostgreSQL (см. DEPLOY.md, "Миграция на PostgreSQL") — тоже должен
+# быть внутри образа, чтобы его можно было запустить через
+# `docker compose exec backend python3 migrate_to_postgres.py`.
+COPY migrate_to_postgres.py .
+COPY delete_user.py .
+
 # Папки для данных, которые должны сохраняться между перезапусками
 # контейнера (см. docker-compose.yml — сюда подключаются volumes).
 RUN mkdir -p /app/data /app/uploads

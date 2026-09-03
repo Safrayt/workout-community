@@ -12,6 +12,7 @@ from app.routers import (
     complexes,
     diary,
     events,
+    external,
     playgrounds,
     reviews,
     social,
@@ -81,6 +82,7 @@ app.include_router(reviews.router)
 app.include_router(achievements.router)
 app.include_router(social.router)
 app.include_router(complexes.router)
+app.include_router(external.router)
 
 
 @app.on_event("startup")
