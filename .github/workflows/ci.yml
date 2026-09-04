@@ -1,0 +1,61 @@
+name: CI
+
+# На каждый push и pull request в main — так поломка видна ещё до
+# того, как код попадёт в основную ветку (а тем более на сервер).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — тесты
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Та же версия, что в apps/backend/Dockerfile — чтобы CI
+          # проверял ровно то же окружение, что реально едет в проде.
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/backend/requirements-dev.txt
+
+      - name: Установить зависимости
+        run: pip install -r requirements-dev.txt
+
+      - name: Прогнать тесты
+        run: pytest tests/ -v
+
+  frontend:
+    name: Frontend — типы и сборка
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Та же версия, что в apps/frontend/Dockerfile.
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Установить зависимости
+        run: npm ci
+
+      - name: Проверить типы и собрать production-бандл
+        # npm run build уже включает "tsc -b" перед "vite build" —
+        # ошибка типов провалит именно этот шаг, до самой сборки.
+        run: npm run build
