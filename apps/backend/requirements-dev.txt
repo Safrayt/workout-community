@@ -1,0 +1,5 @@
+# Зависимости для запуска тестов и разработки — не нужны в
+# production-образе, поэтому вынесены из requirements.txt отдельно.
+# Установка: pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+pytest==8.4.2
