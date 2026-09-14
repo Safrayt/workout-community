@@ -40,3 +40,10 @@
         align-items: center;
     }
 }
+
+.workout-entry-form__privacy-hint {
+    margin: var(--space-2) 0 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}

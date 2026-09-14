@@ -137,3 +137,18 @@ def ensure_owner_or_admin(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=detail,
         )
+
+
+def ensure_admin(current_user: User, detail: str = "Доступно только администратору") -> None:
+    """
+    Как ensure_owner_or_admin, но для ресурсов без понятия "владелец"
+    вообще — например, каталог комплексов (models_complex.py):
+    редактировать его может только администратор, а не "создатель",
+    потому что создателя у записи каталога, в отличие от площадки или
+    мероприятия, не бывает.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail,
+        )

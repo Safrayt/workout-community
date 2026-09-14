@@ -14,7 +14,15 @@
 .complex-details__header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-3);
+}
+
+.complex-details__edit-link {
+    margin-left: auto;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-decoration: underline;
 }
 
 .complex-details__name {
@@ -24,6 +32,11 @@
 .complex-details__description {
     color: var(--color-text-secondary);
     margin: 0;
+
+    /* Сохраняем переносы строк из текста, который ввёл администратор
+       в форме редактирования — иначе список из нескольких строк
+       схлопывается в одну (см. тот же приём в workout-entry-card.css). */
+    white-space: pre-line;
 }
 
 .complex-details__section {
@@ -46,6 +59,7 @@
     color: var(--color-text-secondary);
     font-weight: 600;
     margin: 0;
+    white-space: pre-line;
 }
 
 .complex-details__instructions,
@@ -53,6 +67,7 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     margin: 0;
+    white-space: pre-line;
 }
 
 .complex-details__loading,

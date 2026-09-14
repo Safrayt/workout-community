@@ -1,34 +1,28 @@
 import { useEffect, useState } from "react";
 
-import type { DiaryRecord } from "../../types/diaryRecord";
 import type { Playground } from "../../types/playground";
-import type { User } from "../../types/user";
+import type { HomeActivityMarker } from "../../types/homeActivityMarker";
 
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import ActivityMapLegend from "../ActivityMapLegend/ActivityMapLegend";
 import Button from "../ui/Button/Button";
 
-import {
-    getRecentPublicRecords,
-    getActivityMarkers,
-} from "../../utils/homeActivity";
+import { getActivityMap } from "../../api/diary";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
 import { formatTimeAgo } from "../../utils/timeAgo";
 import { pluralizeRu } from "../../utils/pluralize";
-import { useSimulatedLoad } from "../../hooks/useSimulatedLoad";
 
 import {
     HOME_ACTIVITY_MAP_COLLAPSED_KEY,
     HOME_ACTIVITY_MARKER_COLORS,
+    HOME_ACTIVITY_WINDOW_HOURS,
 } from "../../constants/home";
 
 import "../../styles/components/home-activity-map.css";
 
 type HomeActivityMapProps = {
-    records: DiaryRecord[];
     playgrounds: Playground[];
-    users: User[];
 };
 
 /**
@@ -36,11 +30,17 @@ type HomeActivityMapProps = {
  * сейчас появляется свежая активность сообщества?" — в отличие от
  * DiaryMap ("где тренировался я?"). Строится поверх общего
  * PlaygroundsMap, но со своей бизнес-логикой (UX-HOME §31).
+ *
+ * В отличие от прошлой версии, данные для карты приходят с
+ * отдельного анонимизирующего эндпоинта (GET /diary/activity-map,
+ * см. api/diary.ts) вместо агрегации уже загруженных records/users —
+ * те приходят с бэкенда уже отфильтрованными по приватности
+ * (см. list_workout_entries/list_diary_notes), а карте, наоборот,
+ * нужно учитывать вообще всю активность, включая скрытую: сама карта
+ * никого не называет по имени, поэтому анонимность не страдает.
  */
 export default function HomeActivityMap({
-    records,
     playgrounds,
-    users,
 }: HomeActivityMapProps) {
     const [isCollapsed, setIsCollapsed] = useState(() => {
         try {
@@ -66,10 +66,34 @@ export default function HomeActivityMap({
         }
     }, [isCollapsed]);
 
-    const recentPublicRecords = getRecentPublicRecords(records, users);
-    const activityMarkers = getActivityMarkers(recentPublicRecords);
+    const [activityMarkers, setActivityMarkers] = useState<
+        HomeActivityMarker[]
+    >([]);
+    const [status, setStatus] = useState<"loading" | "loaded" | "error">(
+        "loading"
+    );
 
-    const { status, retry } = useSimulatedLoad();
+    function load() {
+        setStatus("loading");
+
+        getActivityMap(HOME_ACTIVITY_WINDOW_HOURS)
+            .then((markers) => {
+                setActivityMarkers(markers);
+                setStatus("loaded");
+            })
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить карту активности:",
+                    error
+                );
+                setStatus("error");
+            });
+    }
+
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const mapMarkers = activityMarkers
         .map((marker) => {
@@ -133,7 +157,7 @@ export default function HomeActivityMap({
                     </span>
 
                     <span className="home-activity-map__subtitle">
-                        Тренировки и заметки, опубликованные за последние 24 часа
+                        Тренировки и заметки, опубликованные за последнюю неделю
                     </span>
                 </span>
 
@@ -154,7 +178,7 @@ export default function HomeActivityMap({
                                 <div className="home-activity-map__error">
                                     <p>Не удалось загрузить карту</p>
 
-                                    <Button onClick={retry}>Повторить</Button>
+                                    <Button onClick={load}>Повторить</Button>
                                 </div>
                             ) : status === "loading" ? (
                                 <div
@@ -164,7 +188,7 @@ export default function HomeActivityMap({
                                 />
                             ) : mapMarkers.length === 0 ? (
                                 <p className="home-activity-map__empty">
-                                    За последние 24 часа новых записей на площадках не было.
+                                    За последнюю неделю новых записей на площадках не было.
                                 </p>
                             ) : (
                                 <PlaygroundsMap

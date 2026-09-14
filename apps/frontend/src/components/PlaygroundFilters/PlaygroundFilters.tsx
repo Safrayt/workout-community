@@ -197,7 +197,14 @@ export default function PlaygroundFilters({
                                                             checked={filters.equipment.includes(key)}
                                                             onChange={() => toggleEquipment(key)}
                                                         />
-                                                        {info.icon} {info.name}
+                                                        <img
+                                                            src={info.icon}
+                                                            alt=""
+                                                            className="playground-filters__equipment-icon"
+                                                            width={20}
+                                                            height={20}
+                                                        />
+                                                        {info.name}
                                                     </label>
                                                 )
                                             )

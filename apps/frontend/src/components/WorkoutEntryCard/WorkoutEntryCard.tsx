@@ -55,7 +55,17 @@ export default function WorkoutEntryCard({
 
             <div className="workout-entry-card__body">
                 <div className="workout-entry-card__meta">
-                    <DiaryRecordTypeBadge type="workout" />
+                    <div className="workout-entry-card__meta-left">
+                        <DiaryRecordTypeBadge type="workout" />
+
+                        {
+                            entry.isPrivate && (
+                                <span className="private-record-badge">
+                                    Личное
+                                </span>
+                            )
+                        }
+                    </div>
 
                     <p className="workout-entry-card__date">
                         {formatWorkoutEntryDate(entry.date)}

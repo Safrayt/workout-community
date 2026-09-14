@@ -53,7 +53,17 @@ export default function DiaryNoteCard({
 
             <div className="workout-entry-card__body">
                 <div className="workout-entry-card__meta">
-                    <DiaryRecordTypeBadge type="note" />
+                    <div className="workout-entry-card__meta-left">
+                        <DiaryRecordTypeBadge type="note" />
+
+                        {
+                            note.isPrivate && (
+                                <span className="private-record-badge">
+                                    Личное
+                                </span>
+                            )
+                        }
+                    </div>
 
                     <p className="workout-entry-card__date">
                         {formatWorkoutEntryDate(note.date)}

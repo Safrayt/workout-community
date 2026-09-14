@@ -1,6 +1,7 @@
 import os
 
 from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import inspect
 
 # Без Docker (обычная локальная разработка) переменная DATABASE_URL не
 # задана, и используется SQLite — просто файл на диске, не требует
@@ -36,6 +37,33 @@ engine = create_engine(
 )
 
 
+def _add_column_if_missing(
+    connection, table_name: str, column_name: str, column_ddl: str
+) -> None:
+    """
+    Добавляет колонку через ALTER TABLE, только если её ещё нет —
+    безопасно вызывать многократно (в т.ч. на каждом старте
+    приложения). inspect() работает одинаково что на SQLite, что на
+    Postgres — в отличие от старой версии этой миграции, написанной
+    только под SQLite (PRAGMA table_info).
+    """
+    inspector = inspect(connection)
+    existing_columns = {
+        column["name"] for column in inspector.get_columns(table_name)
+    }
+
+    if column_name not in existing_columns:
+        connection.exec_driver_sql(
+            # Название таблицы и колонки — в двойных кавычках: "user" —
+            # зарезервированное слово в PostgreSQL (хотя не в SQLite),
+            # без кавычек ALTER TABLE падает с ошибкой синтаксиса именно
+            # на Postgres. Двойные кавычки — стандартный SQL, работают
+            # одинаково на обоих движках.
+            f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {column_ddl}'
+        )
+        connection.commit()
+
+
 def _run_migrations() -> None:
     """
     Лёгкие ручные миграции для полей, добавленных в модели уже после
@@ -43,59 +71,76 @@ def _run_migrations() -> None:
     создаёт только отсутствующие ТАБЛИЦЫ целиком — если таблица уже
     есть, но в модели у неё появилась новая колонка, create_all() эту
     колонку не добавит, и сервер будет падать при первом же обращении
-    к ней. Здесь для каждой такой колонки проверяем, есть ли она уже
-    (через PRAGMA table_info — способ SQLite посмотреть структуру
-    таблицы), и добавляем через ALTER TABLE, если нет.
+    к ней.
 
     Безопасно вызывать многократно — если колонка уже есть, ничего не
     делает. На новой пустой базе тоже безопасно: create_all() к этому
-    моменту уже создал таблицу sразу с этой колонкой, так что миграция
+    моменту уже создал таблицу сразу с этой колонкой, так что миграция
     просто увидит, что колонка есть, и ничего не станет делать.
 
-    Написана под конкретный синтаксис SQLite (PRAGMA table_info) — на
-    PostgreSQL не запускается вообще, там колонка уже есть сразу после
-    create_all() (это либо новая база, либо база, только что
-    заполненная скриптом migrate_to_postgres.py по уже актуальным
-    моделям).
+    В отличие от более крупных изменений схемы (например, удаления
+    NOT NULL колонки без значения по умолчанию — см. комментарий у
+    ComplexDB.difficulty в models_complex.py), ДОБАВЛЕНИЕ колонки со
+    значением по умолчанию — простая и безопасная операция что на
+    SQLite, что на PostgreSQL, поэтому эта функция, в отличие от
+    старой версии, выполняется на обоих движках, а не только на
+    SQLite.
     """
-    if not IS_SQLITE:
-        return
+    boolean_default_false = (
+        "BOOLEAN DEFAULT 0" if IS_SQLITE else "BOOLEAN NOT NULL DEFAULT false"
+    )
 
     with engine.connect() as connection:
-        table_exists = connection.exec_driver_sql(
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name='user'"
-        ).first()
+        existing_tables = set(inspect(connection).get_table_names())
 
-        if table_exists is None:
-            # Таблицы ещё нет вообще (самый первый запуск, до
-            # create_all() выше) — мигрировать нечего, create_all()
-            # создаст её сразу с нужной колонкой.
-            return
-
-        existing_columns = {
-            row[1]  # PRAGMA table_info возвращает (cid, name, type, ...)
-            for row in connection.exec_driver_sql(
-                "PRAGMA table_info(user)"
-            ).fetchall()
-        }
-
-        if "is_admin" not in existing_columns:
-            connection.exec_driver_sql(
-                "ALTER TABLE user ADD COLUMN is_admin BOOLEAN DEFAULT 0"
+        if "user" in existing_tables:
+            _add_column_if_missing(
+                connection, "user", "is_admin", boolean_default_false
             )
-            connection.commit()
+            _add_column_if_missing(
+                connection, "user", "is_feed_restricted", boolean_default_false
+            )
+
+        # Приватность отдельной записи (см. UX-обсуждение "Не
+        # публиковать в общую ленту" / "Запись видна только мне"):
+        # hide_from_feed прячет запись из вкладки "Все записи" на
+        # Главной (но не из "Подписки" и не со страницы дневника
+        # автора), is_private прячет её вообще отовсюду, кроме самого
+        # автора и администратора. См. фильтрацию в list_workout_entries/
+        # list_diary_notes и utils/homeFeed.ts на фронтенде.
+        for table_name in ("workoutentry", "diarynote"):
+            if table_name not in existing_tables:
+                continue
+
+            for column_name in ("hide_from_feed", "is_private"):
+                _add_column_if_missing(
+                    connection, table_name, column_name, boolean_default_false
+                )
 
 
 def create_db_and_tables() -> None:
     """
     Создаёт таблицы в базе данных на основе всех моделей SQLModel,
-    которые были импортированы к моменту вызова, и подчищает схему
-    уже существующих таблиц через _run_migrations().
+    которые были импортированы к моменту вызова, подчищает схему уже
+    существующих таблиц через _run_migrations() и заполняет пустые
+    справочники стартовыми данными (сейчас — только каталог
+    комплексов, см. models_complex.seed_complexes_if_empty).
     Вызывается один раз при старте приложения.
     """
     SQLModel.metadata.create_all(engine)
     _run_migrations()
+
+    # Импорт внутри функции, а не в начале файла — чтобы не создавать
+    # цикл импортов (models_complex.py ничего не импортирует из
+    # database.py, но к моменту вызова этой функции при старте
+    # приложения все модели уже точно загружены, так что цикла не
+    # возникает в любом случае; локальный импорт здесь просто для
+    # симметрии с тем, что database.py остаётся "общим" модулем, не
+    # завязанным на знание о конкретных моделях на уровне файла).
+    from app.models_complex import seed_complexes_if_empty
+
+    with Session(engine) as session:
+        seed_complexes_if_empty(session)
 
 
 def get_session():

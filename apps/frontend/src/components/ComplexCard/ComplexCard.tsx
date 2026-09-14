@@ -4,7 +4,6 @@ import Card from "../ui/Card/Card";
 import Button from "../ui/Button/Button";
 import Badge from "../ui/Badge/Badge";
 import ComplexStars from "../ComplexStars/ComplexStars";
-import ComplexDifficultyBadge from "../ComplexDifficultyBadge/ComplexDifficultyBadge";
 
 import "../../styles/components/complex-card.css";
 
@@ -34,17 +33,21 @@ export default function ComplexCard({ complexDef, completions }: ComplexCardProp
         <Card className="complex-card">
             <div className="complex-card__header">
                 <h3 className="complex-card__name">{complexDef.name}</h3>
+            </div>
 
-                <Badge variant="primary">
-                    {complexTypeLabels[complexDef.type]}
-                </Badge>
+            <div className="complex-card__type-badges">
+                {
+                    complexDef.types.map((type) => (
+                        <Badge key={type} variant="primary">
+                            {complexTypeLabels[type]}
+                        </Badge>
+                    ))
+                }
             </div>
 
             <p className="complex-card__movements">{movementSummary}</p>
 
             <p className="complex-card__exercise">{complexDef.exercise}</p>
-
-            <ComplexDifficultyBadge difficulty={complexDef.difficulty} />
 
             <div className="complex-card__status">
                 {

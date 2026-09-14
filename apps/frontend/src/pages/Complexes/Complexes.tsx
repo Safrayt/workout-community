@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import Select from "../../components/ui/Select/Select";
+import Button from "../../components/ui/Button/Button";
 import ComplexCard from "../../components/ComplexCard/ComplexCard";
+import ComplexTypeFilter from "../../components/ComplexTypeFilter/ComplexTypeFilter";
 
 import "../../styles/components/complexes-page.css";
 
 import { useComplexes } from "../../context/ComplexContext";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 import {
-    complexTypeFilterOptions,
-    difficultyFilterOptions,
     movementFilterOptions,
     personalStatusFilterOptions,
     type PersonalStatusFilter,
 } from "../../constants/complexTypes";
-import type { DifficultyTier, MovementType } from "../../types/complex";
+import type { ComplexType, MovementType } from "../../types/complex";
 
 import { findBestCompletion } from "../../utils/complexResult";
 
@@ -26,9 +28,10 @@ export default function Complexes() {
         loadCompletions,
     } = useComplexes();
 
-    const [typeFilter, setTypeFilter] = useState("");
+    const { currentUser } = useCurrentUser();
+
+    const [typeFilters, setTypeFilters] = useState<ComplexType[]>([]);
     const [movementFilter, setMovementFilter] = useState<MovementType | "">("");
-    const [difficultyFilter, setDifficultyFilter] = useState<DifficultyTier | "">("");
     const [statusFilter, setStatusFilter] = useState<PersonalStatusFilter>("");
 
     // Личный статус зависит от истории выполнений — подгружаем её для
@@ -49,15 +52,16 @@ export default function Complexes() {
     }, [complexes]);
 
     const filteredComplexes = complexes.filter((complexDef) => {
-        if (typeFilter && complexDef.type !== typeFilter) {
+        // Несколько выбранных тегов — по И: комплекс проходит, только
+        // если у него есть КАЖДЫЙ из отмеченных тегов.
+        if (
+            typeFilters.length > 0 &&
+            !typeFilters.every((type) => complexDef.types.includes(type))
+        ) {
             return false;
         }
 
         if (movementFilter && !complexDef.movements.includes(movementFilter)) {
-            return false;
-        }
-
-        if (difficultyFilter && complexDef.difficulty !== difficultyFilter) {
             return false;
         }
 
@@ -76,16 +80,24 @@ export default function Complexes() {
 
     return (
         <div className="complexes-page">
-            <h1 className="complexes-page__title">Комплексы</h1>
+            <div className="complexes-page__header">
+                <h1 className="complexes-page__title">Комплексы</h1>
+
+                {
+                    currentUser.isAdmin && (
+                        <Link to="/complexes/create">
+                            <Button type="button" variant="primary">
+                                Добавить комплекс
+                            </Button>
+                        </Link>
+                    )
+                }
+            </div>
 
             <div className="complexes-page__filters">
-                <Select
-                    id="complex-type-filter"
-                    label="Тип"
-                    value={typeFilter}
-                    onChange={(event) => setTypeFilter(event.target.value)}
-                    options={complexTypeFilterOptions}
-                    emptyOptionLabel="Все"
+                <ComplexTypeFilter
+                    selectedTypes={typeFilters}
+                    onChange={setTypeFilters}
                 />
 
                 <Select
@@ -96,17 +108,6 @@ export default function Complexes() {
                         setMovementFilter(event.target.value as MovementType | "")
                     }
                     options={movementFilterOptions}
-                    emptyOptionLabel="Все"
-                />
-
-                <Select
-                    id="complex-difficulty-filter"
-                    label="Сложность"
-                    value={difficultyFilter}
-                    onChange={(event) =>
-                        setDifficultyFilter(event.target.value as DifficultyTier | "")
-                    }
-                    options={difficultyFilterOptions}
                     emptyOptionLabel="Все"
                 />
 

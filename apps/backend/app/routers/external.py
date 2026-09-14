@@ -20,11 +20,15 @@ services/geocoding.ts) на этот случай трактует 404 как "�
 вызове внешнего API.
 """
 
+import logging
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.external_cache import TTLCache
 from app.rate_limit import RateLimiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/external", tags=["external"])
 
@@ -49,12 +53,12 @@ _hourly_weather_cache = TTLCache(_WEATHER_TTL_SECONDS)
 _geocode_cache = TTLCache(_GEOCODE_TTL_SECONDS)
 
 # Nominatim требует идентифицирующий User-Agent (usage policy:
-# https://operations.osmfoundation.org/policies/nominatim/).
-# ВАЖНО: замените example.com/почту на свои перед деплоем — это не
-# секрет, а контакт на случай, если OSM понадобится с вами связаться
-# по поводу нагрузки на их сервис.
+# https://operations.osmfoundation.org/policies/nominatim/) и
+# реально блокирует запросы без него 403-м — это и было причиной
+# пустых "Населённый пункт"/"Адрес" при добавлении площадки.
 _NOMINATIM_USER_AGENT = (
-    "WorkoutCommunity/1.0 (+https://example.com; contact: admin@example.com)"
+    "WorkoutCommunity/1.0 "
+    "(+http://89-253-255-127.sslip.io/; contact: tyarfas@gmail.com)"
 )
 
 _HTTP_TIMEOUT_SECONDS = 10
@@ -93,7 +97,7 @@ async def get_daily_weather(
         f"&timezone=auto&start_date={date}&end_date={date}"
     )
 
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS) as client:
+    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS, follow_redirects=True) as client:
         try:
             response = await client.get(url)
         except httpx.HTTPError:
@@ -162,7 +166,7 @@ async def get_hourly_weather(
             f"&timezone=auto&start_date={date_string}&end_date={date_string}"
         )
 
-        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS, follow_redirects=True) as client:
             try:
                 response = await client.get(url)
             except httpx.HTTPError:
@@ -302,6 +306,7 @@ async def reverse_geocode(
 
     async with httpx.AsyncClient(
         timeout=_HTTP_TIMEOUT_SECONDS,
+        follow_redirects=True,
         headers={
             "User-Agent": _NOMINATIM_USER_AGENT,
             "Accept": "application/json",
@@ -316,6 +321,19 @@ async def reverse_geocode(
             )
 
     if response.status_code != 200:
+        # Логируем реальный код и тело ответа Nominatim — сообщение
+        # пользователю ("Сервис геокодирования вернул ошибку.")
+        # намеренно общее, а вот в логах бэкенда нужна вся правда,
+        # чтобы понять, это блокировка по User-Agent (403), лимит
+        # запросов (429) или что-то ещё.
+        logger.warning(
+            "Nominatim ответил %s на reverse-геокодирование "
+            "(lat=%s, lon=%s): %s",
+            response.status_code,
+            latitude,
+            longitude,
+            response.text[:500],
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Сервис геокодирования вернул ошибку.",

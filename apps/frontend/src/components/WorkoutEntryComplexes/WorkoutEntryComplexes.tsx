@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import ComplexStars from "../ComplexStars/ComplexStars";
-import ComplexDifficultyBadge from "../ComplexDifficultyBadge/ComplexDifficultyBadge";
 
 import "../../styles/components/workout-entry-complexes.css";
 
@@ -75,7 +74,6 @@ export default function WorkoutEntryComplexes({ entryId }: WorkoutEntryComplexes
 
                                     <span className="workout-entry-complexes__variant">
                                         {complexDef.exercise}
-                                        <ComplexDifficultyBadge difficulty={complexDef.difficulty} />
                                     </span>
 
                                     <span className="workout-entry-complexes__result">

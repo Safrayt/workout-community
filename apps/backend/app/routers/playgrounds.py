@@ -8,6 +8,7 @@ from app.auth import ensure_owner_or_admin, get_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
+from app.models_diary import DiaryNote, WorkoutEntry
 from app.models_event import Event
 from app.models_playground import (
     Playground,
@@ -355,6 +356,16 @@ def delete_playground(
     отметки "в избранном" не имеют ORM-связи с Playground, поэтому
     тоже удаляются здесь вручную, иначе остались бы в базе с
     playground_id, указывающим на уже удалённую площадку.
+
+    Записи дневника (WorkoutEntry) и заметки (DiaryNote) могут
+    необязательно ссылаться на площадку — в отличие от отзывов, их
+    удалять не нужно (сама тренировка или заметка ценна сама по
+    себе), поэтому здесь playground_id только обнуляется, а не
+    удаляется вся запись. Без этого шага PostgreSQL сам заблокирует
+    удаление площадки внешним ключом с непонятным 500 вместо
+    предсказуемого поведения — та же логика, что и обнуление
+    diary_entry_id у ComplexCompletion при удалении записи дневника
+    (см. routers/complexes.py).
     """
     playground = _get_playground_or_404(playground_id, session)
     _ensure_is_owner(playground, current_user)
@@ -391,6 +402,22 @@ def delete_playground(
     ).all()
     for favorite in favorites:
         session.delete(favorite)
+
+    workout_entries = session.exec(
+        select(WorkoutEntry).where(
+            WorkoutEntry.playground_id == playground_id
+        )
+    ).all()
+    for entry in workout_entries:
+        entry.playground_id = None
+        session.add(entry)
+
+    diary_notes = session.exec(
+        select(DiaryNote).where(DiaryNote.playground_id == playground_id)
+    ).all()
+    for note in diary_notes:
+        note.playground_id = None
+        session.add(note)
 
     session.delete(playground)
     session.commit()

@@ -36,6 +36,9 @@ import Achievements from "../pages/Achievements/Achievements";
 import PersonalTags from "../pages/PersonalTags/PersonalTags";
 import Complexes from "../pages/Complexes/Complexes";
 import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
+import ComplexCreate from "../pages/ComplexCreate/ComplexCreate";import ComplexEdit from "../pages/ComplexEdit/ComplexEdit";
+import RequireAdmin from "./RequireAdmin";
+import AdminUsers from "../pages/AdminUsers/AdminUsers";
 import NotFound from "../pages/NotFound/NotFound";
 
 export const router = createBrowserRouter([
@@ -188,8 +191,32 @@ export const router = createBrowserRouter([
           element: <Complexes />,
       },
       {
+          path: "complexes/create",
+          element: (
+              <RequireAdmin>
+                  <ComplexCreate />
+              </RequireAdmin>
+          ),
+      },
+      {
           path: "complexes/:id",
           element: <ComplexDetails />,
+      },
+      {
+          path: "complexes/:id/edit",
+          element: (
+              <RequireAdmin>
+                  <ComplexEdit />
+              </RequireAdmin>
+          ),
+      },
+      {
+          path: "admin/users",
+          element: (
+              <RequireAdmin>
+                  <AdminUsers />
+              </RequireAdmin>
+          ),
       },
       {
           // Любой не совпавший путь внутри защищённой части сайта —

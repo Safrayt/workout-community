@@ -440,7 +440,14 @@ export default function PlaygroundForm({
                                                         checked={playground.equipment.includes(key)}
                                                         onChange={() => toggleEquipment(key)}
                                                     />
-                                                    {info.icon} {info.name}
+                                                    <img
+                                                        src={info.icon}
+                                                        alt=""
+                                                        className="playground-form__equipment-icon"
+                                                        width={20}
+                                                        height={20}
+                                                    />
+                                                    {info.name}
                                                 </label>
                                             );
                                         })

@@ -29,6 +29,7 @@ export type ApiUser = {
     events_visible: boolean;
     subscriptions_visible: boolean;
     is_admin: boolean;
+    is_feed_restricted: boolean;
 };
 
 function omitUndefined(
@@ -66,6 +67,7 @@ export function mapApiUserToUser(apiUser: ApiUser): User {
         socialLinks,
         privacySettings,
         isAdmin: apiUser.is_admin,
+        isFeedRestricted: apiUser.is_feed_restricted,
     };
 }
 

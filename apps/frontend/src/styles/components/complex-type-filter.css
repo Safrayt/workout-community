@@ -1,0 +1,16 @@
+.complex-type-filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.complex-type-filter__label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.complex-type-filter__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}

@@ -49,6 +49,18 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
+        # Каталог комплексов раньше был статичным списком в коде —
+        # теперь таблица (см. models_complex.py), и "Схема Ганнибала"
+        # существует только если её кто-то туда положил. seed делает
+        # ровно то же самое, что происходит на реальном старте
+        # приложения (см. database.create_db_and_tables) — так тесты
+        # не расходятся с поведением прода.
+        from app.models_complex import seed_complexes_if_empty
+
+        seed_complexes_if_empty(session)
+        session.commit()
+
+    with Session(engine) as session:
         yield session
 
 

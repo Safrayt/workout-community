@@ -6,7 +6,7 @@ import ComplexStarConditionsList from "../../components/ComplexStarConditionsLis
 import ComplexBestResult from "../../components/ComplexBestResult/ComplexBestResult";
 import ComplexCompletionHistory from "../../components/ComplexCompletionHistory/ComplexCompletionHistory";
 import ComplexCompletionForm from "../../components/ComplexCompletionForm/ComplexCompletionForm";
-import ComplexDifficultyBadge from "../../components/ComplexDifficultyBadge/ComplexDifficultyBadge";
+import ComplexComments from "../../components/ComplexComments/ComplexComments";
 import Badge from "../../components/ui/Badge/Badge";
 
 import "../../styles/components/complex-details.css";
@@ -108,8 +108,24 @@ export default function ComplexDetails() {
 
             <div className="complex-details__header">
                 <h1 className="complex-details__name">{complexDef.name}</h1>
-                <Badge variant="primary">{complexTypeLabels[complexDef.type]}</Badge>
-                <ComplexDifficultyBadge difficulty={complexDef.difficulty} />
+                {
+                    complexDef.types.map((type) => (
+                        <Badge key={type} variant="primary">
+                            {complexTypeLabels[type]}
+                        </Badge>
+                    ))
+                }
+
+                {
+                    currentUser.isAdmin && (
+                        <Link
+                            to={`/complexes/${complexDef.id}/edit`}
+                            className="complex-details__edit-link"
+                        >
+                            Редактировать
+                        </Link>
+                    )
+                }
             </div>
 
             {
@@ -215,6 +231,8 @@ export default function ComplexDetails() {
                     </section>
                 )
             }
+
+            <ComplexComments complexId={complexDef.id} />
         </div>
     );
 }

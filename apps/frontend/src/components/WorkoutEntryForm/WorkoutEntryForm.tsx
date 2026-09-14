@@ -7,6 +7,8 @@ import Button from "../ui/Button/Button";
 import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
 import TagsField from "../TagsField/TagsField";
 
+import "../../styles/components/checkbox-grid.css";
+
 import { useState } from "react";
 
 import type {
@@ -382,6 +384,41 @@ export default function WorkoutEntryForm({
                         updateField("tags", tags)
                     }
                 />
+            </Section>
+
+            <Section title="Приватность">
+                <div className="checkbox-grid">
+                    <label className="checkbox-option">
+                        <input
+                            type="checkbox"
+                            checked={entry.hideFromFeed}
+                            onChange={(event) =>
+                                updateField("hideFromFeed", event.target.checked)
+                            }
+                        />
+                        Не публиковать в общей ленте
+                    </label>
+
+                    <label className="checkbox-option">
+                        <input
+                            type="checkbox"
+                            checked={entry.isPrivate}
+                            onChange={(event) =>
+                                updateField("isPrivate", event.target.checked)
+                            }
+                        />
+                        Запись видна только мне
+                    </label>
+                </div>
+
+                {
+                    entry.isPrivate && (
+                        <p className="workout-entry-form__privacy-hint">
+                            Эту запись не увидит никто, кроме вас — ни в
+                            ленте, ни на странице вашего дневника.
+                        </p>
+                    )
+                }
             </Section>
 
             {

@@ -78,7 +78,16 @@ export function getFeedRecords(
     mode: HomeFeedMode,
     followingIds: string[]
 ): DiaryRecord[] {
-    const publicRecords = getPublicRecords(records, users);
+    // isPrivate ("Запись видна только мне") исключается из ленты
+    // всегда, независимо от вкладки и от того, чья это запись — сам
+    // бэкенд отдаёт такие записи только их автору (и админу), но раз
+    // они всё равно долетают до фронтенда (например, чтобы автор видел
+    // их на СВОЕЙ странице дневника), здесь их явно убираем ещё раз —
+    // лента не должна их показывать вообще никому, включая автора.
+    const publicRecords = getPublicRecords(records, users).filter(
+        (record) => !record.data.isPrivate
+    );
+
     const sorted = sortRecordsByCreatedAtDesc(publicRecords);
     const limited = applyDailyUserLimit(sorted);
 
@@ -88,7 +97,25 @@ export function getFeedRecords(
         );
     }
 
-    return limited;
+    // mode === "all": hideFromFeed ("Не публиковать в общей ленте")
+    // убирается только здесь — во вкладке "Подписки" выше такие записи
+    // остаются видны, это и есть смысл этой настройки (в отличие от
+    // isPrivate, которая убирает запись отовсюду).
+    return limited.filter((record) => !record.data.hideFromFeed);
+}
+
+/**
+ * Вкладка "Администрирование" (видна только администратору) — в
+ * отличие от getFeedRecords выше, здесь сознательно НЕТ ни
+ * getPublicRecords (приватность дневника), ни applyDailyUserLimit:
+ * это, по сути, журнал аудита, а не социальная лента, администратору
+ * нужно видеть вообще всё. records сюда должны прийти уже
+ * загруженными через include_hidden=true (см. api/diary.ts) — этот
+ * конвейер только сортирует, саму фильтрацию по приватности на
+ * бэкенде обходит эндпоинт, а не эта функция.
+ */
+export function getAdminFeedRecords(records: DiaryRecord[]): DiaryRecord[] {
+    return sortRecordsByCreatedAtDesc(records);
 }
 
 /**

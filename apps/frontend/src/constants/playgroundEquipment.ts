@@ -2,6 +2,26 @@ import type {
     PlaygroundEquipment,
 } from "../types/playground";
 
+import widePullBarIcon from "../assets/equipment/widePullBar.png";
+import highPullBarIcon from "../assets/equipment/highPullBar.png";
+import mediumPullBarIcon from "../assets/equipment/mediumPullBar.png";
+import lowPullBarIcon from "../assets/equipment/lowPullBar.png";
+import middlePushBarIcon from "../assets/equipment/middlePushBar.png";
+import lowPushBarIcon from "../assets/equipment/lowPushBar.png";
+import labyrinthIcon from "../assets/equipment/labyrinth.png";
+import highParallelBarsIcon from "../assets/equipment/highParallelBars.png";
+import mediumParallelBarsIcon from "../assets/equipment/mediumParallelBars.png";
+import parallettesIcon from "../assets/equipment/parallettes.png";
+import pushUpBarsIcon from "../assets/equipment/pushUpBars.png";
+import wideMonkeyBarsIcon from "../assets/equipment/wideMonkeyBars.png";
+import narrowMonkeyBarsIcon from "../assets/equipment/narrowMonkeyBars.png";
+import swedishWallIcon from "../assets/equipment/swedishWall.png";
+import benchIcon from "../assets/equipment/Bench.png";
+import inclineBenchIcon from "../assets/equipment/inclineBench.png";
+import postsIcon from "../assets/equipment/posts.png";
+import ringsIcon from "../assets/equipment/rings.png";
+import ropeIcon from "../assets/equipment/rope.png";
+
 export type PlaygroundEquipmentCategory =
     | "pullBars"
     | "parallelBars"
@@ -13,6 +33,8 @@ type PlaygroundEquipmentInfo = {
 
     name: string;
 
+    /** Путь к иконке 50x50 (см. src/assets/equipment/), а не эмодзи —
+     *  подставляется в <img src=...>, а не выводится как текст. */
     icon: string;
 
     category: PlaygroundEquipmentCategory;
@@ -41,7 +63,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Широкий турник (>150 см)",
 
         icon:
-            "🏋️",
+            widePullBarIcon,
 
         category:
             "pullBars",
@@ -54,7 +76,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Высокий турник (>200 см)",
 
         icon:
-            "🏋️",
+            highPullBarIcon,
 
         category:
             "pullBars",
@@ -67,7 +89,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Средний турник (180–200 см)",
 
         icon:
-            "🏋️",
+            mediumPullBarIcon,
 
         category:
             "pullBars",
@@ -80,7 +102,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Низкий турник (160–180 см)",
 
         icon:
-            "🏋️",
+            lowPullBarIcon,
 
         category:
             "pullBars",
@@ -93,7 +115,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Средняя перекладина (50–100 см)",
 
         icon:
-            "💪",
+            middlePushBarIcon,
 
         category:
             "pushBars",
@@ -106,7 +128,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Низкая перекладина (<50 см)",
 
         icon:
-            "💪",
+            lowPushBarIcon,
 
         category:
             "pushBars",
@@ -119,7 +141,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Лабиринт",
 
         icon:
-            "🧗",
+            labyrinthIcon,
 
         category:
             "parallelBars",
@@ -132,7 +154,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Высокие брусья (>160 см)",
 
         icon:
-            "🤸",
+            highParallelBarsIcon,
 
         category:
             "parallelBars",
@@ -145,7 +167,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Средние брусья (140–160 см)",
 
         icon:
-            "🤸",
+            mediumParallelBarsIcon,
 
         category:
             "parallelBars",
@@ -158,7 +180,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Паралетсы (30–100 см)",
 
         icon:
-            "🤸",
+            parallettesIcon,
 
         category:
             "parallelBars",
@@ -171,7 +193,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Упоры (<30 см)",
 
         icon:
-            "💪",
+            pushUpBarsIcon,
 
         category:
             "parallelBars",
@@ -184,7 +206,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Рукоход (широкий)",
 
         icon:
-            "🐒",
+            wideMonkeyBarsIcon,
 
         category:
             "climbing",
@@ -197,7 +219,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Рукоход (узкий)",
 
         icon:
-            "🐒",
+            narrowMonkeyBarsIcon,
 
         category:
             "climbing",
@@ -210,7 +232,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Шведская стенка",
 
         icon:
-            "🪜",
+            swedishWallIcon,
 
         category:
             "climbing",
@@ -223,7 +245,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Скамья",
 
         icon:
-            "🪑🪑",
+            benchIcon,
 
         category:
             "accessories",
@@ -236,7 +258,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Наклонная скамья",
 
         icon:
-            "🪑",
+            inclineBenchIcon,
 
         category:
             "accessories",
@@ -249,7 +271,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Столбики",
 
         icon:
-            "🪵",
+            postsIcon,
 
         category:
             "accessories",
@@ -262,7 +284,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Кольца",
 
         icon:
-            "⭕",
+            ringsIcon,
 
         category:
             "accessories",
@@ -275,7 +297,7 @@ export const playgroundEquipment: Record<PlaygroundEquipment, PlaygroundEquipmen
             "Канат",
 
         icon:
-            "🪢",
+            ropeIcon,
 
         category:
             "climbing",

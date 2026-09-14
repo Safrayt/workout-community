@@ -37,6 +37,8 @@ export type ApiWorkoutEntry = {
     tags: string[];
     created_at: string;
     photos: ApiPhoto[];
+    hide_from_feed: boolean;
+    is_private: boolean;
 };
 
 export function mapApiWorkoutEntryToEntry(
@@ -58,6 +60,8 @@ export function mapApiWorkoutEntryToEntry(
             ? apiEntry.photos.map(mapApiPhoto)
             : undefined,
         createdAt: apiEntry.created_at,
+        hideFromFeed: apiEntry.hide_from_feed,
+        isPrivate: apiEntry.is_private,
     };
 }
 
@@ -73,6 +77,8 @@ export function mapNewWorkoutEntryToApi(
         title: entry.title,
         description: entry.description,
         tags: entry.tags,
+        hide_from_feed: entry.hideFromFeed ?? false,
+        is_private: entry.isPrivate ?? false,
     };
 }
 
@@ -86,6 +92,8 @@ export type ApiDiaryNote = {
     tags: string[];
     created_at: string;
     photos: ApiPhoto[];
+    hide_from_feed: boolean;
+    is_private: boolean;
 };
 
 export function mapApiDiaryNoteToNote(apiNote: ApiDiaryNote): DiaryNote {
@@ -105,6 +113,8 @@ export function mapApiDiaryNoteToNote(apiNote: ApiDiaryNote): DiaryNote {
                 : undefined,
         tags: apiNote.tags.length > 0 ? apiNote.tags : undefined,
         createdAt: apiNote.created_at,
+        hideFromFeed: apiNote.hide_from_feed,
+        isPrivate: apiNote.is_private,
     };
 }
 
@@ -116,6 +126,8 @@ export function mapNewDiaryNoteToApi(
         text: note.text,
         playground_id: note.playgroundId ? Number(note.playgroundId) : null,
         tags: note.tags,
+        hide_from_feed: note.hideFromFeed ?? false,
+        is_private: note.isPrivate ?? false,
     };
 }
 

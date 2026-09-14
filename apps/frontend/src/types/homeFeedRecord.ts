@@ -3,8 +3,10 @@ import type { User } from "./user";
 import type { Playground } from "./playground";
 import type { SystemFeedRecord } from "./systemFeedRecord";
 
-/** Переключатель вкладок ленты Главной (UX-HOME §12–14). */
-export type HomeFeedMode = "all" | "following";
+/** Переключатель вкладок ленты Главной (UX-HOME §12–14). "admin" —
+ *  видна только администратору, показывает вообще все записи,
+ *  включая скрытые приватностью (см. HomeFeedTabs/HomeFeed). */
+export type HomeFeedMode = "all" | "following" | "admin";
 
 /**
  * View-модель записи в ленте Главной (UX-HOME §33). Отделяет

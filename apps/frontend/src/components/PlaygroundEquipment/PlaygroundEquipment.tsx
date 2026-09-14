@@ -90,9 +90,13 @@ export default function PlaygroundEquipment({
                                                     className="playground-equipment__item"
                                                     title={info.name}
                                                 >
-                                                    <span className="playground-equipment__icon">
-                                                        {info.icon}
-                                                    </span>
+                                                    <img
+                                                        src={info.icon}
+                                                        alt=""
+                                                        className="playground-equipment__icon"
+                                                        width={50}
+                                                        height={50}
+                                                    />
 
                                                     <span className="playground-equipment__name">
                                                         {info.name}

@@ -21,13 +21,18 @@ import type { PersonalTag } from "../types/personalTag";
 import type { Comment } from "../types/comment";
 import type { DiaryRecordType } from "../types/diaryRecord";
 import type { NewWorkoutEntryPhoto } from "../types/newWorkoutEntry";
+import type { HomeActivityMarker } from "../types/homeActivityMarker";
 
 // =====================================================================
 // Записи тренировок
 // =====================================================================
 
-export async function listWorkoutEntries(): Promise<WorkoutEntry[]> {
-    const apiEntries = await apiFetch<ApiWorkoutEntry[]>("/diary/entries");
+export async function listWorkoutEntries(
+    options: { includeHidden?: boolean } = {}
+): Promise<WorkoutEntry[]> {
+    const apiEntries = await apiFetch<ApiWorkoutEntry[]>(
+        `/diary/entries${buildQuery({ include_hidden: options.includeHidden })}`
+    );
 
     return apiEntries.map(mapApiWorkoutEntryToEntry);
 }
@@ -124,8 +129,12 @@ export async function deleteWorkoutEntry(id: string): Promise<void> {
 // Заметки дневника
 // =====================================================================
 
-export async function listDiaryNotes(): Promise<DiaryNote[]> {
-    const apiNotes = await apiFetch<ApiDiaryNote[]>("/diary/notes");
+export async function listDiaryNotes(
+    options: { includeHidden?: boolean } = {}
+): Promise<DiaryNote[]> {
+    const apiNotes = await apiFetch<ApiDiaryNote[]>(
+        `/diary/notes${buildQuery({ include_hidden: options.includeHidden })}`
+    );
 
     return apiNotes.map(mapApiDiaryNoteToNote);
 }
@@ -300,4 +309,40 @@ export async function updateComment(
 
 export async function deleteComment(id: string): Promise<void> {
     await apiFetch(`/diary/comments/${id}`, { method: "DELETE" });
+}
+
+// =====================================================================
+// Карта активности (полностью анонимная агрегация)
+// =====================================================================
+
+type ApiActivityMapMarker = {
+    playground_id: number;
+    workout_count: number;
+    note_count: number;
+    last_activity_at: string;
+};
+
+/**
+ * В отличие от listWorkoutEntries/listDiaryNotes выше, этот эндпоинт
+ * специально игнорирует всю приватность (см. app/routers/diary.py:
+ * get_activity_map) — карта показывает только "здесь недавно кто-то
+ * тренировался", без привязки к конкретному пользователю, поэтому
+ * даже приватные записи честно попадают в счётчик, не раскрывая
+ * личность автора.
+ */
+export async function getActivityMap(
+    hours: number
+): Promise<HomeActivityMarker[]> {
+    const apiMarkers = await apiFetch<ApiActivityMapMarker[]>(
+        `/diary/activity-map${buildQuery({ hours })}`
+    );
+
+    return apiMarkers.map((marker) => ({
+        playgroundId: String(marker.playground_id),
+        hasWorkout: marker.workout_count > 0,
+        hasNote: marker.note_count > 0,
+        workoutCount: marker.workout_count,
+        noteCount: marker.note_count,
+        lastActivityAt: marker.last_activity_at,
+    }));
 }

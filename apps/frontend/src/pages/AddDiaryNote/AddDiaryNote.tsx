@@ -22,6 +22,8 @@ function createEmptyNote(): NewDiaryNote {
         photos: [],
         playgroundId: "",
         tags: [],
+        hideFromFeed: false,
+        isPrivate: false,
     };
 }
 

@@ -30,6 +30,8 @@ function createEmptyEntry(): NewWorkoutEntry {
         description: "",
         photos: [],
         tags: [],
+        hideFromFeed: false,
+        isPrivate: false,
     };
 }
 

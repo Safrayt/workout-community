@@ -27,10 +27,12 @@ COPY app ./app
 # `docker compose exec backend python3 migrate_to_postgres.py`.
 COPY migrate_to_postgres.py .
 COPY delete_user.py .
+COPY make_admin.py .
 
-# Папки для данных, которые должны сохраняться между перезапусками
-# контейнера (см. docker-compose.yml — сюда подключаются volumes).
-RUN mkdir -p /app/data /app/uploads
+# Папка для загруженных файлов, которая должна сохраняться между
+# перезапусками контейнера (см. docker-compose.yml — сюда
+# подключается volume backend_uploads).
+RUN mkdir -p /app/uploads
 
 EXPOSE 8000
 

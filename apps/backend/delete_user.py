@@ -20,12 +20,9 @@
 комментарии, теги, выполнения комплексов — удаляются в любом случае,
 без флага: без владельца-пользователя они не имеют смысла.
 
-Технически скрипт переиспользует те же функции, что вызывает сам
-сайт (delete_playground, delete_event, delete_workout_entry,
-delete_diary_note — обычные функции из routers/, вызываются здесь
-напрямую в обход HTTP/FastAPI), чтобы не дублировать их логику
-(удаление файлов фото с диска, очистка комментариев и т.п.) и не
-разойтись с ней в будущем.
+Сама логика удаления вынесена в app/user_deletion.py — её же
+переиспользует DELETE /users/{user_id} в админ-панели на сайте, чтобы
+не разойтись с этим скриптом в будущем.
 """
 
 import argparse
@@ -38,15 +35,10 @@ from sqlmodel import Session, select  # noqa: E402
 
 from app.database import engine  # noqa: E402
 from app.models import User  # noqa: E402
-from app.models_complex import ComplexCompletion  # noqa: E402
-from app.models_diary import Comment, DiaryNote, PersonalTag, WorkoutEntry  # noqa: E402
-from app.models_event import Event, EventRegistration  # noqa: E402
-from app.models_playground import Playground  # noqa: E402
-from app.models_review import PlaygroundReview  # noqa: E402
-from app.models_social import PlaygroundFavorite, Subscription  # noqa: E402
-from app.routers.diary import delete_diary_note, delete_workout_entry  # noqa: E402
-from app.routers.events import delete_event  # noqa: E402
-from app.routers.playgrounds import delete_playground  # noqa: E402
+from app.user_deletion import (  # noqa: E402
+    UserHasOwnedContentError,
+    delete_user_completely,
+)
 
 
 def main() -> None:
@@ -72,23 +64,22 @@ def main() -> None:
             print(f"Пользователь '{args.nickname}' не найден.")
             raise SystemExit(1)
 
-        owned_playgrounds = session.exec(
-            select(Playground).where(Playground.creator_id == target.id)
-        ).all()
-        owned_events = session.exec(
-            select(Event).where(Event.creator_id == target.id)
-        ).all()
+        print(f"Удаляю пользователя '{args.nickname}' (id={target.id})...")
 
-        if (owned_playgrounds or owned_events) and not args.with_owned_content:
+        try:
+            delete_user_completely(
+                target, session, with_owned_content=args.with_owned_content
+            )
+        except UserHasOwnedContentError as error:
             print(
                 f"У пользователя '{args.nickname}' есть созданный им "
                 f"контент — это общий контент сообщества, а не личные "
                 f"данные, поэтому удалять его без явного согласия "
                 f"скрипт не будет:"
             )
-            for playground in owned_playgrounds:
+            for playground in error.playgrounds:
                 print(f"  площадка #{playground.id}: {playground.name}")
-            for event in owned_events:
+            for event in error.events:
                 print(f"  мероприятие #{event.id}: {event.title}")
             print()
             print(
@@ -99,106 +90,19 @@ def main() -> None:
                 "перечисленное вместе с пользователем (необратимо)."
             )
             raise SystemExit(1)
-
-        print(f"Удаляю пользователя '{args.nickname}' (id={target.id})...")
-
-        # 1. Мероприятия, созданные пользователем — раньше площадок,
-        #    которые он создал: площадку нельзя удалить, пока на неё
-        #    ссылается хоть одно мероприятие (см. delete_playground),
-        #    а её собственные мероприятия как раз мешают этому.
-        for event in owned_events:
-            delete_event(event.id, current_user=target, session=session)
-            print(f"  удалено мероприятие #{event.id}")
-
-        # 2. Записи дневника и заметки — до выполнений комплексов:
-        #    delete_workout_entry сам решает, что делать со связанными
-        #    выполнениями (отвязывает, не удаляет — см. models_complex),
-        #    поэтому после этого шага их можно спокойно удалить.
-        entries = session.exec(
-            select(WorkoutEntry).where(WorkoutEntry.user_id == target.id)
-        ).all()
-        for entry in entries:
-            delete_workout_entry(entry.id, current_user=target, session=session)
-        if entries:
-            print(f"  удалено записей дневника: {len(entries)}")
-
-        notes = session.exec(
-            select(DiaryNote).where(DiaryNote.user_id == target.id)
-        ).all()
-        for note in notes:
-            delete_diary_note(note.id, current_user=target, session=session)
-        if notes:
-            print(f"  удалено заметок дневника: {len(notes)}")
-
-        # 3. Площадки, созданные пользователем. Может отказать (400),
-        #    если на площадку всё ещё ссылается чьё-то ЧУЖОЕ
-        #    мероприятие (свои мы уже удалили выше) — в этом случае
-        #    прерываемся и ничего не коммитим дальше, чтобы не
-        #    оставить пользователя в наполовину удалённом состоянии.
-        for playground in owned_playgrounds:
-            try:
-                delete_playground(
-                    playground.id, current_user=target, session=session
-                )
-            except HTTPException as error:
-                session.rollback()
-                print()
-                print(
-                    f"Не удалось удалить площадку #{playground.id} "
-                    f"('{playground.name}'): {error.detail}"
-                )
-                print(
-                    "Скорее всего на неё ссылается мероприятие, "
-                    "созданное ДРУГИМ пользователем. Разберитесь с "
-                    "ним вручную и запустите скрипт заново — уже "
-                    "удалённые на этом прогоне мероприятия/записи "
-                    "дневника пользователя удалять придётся заново, "
-                    "они не сохранились из-за отката."
-                )
-                raise SystemExit(1)
-            print(f"  удалена площадка #{playground.id}")
-
-        # 4. Всё остальное — личные данные без сложных побочных
-        #    эффектов (файлов на диске у них нет), поэтому просто
-        #    удаляем строки напрямую.
-        def _delete_all(model, column, count_label: str) -> None:
-            rows = session.exec(select(model).where(column == target.id)).all()
-            for row in rows:
-                session.delete(row)
-            if rows:
-                print(f"  удалено ({count_label}): {len(rows)}")
-
-        _delete_all(
-            ComplexCompletion, ComplexCompletion.user_id, "выполнений комплексов"
-        )
-        _delete_all(
-            EventRegistration,
-            EventRegistration.user_id,
-            "регистраций на мероприятия",
-        )
-        _delete_all(
-            PlaygroundFavorite,
-            PlaygroundFavorite.user_id,
-            "площадок в избранном",
-        )
-        _delete_all(PlaygroundReview, PlaygroundReview.user_id, "отзывов")
-        _delete_all(Comment, Comment.user_id, "комментариев")
-        _delete_all(PersonalTag, PersonalTag.user_id, "личных тегов")
-
-        following = session.exec(
-            select(Subscription).where(Subscription.follower_id == target.id)
-        ).all()
-        followers = session.exec(
-            select(Subscription).where(Subscription.following_id == target.id)
-        ).all()
-        for subscription in [*following, *followers]:
-            session.delete(subscription)
-        if following or followers:
-            print(f"  удалено подписок (в обе стороны): {len(following) + len(followers)}")
-
-        # 5. И сам пользователь.
-        session.delete(target)
-        session.commit()
+        except HTTPException as error:
+            session.rollback()
+            print()
+            print(f"Не удалось удалить: {error.detail}")
+            print(
+                "Скорее всего площадку пользователя нельзя удалить, "
+                "пока на неё ссылается мероприятие, созданное ДРУГИМ "
+                "пользователем. Разберитесь с ним вручную и запустите "
+                "скрипт заново — уже удалённые на этом прогоне "
+                "мероприятия/записи дневника пользователя удалять "
+                "придётся заново, они не сохранились из-за отката."
+            )
+            raise SystemExit(1)
 
         print()
         print(f"Готово. Пользователь '{args.nickname}' удалён.")

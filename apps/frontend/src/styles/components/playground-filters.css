@@ -83,3 +83,7 @@
 .playground-filters-toggle__icon {
     color: var(--color-text-secondary);
 }
+.playground-filters__equipment-icon {
+    object-fit: contain;
+    flex-shrink: 0;
+}

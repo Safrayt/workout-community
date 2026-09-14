@@ -141,6 +141,8 @@ export default function DiaryNoteDetails() {
                     isMain: photo.isMain ?? false,
                 })) ?? [],
             tags: note.tags ?? [],
+            hideFromFeed: note.hideFromFeed ?? false,
+            isPrivate: note.isPrivate ?? false,
         };
 
         return (

@@ -24,4 +24,8 @@ export type NewWorkoutEntry = {
 
     photos: NewWorkoutEntryPhoto[];
 
+    hideFromFeed: boolean;
+
+    isPrivate: boolean;
+
 };

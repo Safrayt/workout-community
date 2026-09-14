@@ -1,20 +1,27 @@
 import type {
     ComplexType,
-    DifficultyTier,
     MetricType,
     MovementType,
 } from "../types/complex";
 
 export const complexTypeLabels: Record<ComplexType, string> = {
     ladder: "Лесенка",
-    circuit: "Круговая",
+    circuit: "Круги",
     sets: "Подходы",
+    superset: "Суперсеты",
+    dropset: "Дропсеты",
+    emom: "Минутки (EMOM)",
+    amrap: "На время (AMRAP)",
 };
 
 export const complexTypeFilterOptions: { value: ComplexType; label: string }[] = [
-    { value: "ladder", label: complexTypeLabels.ladder },
-    { value: "circuit", label: complexTypeLabels.circuit },
     { value: "sets", label: complexTypeLabels.sets },
+    { value: "circuit", label: complexTypeLabels.circuit },
+    { value: "ladder", label: complexTypeLabels.ladder },
+    { value: "superset", label: complexTypeLabels.superset },
+    { value: "dropset", label: complexTypeLabels.dropset },
+    { value: "emom", label: complexTypeLabels.emom },
+    { value: "amrap", label: complexTypeLabels.amrap },
 ];
 
 export const movementLabels: Record<MovementType, string> = {
@@ -27,18 +34,6 @@ export const movementFilterOptions: { value: MovementType; label: string }[] = [
     { value: "pull", label: movementLabels.pull },
     { value: "press", label: movementLabels.press },
     { value: "legs", label: movementLabels.legs },
-];
-
-export const difficultyLabels: Record<DifficultyTier, string> = {
-    iron: "Чугун",
-    steel: "Сталь",
-    titanium: "Титан",
-};
-
-export const difficultyFilterOptions: { value: DifficultyTier; label: string }[] = [
-    { value: "iron", label: difficultyLabels.iron },
-    { value: "steel", label: difficultyLabels.steel },
-    { value: "titanium", label: difficultyLabels.titanium },
 ];
 
 export const metricLabels: Record<MetricType, string> = {

@@ -48,9 +48,7 @@ export default function Home() {
             <h1 className="home-page__title">Главная</h1>
 
             <HomeActivityMap
-                records={records}
                 playgrounds={playgrounds}
-                users={users}
             />
 
             <HomeFeed
@@ -60,6 +58,7 @@ export default function Home() {
                 comments={comments}
                 events={events}
                 followingIds={followingIds}
+                isAdmin={currentUser.isAdmin}
             />
         </div>
     );

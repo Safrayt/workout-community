@@ -7,14 +7,17 @@ import {
 
 import type { Complex } from "../types/complex";
 import type { ComplexCompletion } from "../types/complexCompletion";
+import type { NewComplex } from "../types/newComplex";
 import type { NewComplexCompletion } from "../types/newComplexCompletion";
 
 import {
     createCompletion as apiCreateCompletion,
+    createComplex as apiCreateComplex,
     deleteCompletion as apiDeleteCompletion,
     listCompletions as apiListCompletions,
     listComplexes,
     updateCompletion as apiUpdateCompletion,
+    updateComplex as apiUpdateComplex,
 } from "../api/complexes";
 
 type ComplexContextType = {
@@ -24,6 +27,12 @@ type ComplexContextType = {
     isLoading: boolean;
 
     getComplexById: (id: string) => Complex | undefined;
+
+    /** Только для администратора — см. ensure_admin на бэкенде. */
+    addComplex: (data: NewComplex) => Promise<Complex>;
+
+    /** Только для администратора — см. ensure_admin на бэкенде. */
+    editComplex: (id: string, data: NewComplex) => Promise<Complex>;
 
     /** Кэш истории выполнений текущего пользователя по complexId. */
     completionsByComplex: Record<string, ComplexCompletion[]>;
@@ -68,6 +77,29 @@ export function ComplexProvider({ children }: { children: React.ReactNode }) {
 
     function getComplexById(id: string): Complex | undefined {
         return complexes.find((complexDef) => complexDef.id === id);
+    }
+
+    async function addComplex(data: NewComplex): Promise<Complex> {
+        const created = await apiCreateComplex(data);
+
+        setComplexes((current) => [...current, created]);
+
+        return created;
+    }
+
+    async function editComplex(
+        id: string,
+        data: NewComplex
+    ): Promise<Complex> {
+        const updated = await apiUpdateComplex(id, data);
+
+        setComplexes((current) =>
+            current.map((complexDef) =>
+                complexDef.id === id ? updated : complexDef
+            )
+        );
+
+        return updated;
     }
 
     async function loadCompletions(
@@ -135,6 +167,8 @@ export function ComplexProvider({ children }: { children: React.ReactNode }) {
                 complexes,
                 isLoading,
                 getComplexById,
+                addComplex,
+                editComplex,
                 completionsByComplex,
                 loadCompletions,
                 addCompletion,

@@ -10,6 +10,14 @@ PostgreSQL — этот скрипт скопирует все данные, ч�
 что разворачиваете с нуля) — этот скрипт не нужен вообще, PostgreSQL
 сразу же будет создан пустым, начинайте работать сразу в нём.
 
+ПОСЛЕ миграции: volume backend_data и mkdir /app/data убраны из
+docker-compose.yml/Dockerfile — приложение их больше не читает. Если
+нужно снова добраться до старого файла SQLite (например, для сверки
+исторических данных), верните строку "backend_data:/app/data" в
+volumes сервиса backend в docker-compose.yml, разово перезапустите
+контейнер и заберите файл через `docker compose exec backend cat
+/app/data/app.db > app.db`.
+
 Порядок использования — см. DEPLOY.md, раздел "Миграция на
 PostgreSQL". Коротко:
     1. Обновить docker-compose.yml/.env, поднять сервис db (Postgres).

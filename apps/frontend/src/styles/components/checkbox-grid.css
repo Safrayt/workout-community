@@ -25,3 +25,7 @@
     accent-color: var(--color-primary);
     cursor: pointer;
 }
+.playground-form__equipment-icon {
+    object-fit: contain;
+    flex-shrink: 0;
+}

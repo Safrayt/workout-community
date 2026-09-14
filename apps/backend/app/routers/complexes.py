@@ -1,23 +1,35 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from app.auth import get_current_user, get_optional_current_user
+from app.auth import (
+    ensure_admin,
+    ensure_owner_or_admin,
+    get_current_user,
+    get_optional_current_user,
+)
 from app.database import get_session
 from app.models import User
 from app.models_complex import (
-    COMPLEXES,
     ComparisonOperator,
     Complex,
+    ComplexComment,
+    ComplexCommentCreate,
+    ComplexCommentRead,
     ComplexCompletion,
     ComplexCompletionCreate,
     ComplexCompletionRead,
     ComplexCompletionUpdate,
+    ComplexCreate,
+    ComplexDB,
+    ComplexUpdate,
     MetricType,
     TIME_LIKE_METRICS,
-    get_complex_or_none,
+    apply_complex_update,
+    complex_db_from_create,
+    complex_from_db,
     is_time_based,
 )
 from app.models_diary import WorkoutEntry
@@ -26,28 +38,80 @@ router = APIRouter(prefix="/complexes", tags=["complexes"])
 
 
 # =====================================================================
-# Каталог (статичный, см. models_complex.py — по тому же принципу,
-# что и ACHIEVEMENTS в models_achievement.py)
+# Каталог (таблица ComplexDB, см. models_complex.py). Читать может
+# кто угодно (даже не залогиненный — как и раньше, пока каталог был
+# статичным списком), добавлять и редактировать — только
+# администратор (см. ensure_admin в app/auth.py).
 # =====================================================================
 
 @router.get("/", response_model=List[Complex])
-def list_complexes() -> List[Complex]:
+def list_complexes(session: Session = Depends(get_session)) -> List[Complex]:
     """Полный каталог комплексов — одинаковый для всех пользователей."""
-    return COMPLEXES
+    rows = session.exec(select(ComplexDB)).all()
+    return [complex_from_db(row) for row in rows]
 
 
-def _get_complex_or_404(complex_id: str) -> Complex:
-    complex_def = get_complex_or_none(complex_id)
+def _get_complex_db_or_404(complex_id: str, session: Session) -> ComplexDB:
+    row = session.get(ComplexDB, complex_id)
 
-    if complex_def is None:
+    if row is None:
         raise HTTPException(status_code=404, detail="Комплекс не найден")
 
-    return complex_def
+    return row
+
+
+def _get_complex_or_404(complex_id: str, session: Session) -> Complex:
+    return complex_from_db(_get_complex_db_or_404(complex_id, session))
 
 
 @router.get("/{complex_id}", response_model=Complex)
-def get_complex(complex_id: str) -> Complex:
-    return _get_complex_or_404(complex_id)
+def get_complex(
+    complex_id: str, session: Session = Depends(get_session)
+) -> Complex:
+    return _get_complex_or_404(complex_id, session)
+
+
+@router.post("/", response_model=Complex)
+def create_complex(
+    data: ComplexCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Complex:
+    ensure_admin(current_user, "Добавлять комплексы может только администратор")
+
+    if session.get(ComplexDB, data.id) is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Комплекс с id «{data.id}» уже существует.",
+        )
+
+    row = complex_db_from_create(data)
+
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+
+    return complex_from_db(row)
+
+
+@router.put("/{complex_id}", response_model=Complex)
+def update_complex(
+    complex_id: str,
+    data: ComplexUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Complex:
+    ensure_admin(current_user, "Редактировать комплексы может только администратор")
+
+    row = _get_complex_db_or_404(complex_id, session)
+
+    apply_complex_update(row, data)
+
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+
+    return complex_from_db(row)
 
 
 # =====================================================================
@@ -184,6 +248,19 @@ def _ensure_diary_entry_belongs_to_user(
     return entry
 
 
+def _ensure_completed_date_is_not_future(completed_date: date) -> None:
+    """
+    Комплекс нельзя "выполнить" в будущем — как и с датой тренировки
+    в дневнике (см. аналогичную идею в diary.py), это либо опечатка,
+    либо попытка обойти условия звёзд задним/передним числом.
+    """
+    if completed_date > datetime.now(timezone.utc).date():
+        raise HTTPException(
+            status_code=400,
+            detail="Дата выполнения не может быть в будущем.",
+        )
+
+
 @router.post("/{complex_id}/completions", response_model=ComplexCompletionRead)
 def create_completion(
     complex_id: str,
@@ -191,7 +268,9 @@ def create_completion(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ComplexCompletion:
-    complex_def = _get_complex_or_404(complex_id)
+    complex_def = _get_complex_or_404(complex_id, session)
+
+    _ensure_completed_date_is_not_future(data.completed_date)
 
     # Комплекс не может существовать без подтверждающей тренировки —
     # выполнение обязательно привязывается к записи дневника уже в
@@ -240,7 +319,7 @@ def list_completions(
     дневника с блоком комплекса, а не отдельная история).
     """
 
-    _get_complex_or_404(complex_id)
+    _get_complex_or_404(complex_id, session)
 
     target_user_id = user_id if user_id is not None else current_user.id
 
@@ -267,7 +346,7 @@ def get_best_completion(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> Optional[ComplexCompletion]:
-    complex_def = _get_complex_or_404(complex_id)
+    complex_def = _get_complex_or_404(complex_id, session)
 
     target_user_id = user_id if user_id is not None else current_user.id
 
@@ -300,13 +379,15 @@ def update_completion(
     completion = _get_completion_or_404(completion_id, session)
     _ensure_completion_owner(completion, current_user)
 
-    complex_def = _get_complex_or_404(completion.complex_id)
+    complex_def = _get_complex_or_404(completion.complex_id, session)
 
     updates = data.model_dump(exclude_unset=True, exclude={"clear_diary_entry"})
 
     # Итоговая дата выполнения (может меняться этим же запросом) — по
     # ней проверяем, что привязанная запись дневника ей соответствует.
     final_completed_date = updates.get("completed_date", completion.completed_date)
+
+    _ensure_completed_date_is_not_future(final_completed_date)
 
     if data.clear_diary_entry:
         completion.diary_entry_id = None
@@ -420,3 +501,136 @@ def clear_diary_link(entry_id: int, session: Session) -> None:
     for completion in completions:
         completion.diary_entry_id = None
         session.add(completion)
+
+
+# =====================================================================
+# Комментарии к комплексу
+# =====================================================================
+
+COMMENT_MAX_LENGTH = 500
+
+
+def _validate_comment_text(text: str) -> str:
+    trimmed = text.strip()
+
+    if len(trimmed) == 0:
+        raise HTTPException(status_code=400, detail="Напишите текст комментария.")
+
+    if len(trimmed) > COMMENT_MAX_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Комментарий не должен превышать "
+                f"{COMMENT_MAX_LENGTH} символов."
+            ),
+        )
+
+    return trimmed
+
+
+@router.get("/{complex_id}/comments", response_model=List[ComplexCommentRead])
+def list_complex_comments(
+    complex_id: str,
+    session: Session = Depends(get_session),
+) -> List[ComplexComment]:
+    """
+    От старых к новым — как обычная переписка (тот же порядок, что
+    у комментариев дневника, см. utils/comments.ts на фронтенде).
+    Публичный, без авторизации: комментарии под комплексом видны
+    так же, как сам каталог (GET /complexes/), которому авторизация
+    тоже не нужна.
+    """
+    _get_complex_or_404(complex_id, session)
+
+    comments = session.exec(
+        select(ComplexComment)
+        .where(ComplexComment.complex_id == complex_id)
+        .order_by(ComplexComment.created_at)
+    ).all()
+
+    return list(comments)
+
+
+@router.post("/{complex_id}/comments", response_model=ComplexCommentRead)
+def create_complex_comment(
+    complex_id: str,
+    data: ComplexCommentCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ComplexComment:
+    """
+    Один и тот же пользователь может оставить сколько угодно
+    комментариев под одним комплексом — как и с отзывами площадок,
+    отдельного ограничения "один комментарий на комплекс" нет.
+    """
+    _get_complex_or_404(complex_id, session)
+
+    trimmed_text = _validate_comment_text(data.text)
+
+    comment = ComplexComment(
+        complex_id=complex_id,
+        user_id=current_user.id,
+        text=trimmed_text,
+    )
+
+    session.add(comment)
+    session.commit()
+    session.refresh(comment)
+
+    return comment
+
+
+def _get_complex_comment_or_404(comment_id: int, session: Session) -> ComplexComment:
+    comment = session.get(ComplexComment, comment_id)
+
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Комментарий не найден")
+
+    return comment
+
+
+@router.put("/comments/{comment_id}", response_model=ComplexCommentRead)
+def update_complex_comment(
+    comment_id: int,
+    data: ComplexCommentCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ComplexComment:
+    comment = _get_complex_comment_or_404(comment_id, session)
+
+    # Строго только автор, даже для админа — как и с отзывами площадок
+    # (см. update_review в routers/reviews.py): подменить чужой текст
+    # от чужого имени не должно быть можно даже модератору.
+    if comment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Изменять этот комментарий может только его автор",
+        )
+
+    comment.text = _validate_comment_text(data.text)
+
+    session.add(comment)
+    session.commit()
+    session.refresh(comment)
+
+    return comment
+
+
+@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_complex_comment(
+    comment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> None:
+    comment = _get_complex_comment_or_404(comment_id, session)
+
+    # В отличие от редактирования выше — удалить чужой комментарий
+    # модератору можно (это модерация, а не подмена авторства).
+    ensure_owner_or_admin(
+        comment.user_id,
+        current_user,
+        detail="Удалять этот комментарий может только его автор",
+    )
+
+    session.delete(comment)
+    session.commit()

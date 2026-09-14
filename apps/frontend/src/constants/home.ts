@@ -1,5 +1,5 @@
 /** Скользящее окно для карты "Активность на площадках" (UX-HOME §5). */
-export const HOME_ACTIVITY_WINDOW_HOURS = 24;
+export const HOME_ACTIVITY_WINDOW_HOURS = 24 * 7;
 
 /**
  * Максимум записей одного пользователя в Home Feed за один

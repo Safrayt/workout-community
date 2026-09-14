@@ -146,6 +146,8 @@ export default function WorkoutEntryDetails() {
                     isMain: photo.isMain ?? false,
                 })) ?? [],
             tags: entry.tags ?? [],
+            hideFromFeed: entry.hideFromFeed ?? false,
+            isPrivate: entry.isPrivate ?? false,
         };
 
         return (

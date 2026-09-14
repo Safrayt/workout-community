@@ -12,4 +12,8 @@ export type NewDiaryNote = {
 
     tags: string[];
 
+    hideFromFeed: boolean;
+
+    isPrivate: boolean;
+
 };

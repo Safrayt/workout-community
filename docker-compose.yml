@@ -50,12 +50,6 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
       DATABASE_URL: postgresql://${POSTGRES_USER:-workout}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-workout}
     volumes:
-      # backend_data оставлен даже после перехода на Postgres — там
-      # лежит старый файл SQLite (app.db), если вы переносили данные
-      # с него через migrate_to_postgres.py (см. DEPLOY.md). Можно
-      # ничего не удалять — он просто больше не используется
-      # приложением напрямую.
-      - backend_data:/app/data
       - backend_uploads:/app/uploads
 
   frontend:
@@ -78,7 +72,6 @@ services:
 
 volumes:
   postgres_data:
-  backend_data:
   backend_uploads:
   caddy_data:
   caddy_config:

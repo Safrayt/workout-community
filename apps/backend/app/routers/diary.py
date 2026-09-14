@@ -1,15 +1,17 @@
 import re
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
-from app.auth import get_current_user, get_optional_current_user
+from app.auth import ensure_admin, get_current_user, get_optional_current_user
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
 from app.models_diary import (
+    ActivityMapMarker,
     Comment,
     CommentCreate,
     CommentRead,
@@ -145,17 +147,119 @@ def _visible_diary_user_ids(
     Все пользователи, чей дневник виден в общей ленте (Home.tsx):
     у кого diary_visible=True, плюс сам смотрящий — свои записи он
     должен видеть в ленте, даже если сам их от других скрыл.
+
+    is_feed_restricted — отдельное от diary_visible ограничение,
+    накладываемое администратором (раздел "Пользователи"), а не
+    самим пользователем: убирает его записи из ленты для ВСЕХ, в том
+    числе для него самого — в отличие от diary_visible, здесь
+    исключения для смотрящего нет, потому что это не его собственная
+    настройка приватности. На страницу его дневника (просмотр по
+    user_id) это не влияет — см. list_workout_entries/list_diary_notes,
+    там эта проверка не применяется.
     """
     return {
         user.id
         for user in session.exec(select(User)).all()
-        if user.diary_visible or (viewer is not None and viewer.id == user.id)
+        if not user.is_feed_restricted
+        and (
+            user.diary_visible
+            or (viewer is not None and viewer.id == user.id)
+        )
     }
+
+
+def _is_private_record_visible(
+    record_owner_id: int, is_private: bool, viewer: Optional[User]
+) -> bool:
+    """
+    is_private — это приватность ОТДЕЛЬНОЙ записи ("Запись видна
+    только мне" при создании), а не всего дневника (для этого есть
+    User.diary_visible). Она жёстче: такую запись не видит вообще
+    никто, кроме самого автора и администратора, даже если дневник в
+    остальном открыт всем.
+    """
+    if not is_private:
+        return True
+
+    if viewer is None:
+        return False
+
+    return viewer.id == record_owner_id or viewer.is_admin
+
+
+@router.get("/activity-map", response_model=List[ActivityMapMarker])
+def get_activity_map(
+    hours: int = 168,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> List[ActivityMapMarker]:
+    """
+    Карта "Активность на площадках" на Главной (HomeActivityMap) —
+    сознательно игнорирует и diary_visible (User), и is_private/
+    hide_from_feed (WorkoutEntry/DiaryNote): карта не показывает, КТО
+    тренировался, только сам факт "здесь недавно кто-то был", а
+    агрегированное число само по себе никого не деанонимизирует.
+    Именно поэтому это отдельный агрегирующий эндпоинт, а не
+    смягчение фильтров в list_workout_entries/list_diary_notes ниже —
+    те отдают "сырые" записи (заголовок, текст, дату) с привязкой к
+    playground_id, которые сами по себе узнаваемы и не должны
+    попадать в браузер кого попало в обход приватности; здесь же
+    наружу уходят только посчитанные на сервере числа.
+
+    Доступен любому авторизованному пользователю (не только
+    администратору) — в этом и весь смысл: анонимность сохраняется
+    самим устройством ответа, а не ограничением того, кто его видит.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    entries = session.exec(
+        select(WorkoutEntry).where(
+            WorkoutEntry.playground_id != None,  # noqa: E711
+            WorkoutEntry.created_at >= cutoff,
+        )
+    ).all()
+    notes = session.exec(
+        select(DiaryNote).where(
+            DiaryNote.playground_id != None,  # noqa: E711
+            DiaryNote.created_at >= cutoff,
+        )
+    ).all()
+
+    markers: dict[int, ActivityMapMarker] = {}
+
+    def _touch(playground_id: int, created_at: datetime, is_workout: bool) -> None:
+        marker = markers.get(playground_id)
+
+        if marker is None:
+            marker = ActivityMapMarker(
+                playground_id=playground_id,
+                workout_count=0,
+                note_count=0,
+                last_activity_at=created_at,
+            )
+            markers[playground_id] = marker
+
+        if is_workout:
+            marker.workout_count += 1
+        else:
+            marker.note_count += 1
+
+        if created_at > marker.last_activity_at:
+            marker.last_activity_at = created_at
+
+    for entry in entries:
+        _touch(entry.playground_id, entry.created_at, is_workout=True)
+
+    for note in notes:
+        _touch(note.playground_id, note.created_at, is_workout=False)
+
+    return list(markers.values())
 
 
 @router.get("/entries", response_model=List[WorkoutEntryRead])
 def list_workout_entries(
     user_id: Optional[int] = None,
+    include_hidden: bool = False,
     session: Session = Depends(get_session),
     viewer: Optional[User] = Depends(get_optional_current_user),
 ) -> List[WorkoutEntry]:
@@ -165,7 +269,29 @@ def list_workout_entries(
     смотрящего в любом случае. С user_id — дневник одного конкретного
     пользователя (/u/:username/diary), с обычной проверкой
     diary_visible через _check_diary_visible.
+
+    include_hidden=true — вкладка "Администрирование" на Главной
+    (HomeFeed): администратор видит вообще все записи, включая
+    скрытые приватностью. Проверка прав — по HTTP, а не только по
+    скрытию кнопки на фронтенде, иначе достаточно было бы знать URL
+    параметра, чтобы обойти приватность чужого дневника.
     """
+    if include_hidden:
+        if viewer is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Требуется авторизация",
+            )
+
+        ensure_admin(
+            viewer,
+            "Просматривать скрытые записи может только администратор",
+        )
+
+        all_entries = session.exec(select(WorkoutEntry)).all()
+
+        return list(all_entries)
+
     if user_id is not None:
         owner = _get_target_user_or_404(user_id, session)
         _check_diary_visible(owner, viewer)
@@ -174,12 +300,21 @@ def list_workout_entries(
             select(WorkoutEntry).where(WorkoutEntry.user_id == user_id)
         ).all()
 
-        return list(entries)
+        return [
+            e
+            for e in entries
+            if _is_private_record_visible(e.user_id, e.is_private, viewer)
+        ]
 
     visible_user_ids = _visible_diary_user_ids(session, viewer)
     all_entries = session.exec(select(WorkoutEntry)).all()
 
-    return [e for e in all_entries if e.user_id in visible_user_ids]
+    return [
+        e
+        for e in all_entries
+        if e.user_id in visible_user_ids
+        and _is_private_record_visible(e.user_id, e.is_private, viewer)
+    ]
 
 
 def _get_workout_entry_or_404(
@@ -202,6 +337,12 @@ def get_workout_entry(
     entry = _get_workout_entry_or_404(entry_id, session)
     owner = _get_target_user_or_404(entry.user_id, session)
     _check_diary_visible(owner, viewer)
+
+    # Проверка diary_visible выше — про весь дневник; is_private —
+    # про эту конкретную запись, и её нужно проверить отдельно, иначе
+    # прямая ссылка на приватную запись обходила бы её приватность.
+    if not _is_private_record_visible(entry.user_id, entry.is_private, viewer):
+        raise HTTPException(status_code=404, detail="Запись не найдена")
 
     return entry
 
@@ -387,11 +528,29 @@ def create_diary_note(
 @router.get("/notes", response_model=List[DiaryNoteRead])
 def list_diary_notes(
     user_id: Optional[int] = None,
+    include_hidden: bool = False,
     session: Session = Depends(get_session),
     viewer: Optional[User] = Depends(get_optional_current_user),
 ) -> List[DiaryNote]:
     """Без user_id — общая лента, с ним — дневник одного пользователя.
-    См. подробный комментарий у list_workout_entries — та же логика."""
+    См. подробный комментарий у list_workout_entries — та же логика,
+    включая include_hidden для вкладки "Администрирование"."""
+    if include_hidden:
+        if viewer is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Требуется авторизация",
+            )
+
+        ensure_admin(
+            viewer,
+            "Просматривать скрытые записи может только администратор",
+        )
+
+        all_notes = session.exec(select(DiaryNote)).all()
+
+        return list(all_notes)
+
     if user_id is not None:
         owner = _get_target_user_or_404(user_id, session)
         _check_diary_visible(owner, viewer)
@@ -400,12 +559,21 @@ def list_diary_notes(
             select(DiaryNote).where(DiaryNote.user_id == user_id)
         ).all()
 
-        return list(notes)
+        return [
+            n
+            for n in notes
+            if _is_private_record_visible(n.user_id, n.is_private, viewer)
+        ]
 
     visible_user_ids = _visible_diary_user_ids(session, viewer)
     all_notes = session.exec(select(DiaryNote)).all()
 
-    return [n for n in all_notes if n.user_id in visible_user_ids]
+    return [
+        n
+        for n in all_notes
+        if n.user_id in visible_user_ids
+        and _is_private_record_visible(n.user_id, n.is_private, viewer)
+    ]
 
 
 def _get_diary_note_or_404(note_id: int, session: Session) -> DiaryNote:
@@ -426,6 +594,9 @@ def get_diary_note(
     note = _get_diary_note_or_404(note_id, session)
     owner = _get_target_user_or_404(note.user_id, session)
     _check_diary_visible(owner, viewer)
+
+    if not _is_private_record_visible(note.user_id, note.is_private, viewer):
+        raise HTTPException(status_code=404, detail="Заметка не найдена")
 
     return note
 

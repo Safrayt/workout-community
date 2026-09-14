@@ -10,8 +10,97 @@
     cursor: pointer;
 }
 
-.home-feed-card__author-row {
-    padding: var(--space-3) var(--space-4);
+/*
+ * Оверлей-вариант шапки автора — только для системных карточек
+ * (SystemFeedCard), см. макет от 2026-09. Отрицательный margin-top
+ * поднимает всю строку так, что аватар наполовину налезает на нижний
+ * край фото, а не absolute-позиционирование: остаётся в обычном
+ * потоке документа, поэтому не требует ручного расчёта отступа под
+ * него у заголовка ниже.
+ */
+.home-feed-card__author-row--overlay {
+    position: relative;
+    z-index: 1;
+
+    margin-top: -28px;
+    padding: 0 var(--space-4);
+}
+
+/*
+ * align-items: flex-end (а не center, как в обычной строке автора
+ * выше по файлу) — имя выравнивается по нижнему краю аватара, а не
+ * по его середине. Раз аватар только наполовину высовывается из-под
+ * фото, выравнивание по центру утягивало текст вверх, к самому краю
+ * фото — ровно то, на что пожаловались.
+ */
+.home-feed-card__author-row--overlay .home-feed-card__author {
+    align-items: flex-end;
+}
+
+/*
+ * Белая обводка отделяет аватар от фото под ним — без неё на светлых
+ * или похожих по тону фото край аватара сливается с картинкой.
+ * Только здесь, не на .avatar глобально: в остальных местах (шапка
+ * профиля, комментарии, список подписчиков) аватар не лежит поверх
+ * фото и обводка там не нужна.
+ */
+.home-feed-card__author-row--overlay .avatar {
+    border: 3px solid var(--color-surface);
+    box-sizing: border-box;
+}
+
+.home-feed-card__author-row--overlay .home-feed-card__author-name {
+    text-decoration: underline;
+}
+
+/* Без строки автора над фото (см. --overlay выше) верх карточки —
+   сразу заголовок, обычный отступ сверху ему не нужен. */
+.workout-entry-card__body--system {
+    padding-top: var(--space-2);
+}
+
+.home-feed-card__type-tag {
+    font-weight: 700;
+}
+
+/* Цвета — те же, что были у DiaryRecordTypeBadge/системных пометок,
+   чтобы тип записи по-прежнему различался с одного взгляда, даже
+   став текстом в заголовке вместо отдельного цветного бейджа. */
+.home-feed-card__type-tag--workout {
+    color: var(--color-primary);
+}
+
+.home-feed-card__type-tag--note {
+    color: #b5762b;
+}
+
+.home-feed-card__type-tag--event_created {
+    color: #6b4fbb;
+}
+
+.home-feed-card__type-tag--playground_created {
+    color: #4caf50;
+}
+
+/*
+ * Пометка на карточках вкладки "Администрирование" — записи, которые
+ * автор скрыл от остальных настройками приватности, но которые
+ * администратор всё равно видит (см. include_hidden на бэкенде).
+ * Оранжевый — тот же смысловой "внимание", что и у предупреждений в
+ * остальном интерфейсе, не завязан на цвета типов записей выше.
+ */
+.home-feed-card__privacy-badge {
+    display: inline-block;
+    margin-bottom: var(--space-2);
+
+    padding: 2px var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: #b45309;
+
+    background: #fef3c7;
+    border-radius: var(--radius-sm);
 }
 
 .home-feed-card__author {
@@ -40,14 +129,6 @@
 }
 
 .home-feed-card__author-name {
-    font-weight: 600;
-    color: var(--color-text);
-}
-
-.home-feed-card__event-date {
-    margin: 0 0 var(--space-2);
-
-    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text);
 }

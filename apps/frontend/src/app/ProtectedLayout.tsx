@@ -9,6 +9,7 @@ import { EventProvider } from "../context/EventContext";
 import { RegistrationProvider } from "../context/RegistrationContext";
 import { WorkoutDiaryProvider } from "../context/WorkoutDiaryContext";
 import { ComplexProvider } from "../context/ComplexContext";
+import { ComplexCommentProvider } from "../context/ComplexCommentContext";
 import { DiaryNotesProvider } from "../context/DiaryNotesContext";
 import { PersonalTagsProvider } from "../context/PersonalTagsContext";
 import { FavoriteProvider } from "../context/FavoriteContext";
@@ -83,7 +84,9 @@ export default function ProtectedLayout() {
                                             <SubscriptionProvider>
                                                 <CommentProvider>
                                                     <ComplexProvider>
-                                                        <Layout />
+                                                        <ComplexCommentProvider>
+                                                            <Layout />
+                                                        </ComplexCommentProvider>
                                                     </ComplexProvider>
                                                 </CommentProvider>
                                             </SubscriptionProvider>

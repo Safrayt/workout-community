@@ -262,6 +262,7 @@ export default function ComplexCompletionForm({
                             id="completion-date"
                             label="Дата выполнения"
                             type="date"
+                            max={getTodayDateString()}
                             value={completedDate}
                             onChange={(event) => handleDateChange(event.target.value)}
                         />

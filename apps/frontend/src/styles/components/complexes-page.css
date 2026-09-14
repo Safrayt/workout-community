@@ -4,6 +4,14 @@
     gap: var(--space-5);
 }
 
+.complexes-page__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
 .complexes-page__title {
     margin: 0;
 }

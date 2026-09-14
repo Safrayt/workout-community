@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import type { DiaryRecord } from "../../types/diaryRecord";
@@ -14,11 +14,14 @@ import SystemFeedCard from "../SystemFeedCard/SystemFeedCard";
 import Button from "../ui/Button/Button";
 
 import {
+    getAdminFeedRecords,
     getFeedRecords,
     getSystemFeedRecords,
     mergeFeedRawItems,
     buildHomeFeedItems,
 } from "../../utils/homeFeed";
+import { buildDiaryRecords } from "../../utils/diaryRecords";
+import { listDiaryNotes, listWorkoutEntries } from "../../api/diary";
 import { HOME_FEED_PAGE_SIZE } from "../../constants/home";
 import { useSimulatedLoad } from "../../hooks/useSimulatedLoad";
 
@@ -31,6 +34,9 @@ type HomeFeedProps = {
     comments: Comment[];
     events: Event[];
     followingIds: string[];
+
+    /** Показывать ли вкладку "Администрирование". */
+    isAdmin: boolean;
 };
 
 /**
@@ -38,6 +44,16 @@ type HomeFeedProps = {
  * §37 п.20). Владеет состоянием вкладки и глубиной pagination;
  * бизнес-логика (сортировка, дневной лимит, фильтр по вкладке)
  * целиком вынесена в utils/homeFeed.ts (§32).
+ *
+ * Вкладка "Администрирование" — особый случай: в отличие от "Все
+ * записи"/"Подписки", которые работают над уже загруженным (и уже
+ * отфильтрованным по приватности бэкендом) списком records из
+ * пропсов, она дозагружает свой ОТДЕЛЬНЫЙ набор данных через
+ * include_hidden=true (см. api/diary.ts) — специально не смешивая
+ * его с обычным WorkoutDiaryContext/DiaryNotesContext, чтобы полные
+ * данные (включая скрытые приватностью записи) не осели в общем
+ * состоянии приложения и не "утекли" в какой-нибудь другой компонент,
+ * который читает те же контексты.
  */
 export default function HomeFeed({
     records,
@@ -46,11 +62,56 @@ export default function HomeFeed({
     comments,
     events,
     followingIds,
+    isAdmin,
 }: HomeFeedProps) {
     const [mode, setMode] = useState<HomeFeedMode>("all");
     const [visibleCount, setVisibleCount] = useState(HOME_FEED_PAGE_SIZE);
 
     const { status, retry, reload } = useSimulatedLoad();
+
+    const [adminRecords, setAdminRecords] = useState<DiaryRecord[] | null>(
+        null
+    );
+    const [isLoadingAdminRecords, setIsLoadingAdminRecords] = useState(false);
+    const [adminLoadError, setAdminLoadError] = useState(false);
+
+    useEffect(() => {
+        if (mode !== "admin" || adminRecords !== null || !isAdmin) {
+            return;
+        }
+
+        let cancelled = false;
+        setIsLoadingAdminRecords(true);
+        setAdminLoadError(false);
+
+        Promise.all([
+            listWorkoutEntries({ includeHidden: true }),
+            listDiaryNotes({ includeHidden: true }),
+        ])
+            .then(([entries, notes]) => {
+                if (!cancelled) {
+                    setAdminRecords(buildDiaryRecords(entries, notes));
+                }
+            })
+            .catch((error: unknown) => {
+                console.error(
+                    "Не удалось загрузить все записи для администратора:",
+                    error
+                );
+                if (!cancelled) {
+                    setAdminLoadError(true);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setIsLoadingAdminRecords(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [mode, adminRecords, isAdmin]);
 
     function handleModeChange(nextMode: HomeFeedMode) {
         setMode(nextMode);
@@ -64,6 +125,7 @@ export default function HomeFeed({
                 <HomeFeedTabs
                     mode={mode}
                     onChange={handleModeChange}
+                    showAdminTab={isAdmin}
                 />
 
                 <div className="home-feed__error">
@@ -75,12 +137,13 @@ export default function HomeFeed({
         );
     }
 
-    if (status === "loading") {
+    if (status === "loading" || (mode === "admin" && isLoadingAdminRecords)) {
         return (
             <div className="home-feed">
                 <HomeFeedTabs
                     mode={mode}
                     onChange={handleModeChange}
+                    showAdminTab={isAdmin}
                 />
 
                 <div className="home-feed__skeleton" aria-hidden="true">
@@ -97,12 +160,34 @@ export default function HomeFeed({
         );
     }
 
-    const feedRecordsRaw = getFeedRecords(
-        records,
-        users,
-        mode,
-        followingIds
-    );
+    if (mode === "admin" && adminLoadError) {
+        return (
+            <div className="home-feed">
+                <HomeFeedTabs
+                    mode={mode}
+                    onChange={handleModeChange}
+                    showAdminTab={isAdmin}
+                />
+
+                <div className="home-feed__error">
+                    <p>Не удалось загрузить записи</p>
+
+                    <Button
+                        onClick={() => {
+                            setAdminRecords(null);
+                        }}
+                    >
+                        Повторить
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    const feedRecordsRaw =
+        mode === "admin"
+            ? getAdminFeedRecords(adminRecords ?? [])
+            : getFeedRecords(records, users, mode, followingIds);
 
     const systemRecordsRaw = getSystemFeedRecords(
         events,
@@ -132,6 +217,7 @@ export default function HomeFeed({
             <HomeFeedTabs
                 mode={mode}
                 onChange={handleModeChange}
+                showAdminTab={isAdmin}
             />
 
             {
@@ -199,6 +285,22 @@ function HomeFeedEmptyState({
     onSwitchToAll,
 }: HomeFeedEmptyStateProps) {
     const navigate = useNavigate();
+
+    if (mode === "admin") {
+        return (
+            <div className="home-feed__empty">
+                <p className="home-feed__empty-title">
+                    Записей пока нет вообще ни у кого
+                </p>
+
+                <p className="home-feed__empty-text">
+                    Здесь появятся все тренировки и заметки
+                    <br />
+                    сообщества, включая скрытые приватностью.
+                </p>
+            </div>
+        );
+    }
 
     if (mode === "all") {
         return (

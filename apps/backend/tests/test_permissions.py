@@ -164,3 +164,54 @@ def test_updating_nonexistent_playground_returns_404_not_403(client):
     )
 
     assert response.status_code == 404
+
+
+def test_deleting_playground_unlinks_referencing_diary_records(client, session):
+    """
+    Регрессия: у WorkoutEntry/DiaryNote есть необязательная ссылка
+    playground_id. Раньше при удалении площадки она не обнулялась —
+    на Postgres (в отличие от SQLite в этих тестах, где внешние ключи
+    не проверяются) это падало 500-й ошибкой из-за нарушения внешнего
+    ключа. Здесь можно проверить хотя бы то, что приложение теперь
+    действительно обнуляет playground_id, а не оставляет как есть —
+    само нарушение FK этот тест на SQLite не увидит.
+    """
+    from datetime import date
+
+    from app.models_diary import DiaryNote, WorkoutEntry
+
+    owner = register_user(client, nickname="owner")
+    playground_id = _create_playground(client, owner["token"])
+
+    owner_user = session.exec(
+        select(User).where(User.nickname == "owner")
+    ).first()
+
+    entry = WorkoutEntry(
+        date=date.today(),
+        title="Тренировка на этой площадке",
+        user_id=owner_user.id,
+        playground_id=playground_id,
+    )
+    note = DiaryNote(
+        text="Заметка про эту площадку",
+        user_id=owner_user.id,
+        playground_id=playground_id,
+    )
+    session.add(entry)
+    session.add(note)
+    session.commit()
+    session.refresh(entry)
+    session.refresh(note)
+
+    response = client.delete(
+        f"/playgrounds/{playground_id}",
+        headers=auth_headers(owner["token"]),
+    )
+
+    assert response.status_code == 204
+
+    session.refresh(entry)
+    session.refresh(note)
+    assert entry.playground_id is None
+    assert note.playground_id is None

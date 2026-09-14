@@ -26,6 +26,12 @@ export default function Navigation() {
             <NavLink to="/profile">Профиль</NavLink>
 
             {
+                user?.isAdmin && (
+                    <NavLink to="/admin/users">Пользователи</NavLink>
+                )
+            }
+
+            {
                 user ? (
                     <button
                         type="button"

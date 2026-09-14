@@ -12,6 +12,12 @@
     gap: var(--space-2);
 }
 
+.complex-card__type-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
 .complex-card__name {
     font-size: var(--font-size-lg);
     margin: 0;
@@ -27,6 +33,7 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     margin: 0;
+    white-space: pre-line;
 }
 
 .complex-card__variants {

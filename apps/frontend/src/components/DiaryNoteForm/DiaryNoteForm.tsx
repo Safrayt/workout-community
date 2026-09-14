@@ -60,6 +60,7 @@ import {
 
 import "../../styles/components/workout-entry-form.css";
 import "../../styles/components/workout-entry-map-picker.css";
+import "../../styles/components/checkbox-grid.css";
 
 type DiaryNoteFormProps = {
 
@@ -286,6 +287,41 @@ export default function DiaryNoteForm({
                         updateField("tags", tags)
                     }
                 />
+            </Section>
+
+            <Section title="Приватность">
+                <div className="checkbox-grid">
+                    <label className="checkbox-option">
+                        <input
+                            type="checkbox"
+                            checked={note.hideFromFeed}
+                            onChange={(event) =>
+                                updateField("hideFromFeed", event.target.checked)
+                            }
+                        />
+                        Не публиковать в общей ленте
+                    </label>
+
+                    <label className="checkbox-option">
+                        <input
+                            type="checkbox"
+                            checked={note.isPrivate}
+                            onChange={(event) =>
+                                updateField("isPrivate", event.target.checked)
+                            }
+                        />
+                        Запись видна только мне
+                    </label>
+                </div>
+
+                {
+                    note.isPrivate && (
+                        <p className="workout-entry-form__privacy-hint">
+                            Эту заметку не увидит никто, кроме вас — ни в
+                            ленте, ни на странице вашего дневника.
+                        </p>
+                    )
+                }
             </Section>
 
             {

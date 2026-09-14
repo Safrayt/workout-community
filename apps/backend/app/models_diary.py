@@ -44,6 +44,20 @@ class WorkoutEntryBase(SQLModel):
     # routers/diary.py при создании/изменении записи.
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
+    # Приватность записи — независимо от общей настройки видимости
+    # дневника (User.diary_visible), у каждой отдельной записи можно
+    # сузить её собственную видимость дальше:
+    #   • hide_from_feed — не показывать во вкладке "Все записи" на
+    #     Главной. Запись остаётся видна во вкладке "Подписки" (тем,
+    #     кто подписан на автора) и на странице дневника автора.
+    #   • is_private — не показывать вообще нигде в общей ленте (ни
+    #     "Все записи", ни "Подписки") и на странице дневника автора
+    #     для кого угодно, кроме самого автора и администратора.
+    # is_private жёстче hide_from_feed и уже включает его действие —
+    # оба флага можно выставить одновременно, но это избыточно.
+    hide_from_feed: bool = False
+    is_private: bool = False
+
 
 class WorkoutEntry(WorkoutEntryBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -75,6 +89,8 @@ class WorkoutEntryUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
+    hide_from_feed: Optional[bool] = None
+    is_private: Optional[bool] = None
 
 
 class WorkoutEntryPhoto(SQLModel, table=True):
@@ -106,6 +122,10 @@ class DiaryNoteBase(SQLModel):
     title: Optional[str] = None
     text: str
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+    # См. подробный комментарий у WorkoutEntryBase — та же механика.
+    hide_from_feed: bool = False
+    is_private: bool = False
 
 
 class DiaryNote(DiaryNoteBase, table=True):
@@ -144,6 +164,8 @@ class DiaryNoteUpdate(SQLModel):
     text: Optional[str] = None
     playground_id: Optional[int] = None
     tags: Optional[List[str]] = None
+    hide_from_feed: Optional[bool] = None
+    is_private: Optional[bool] = None
 
 
 class DiaryNotePhoto(SQLModel, table=True):
@@ -227,3 +249,21 @@ class CommentRead(CommentBase):
     record_type: DiaryRecordType
     user_id: int
     created_at: datetime
+
+
+# --- Карта активности (полностью анонимная агрегация) ----------------------
+
+class ActivityMapMarker(SQLModel):
+    """
+    Полностью анонимная агрегированная активность на одной площадке —
+    только "здесь недавно кто-то тренировался", без какой-либо
+    привязки к конкретному пользователю или содержимого самой записи.
+    Специально не содержит user_id/title/text и т.п. — см. GET
+    /diary/activity-map в routers/diary.py, зачем это отдельный
+    эндпоинт, а не смягчение фильтров в основном списке записей.
+    """
+
+    playground_id: int
+    workout_count: int
+    note_count: int
+    last_activity_at: datetime

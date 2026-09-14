@@ -13,6 +13,20 @@ UPLOAD_ROOT = Path("uploads")
 
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 МБ
 
+# Длинная сторона, до которой уменьшается любое загруженное фото.
+# 1920px с запасом хватает даже на полноэкранный показ на обычных
+# мониторах, а весит в разы меньше, чем фото 12+ Мп прямо с камеры
+# телефона (типичный современный телефон снимает 3000-4000px по
+# длинной стороне) — то есть основная часть экономии места на диске
+# и трафика происходит именно здесь, а не от пересжатия самого по себе.
+MAX_DIMENSION_PX = 1920
+
+# Качество для форматов с потерями (0-100). 85 — стандартный
+# компромисс: разница с оригиналом на глаз практически не видна,
+# а вес файла обычно падает в 3-5 раз по сравнению с quality=95+,
+# которое часто стоит по умолчанию в камерах телефонов.
+LOSSY_QUALITY = 85
+
 # Единственный источник правды о том, какие форматы разрешены и в
 # какое расширение каждый из них сохраняется на диске. Расширение
 # файла ВСЕГДА берётся отсюда — по формату, который реально
@@ -102,7 +116,24 @@ async def save_image(upload_file: UploadFile, subfolder: str) -> str:
     elif image.format == "PNG" and image.mode == "P":
         image = image.convert("RGBA")
 
-    image.save(destination, format=image.format)
+    # thumbnail() уменьшает только те изображения, что больше
+    # MAX_DIMENSION_PX по длинной стороне, сохраняя пропорции —
+    # маленькие картинки (например, уже оптимизированные заранее)
+    # он не тронет и уж точно не увеличит.
+    image.thumbnail((MAX_DIMENSION_PX, MAX_DIMENSION_PX), Image.LANCZOS)
+
+    save_kwargs: dict = {"format": image.format}
+
+    if image.format in ("JPEG", "WEBP"):
+        save_kwargs["quality"] = LOSSY_QUALITY
+        save_kwargs["optimize"] = True
+    elif image.format == "PNG":
+        # PNG без потерь — quality тут ни при чём, но optimize всё
+        # равно даёт чуть более плотное сжатие ценой времени на
+        # сохранение (для отдельной картинки — доли секунды).
+        save_kwargs["optimize"] = True
+
+    image.save(destination, **save_kwargs)
 
     return f"/uploads/{subfolder}/{filename}"
 

@@ -5,12 +5,16 @@ import "../../styles/components/home-feed-tabs.css";
 type HomeFeedTabsProps = {
     mode: HomeFeedMode;
     onChange: (mode: HomeFeedMode) => void;
+
+    /** Вкладка "Администрирование" — видна только администратору. */
+    showAdminTab?: boolean;
 };
 
 /** Переключатель вкладок ленты (UX-HOME §12–14). */
 export default function HomeFeedTabs({
     mode,
     onChange,
+    showAdminTab = false,
 }: HomeFeedTabsProps) {
     return (
         <div
@@ -36,6 +40,20 @@ export default function HomeFeedTabs({
             >
                 Подписки
             </button>
+
+            {
+                showAdminTab && (
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={mode === "admin"}
+                        className={`home-feed-tabs__tab ${mode === "admin" ? "home-feed-tabs__tab--active" : ""}`}
+                        onClick={() => onChange("admin")}
+                    >
+                        Администрирование
+                    </button>
+                )
+            }
         </div>
     );
 }

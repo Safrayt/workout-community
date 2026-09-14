@@ -20,4 +20,10 @@ export type DiaryNote = {
 
     createdAt: string;
 
+    /** См. WorkoutEntry.hideFromFeed — та же механика для заметок. */
+    hideFromFeed?: boolean;
+
+    /** См. WorkoutEntry.isPrivate — та же механика для заметок. */
+    isPrivate?: boolean;
+
 };

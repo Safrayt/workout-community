@@ -1,12 +1,13 @@
 import type {
     Complex,
     ComplexType,
-    DifficultyTier,
     MetricType,
     MovementType,
     StarCondition,
 } from "../../types/complex";
+import type { ComplexComment } from "../../types/complexComment";
 import type { ComplexCompletion } from "../../types/complexCompletion";
+import type { NewComplex } from "../../types/newComplex";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
 
 // --- Каталог -------------------------------------------------------------
@@ -14,14 +15,13 @@ import type { NewComplexCompletion } from "../../types/newComplexCompletion";
 export type ApiComplex = {
     id: string;
     name: string;
-    type: ComplexType;
+    types: ComplexType[];
     description: string;
     scheme_display: string;
     scheme_steps?: number[] | null;
     total_reps?: number | null;
     movements: MovementType[];
     exercise: string;
-    difficulty: DifficultyTier;
     result_metrics: MetricType[];
     star_conditions: StarCondition[];
     instructions?: string | null;
@@ -32,18 +32,45 @@ export function mapApiComplexToComplex(apiComplex: ApiComplex): Complex {
     return {
         id: apiComplex.id,
         name: apiComplex.name,
-        type: apiComplex.type,
+        types: apiComplex.types,
         description: apiComplex.description,
         schemeDisplay: apiComplex.scheme_display,
         schemeSteps: apiComplex.scheme_steps ?? undefined,
         totalReps: apiComplex.total_reps ?? undefined,
         movements: apiComplex.movements,
         exercise: apiComplex.exercise,
-        difficulty: apiComplex.difficulty,
         resultMetrics: apiComplex.result_metrics,
         starConditions: apiComplex.star_conditions,
         instructions: apiComplex.instructions ?? undefined,
         restrictions: apiComplex.restrictions ?? undefined,
+    };
+}
+
+/**
+ * Тело запроса на создание/редактирование комплекса. Форма
+ * (ComplexForm) всегда держит полное состояние, поэтому в отличие от
+ * mapCompletionUpdateToApi ниже частичная отправка не нужна — при
+ * редактировании api/complexes.ts просто убирает поле id перед
+ * отправкой (сервер и не ждёт его в теле PUT, см.
+ * app.models_complex.ComplexUpdate).
+ */
+export function mapNewComplexToApi(
+    complex: NewComplex
+): Record<string, unknown> {
+    return {
+        id: complex.id,
+        name: complex.name,
+        types: complex.types,
+        description: complex.description,
+        scheme_display: complex.schemeDisplay,
+        scheme_steps: complex.schemeSteps,
+        total_reps: complex.totalReps,
+        movements: complex.movements,
+        exercise: complex.exercise,
+        result_metrics: complex.resultMetrics,
+        star_conditions: complex.starConditions,
+        instructions: complex.instructions.trim() || null,
+        restrictions: complex.restrictions.trim() || null,
     };
 }
 
@@ -151,4 +178,26 @@ export function mapCompletionUpdateToApi(
     }
 
     return payload;
+}
+
+// --- Комментарии -------------------------------------------------------
+
+export type ApiComplexComment = {
+    id: number;
+    complex_id: string;
+    user_id: number;
+    text: string;
+    created_at: string;
+};
+
+export function mapApiCommentToComment(
+    apiComment: ApiComplexComment
+): ComplexComment {
+    return {
+        id: String(apiComment.id),
+        complexId: apiComment.complex_id,
+        userId: String(apiComment.user_id),
+        text: apiComment.text,
+        createdAt: apiComment.created_at,
+    };
 }

@@ -5,12 +5,11 @@ import type { SystemFeedItem } from "../../types/homeFeedRecord";
 import type { Playground } from "../../types/playground";
 
 import Avatar from "../ui/Avatar/Avatar";
-import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
-import { formatTimeAgo } from "../../utils/timeAgo";
 import { formatEventDateShort } from "../../utils/formatEventDate";
 import { getEventPosterUrl } from "../../utils/eventPoster";
 import { getPlaygroundById } from "../../utils/playgrounds";
+import { truncateText } from "../../utils/truncateText";
 
 import "../../styles/components/workout-entry-card.css";
 import "../../styles/components/home-feed-card.css";
@@ -27,14 +26,31 @@ type SystemFeedCardProps = {
 };
 
 /**
+ * Короткая, согласованная по роду с заголовком пометка типа записи —
+ * показывается как "[Пометка] Заголовок" прямо в самом заголовке
+ * (макет от 2026-09), а не отдельным цветным бейджем над карточкой,
+ * как раньше (см. git-историю компонента) или как до сих пор
+ * оформлены карточки дневника (DiaryRecordTypeBadge).
+ */
+const TYPE_TAGS: Record<SystemFeedItem["record"]["type"], string> = {
+    event_created: "Создана",
+    playground_created: "Новая",
+};
+
+const MAX_FEED_TITLE_LENGTH = 50;
+
+/**
  * Карточка системной записи в Home Feed — "создано мероприятие" или
- * "новая площадка" (UX-HOME: см. запрос на системные оповещения).
- * Использует ту же вёрстку, что и HomeFeedCard/карточки Дневника —
- * фото → тип+дата → название → адрес/площадка, — чтобы не выглядеть
- * инородно рядом с обычными записями в одной ленте. Отличие только
- * в источнике данных (Event/Playground вместо DiaryRecord) и в
- * отсутствии описания и счётчика комментариев — для этих системных
- * событий их просто не бывает.
+ * "новая площадка". Автор показан как аватар, наполовину наезжающий
+ * на нижний край фото, с именем рядом под ним — так, как попросили
+ * оформить именно эти карточки (макет от 2026-09). Время публикации
+ * умышленно не показывается вовсе — в отличие от карточек дневника,
+ * где эта дата несёт смысл (когда что-то произошло), здесь это
+ * просто шум.
+ *
+ * Карточки дневника (HomeFeedCard) в общей ленте пока оформлены
+ * по-старому — там ещё расхождение даты события с датой публикации,
+ * время суток и счётчик комментариев, которых в этом макете не было.
  */
 export default function SystemFeedCard({
     feedRecord,
@@ -58,7 +74,10 @@ export default function SystemFeedCard({
         : record.data.photos.find((photo) => photo.isMain)?.url ??
           record.data.photos[0]?.url;
 
-    const title = isEvent ? record.data.title : record.data.name;
+    const title = truncateText(
+        isEvent ? record.data.title : record.data.name,
+        MAX_FEED_TITLE_LENGTH
+    );
 
     function goToRecord() {
         navigate(recordUrl);
@@ -70,7 +89,7 @@ export default function SystemFeedCard({
 
     return (
         <article
-            className="workout-entry-card home-feed-card"
+            className="workout-entry-card home-feed-card home-feed-card--system"
             onClick={goToRecord}
             role="link"
             tabIndex={0}
@@ -80,7 +99,17 @@ export default function SystemFeedCard({
                 }
             }}
         >
-            <div className="home-feed-card__author-row">
+            {
+                photoUrl && (
+                    <img
+                        src={photoUrl}
+                        alt=""
+                        className="workout-entry-card__photo"
+                    />
+                )
+            }
+
+            <div className="home-feed-card__author-row home-feed-card__author-row--overlay">
                 <Link
                     to={`/u/${author.nickname}`}
                     className="home-feed-card__author"
@@ -98,36 +127,23 @@ export default function SystemFeedCard({
                 </Link>
             </div>
 
-            {
-                photoUrl && (
-                    <img
-                        src={photoUrl}
-                        alt=""
-                        className="workout-entry-card__photo"
-                    />
-                )
-            }
-
-            <div className="workout-entry-card__body">
-                <div className="workout-entry-card__meta">
-                    <DiaryRecordTypeBadge type={record.type} />
-
-                    <p className="workout-entry-card__date">
-                        {formatTimeAgo(record.createdAt)}
-                    </p>
-                </div>
-
+            <div className="workout-entry-card__body workout-entry-card__body--system">
                 <h4 className="workout-entry-card__title">
+                    <span
+                        className={`home-feed-card__type-tag home-feed-card__type-tag--${record.type}`}
+                    >
+                        [{TYPE_TAGS[record.type]}]
+                    </span>{" "}
                     {title}
                 </h4>
 
                 {
                     /*
-                     * Дополнительные данные типа записи (UX-документ
-                     * §7): для события — время проведения и площадка
-                     * отдельными строками с иконками; для площадки —
-                     * адрес. Раздел не показывается, если данных нет
-                     * (для площадки без явного адреса).
+                     * Дополнительные данные типа записи: для события —
+                     * время проведения и площадка отдельными строками с
+                     * иконками; для площадки — адрес. Раздел не
+                     * показывается, если данных нет (для площадки без
+                     * явного адреса).
                      */
                     isEvent ? (
                         <div className="home-feed-card__extra">
