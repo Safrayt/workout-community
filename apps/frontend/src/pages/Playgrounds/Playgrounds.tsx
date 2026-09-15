@@ -84,12 +84,6 @@ export default function Playgrounds() {
                 selectedMarkerId={selectedPlaygroundId ?? undefined}
                 focusMarkerId={focusPlaygroundId ?? undefined}
                 onMarkerClick={(marker) => setSelectedPlaygroundId(marker.id)}
-                onMapClick={(latitude, longitude) => {
-                    console.log(
-                        latitude,
-                        longitude
-                    );
-                }}
             />
 
             <hr />
