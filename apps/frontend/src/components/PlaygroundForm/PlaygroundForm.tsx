@@ -89,6 +89,14 @@ type PlaygroundFormProps = {
 
     excludePlaygroundId?: string;
 
+    /**
+     * true на странице редактирования — фото обязательно только при
+     * создании новой площадки (см. validation/playground.ts), задним
+     * числом это правило на уже существующие площадки без фото не
+     * распространяется, чтобы не блокировать несвязанные правки.
+     */
+    isEditing?: boolean;
+
     onSubmit: (
         playground: NewPlayground
     ) => void;
@@ -98,6 +106,7 @@ export default function PlaygroundForm({
     initialValue,
     submitLabel,
     excludePlaygroundId,
+    isEditing = false,
     onSubmit,
 }: PlaygroundFormProps) {
     const [errors, setErrors] =
@@ -173,7 +182,7 @@ export default function PlaygroundForm({
 
     function handleSubmit() {
         const result =
-            validatePlayground(playground);
+            validatePlayground(playground, { isEditing });
 
         if (!result.valid) {
             setErrors(result.errors);
@@ -444,8 +453,8 @@ export default function PlaygroundForm({
                                                         src={info.icon}
                                                         alt=""
                                                         className="playground-form__equipment-icon"
-                                                        width={20}
-                                                        height={20}
+                                                        width={50}
+                                                        height={50}
                                                     />
                                                     {info.name}
                                                 </label>

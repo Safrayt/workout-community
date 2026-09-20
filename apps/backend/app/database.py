@@ -117,6 +117,23 @@ def _run_migrations() -> None:
                     connection, table_name, column_name, boolean_default_false
                 )
 
+        # Связь записи тренировки с программой (см. UX-документ
+        # «Раздел Программы», models_diary.WorkoutEntry) — добавлена
+        # позже, чем таблица workoutentry уже существовала на проде.
+        if "workoutentry" in existing_tables:
+            _add_column_if_missing(
+                connection, "workoutentry", "program_id", "INTEGER"
+            )
+            _add_column_if_missing(
+                connection, "workoutentry", "program_version_id", "INTEGER"
+            )
+            _add_column_if_missing(
+                connection, "workoutentry", "program_section", "TEXT"
+            )
+            _add_column_if_missing(
+                connection, "workoutentry", "program_scheme", "TEXT"
+            )
+
 
 def create_db_and_tables() -> None:
     """

@@ -48,7 +48,7 @@ export default function EditEvent() {
         );
     }
 
-    if (event.creatorId !== currentUser.id) {
+    if (event.creatorId !== currentUser.id && !currentUser.isAdmin) {
         return (
             <Section title="Редактирование мероприятия">
                 <p>

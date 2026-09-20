@@ -1,0 +1,27 @@
+.workout-entry-program {
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.workout-entry-program__title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.workout-entry-program__name {
+    margin: 0;
+    font-weight: 600;
+}
+
+.workout-entry-program__version {
+    font-weight: 400;
+    color: var(--color-text-secondary);
+}
+
+.workout-entry-program__details {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}

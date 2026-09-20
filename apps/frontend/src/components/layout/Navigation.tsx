@@ -23,6 +23,8 @@ export default function Navigation() {
 
             <NavLink to="/complexes">Комплексы</NavLink>
 
+            <NavLink to="/programs">Программы</NavLink>
+
             <NavLink to="/profile">Профиль</NavLink>
 
             {

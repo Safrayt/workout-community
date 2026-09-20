@@ -48,7 +48,7 @@ export default function EditPlayground() {
         );
     }
 
-    if (playground.creatorId !== currentUser.id) {
+    if (playground.creatorId !== currentUser.id && !currentUser.isAdmin) {
         return (
             <Section title="Редактирование площадки">
                 <p>
@@ -101,6 +101,7 @@ export default function EditPlayground() {
                     isSubmitting ? "Сохраняем…" : "Сохранить изменения"
                 }
                 excludePlaygroundId={playground.id}
+                isEditing
                 onSubmit={handleSubmit}
             />
         </Section>

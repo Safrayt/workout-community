@@ -1,0 +1,163 @@
+.program-structure-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.program-structure-editor__hint {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.program-structure-editor__section,
+.program-structure-editor__scheme-wrapper,
+.program-structure-editor__block-wrapper {
+    border: 1px solid var(--color-border);
+    border-left-width: 4px;
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* Разделы, схемы и блоки различаются по цвету левой полосы и лёгкому
+   оттенку фона — так проще на глаз понять, на каком уровне вложенности
+   находишься, особенно когда разделов/схем несколько подряд. */
+.program-structure-editor__section {
+    background: #ebf8ff;
+    border-left-color: var(--color-accent);
+}
+
+.program-structure-editor__scheme-wrapper {
+    margin-left: var(--space-3);
+    background: #f0fff4;
+    border-left-color: var(--color-primary);
+}
+
+.program-structure-editor__block-wrapper {
+    margin-left: var(--space-3);
+    background: #fffaf0;
+    border-left-color: var(--color-warning);
+}
+
+.program-structure-editor__scheme,
+.program-structure-editor__block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.program-structure-editor__schemes,
+.program-structure-editor__blocks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.program-structure-editor__item-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.program-structure-editor__item-header > .input {
+    flex: 1;
+}
+
+.program-structure-editor__item-title {
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.program-structure-editor__section-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.program-structure-editor__reorder {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.program-structure-editor__icon-button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.program-structure-editor__icon-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.program-structure-editor__collapse-toggle {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.program-structure-editor__collapse-toggle:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--color-text);
+}
+
+.program-structure-editor__remove-button {
+    border: 1px solid var(--color-danger, #c53030);
+    color: var(--color-danger, #c53030);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.program-structure-editor__exercises {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.program-structure-editor__field-label {
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+}
+
+.program-structure-editor__exercise-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.program-structure-editor__exercise-row > .input {
+    flex: 1;
+}
+
+.program-structure-editor__exercise-index {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    min-width: 1.5em;
+}

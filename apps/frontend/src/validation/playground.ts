@@ -12,7 +12,8 @@ import {
 } from "../constants/playgroundPhotos";
 
 export function validatePlayground(
-    playground: NewPlayground
+    playground: NewPlayground,
+    options: { isEditing?: boolean } = {}
 ): ValidationResult {
 
     const errors: ValidationError[] = [];
@@ -87,6 +88,16 @@ export function validatePlayground(
         errors.push({
             field: "description",
             message: "Добавьте описание площадки.",
+        });
+    }
+
+    if (
+        !options.isEditing &&
+        playground.photos.length === 0
+    ) {
+        errors.push({
+            field: "photos",
+            message: "Добавьте хотя бы одну фотографию площадки.",
         });
     }
 

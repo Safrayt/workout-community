@@ -1,4 +1,4 @@
-import { apiFetch, buildQuery } from "./client";
+import { apiFetch, apiFetchBlob, buildQuery } from "./client";
 import { dataUrlToFile, isDataUrl } from "./imageUpload";
 import {
     mapApiCommentToComment,
@@ -345,4 +345,24 @@ export async function getActivityMap(
         noteCount: marker.note_count,
         lastActivityAt: marker.last_activity_at,
     }));
+}
+
+/**
+ * Кнопка «Скачать записи» на странице /diary — личный архив со всеми
+ * записями (тренировки и заметки) и фотографиями, см.
+ * GET /diary/export в routers/diary.py. Сам браузерный download
+ * запускается через синтетическую ссылку — на этом файл и остаётся,
+ * страница ничего никуда не открывает и не перезагружает.
+ */
+export async function downloadDiaryExport(): Promise<void> {
+    const blob = await apiFetchBlob("/diary/export");
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "diary-export.zip";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }

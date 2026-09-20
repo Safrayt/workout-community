@@ -1,0 +1,34 @@
+.programs-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.programs-page__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.programs-page__title {
+    margin: 0;
+}
+
+.programs-page__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+.programs-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.programs-page__loading,
+.programs-page__empty {
+    color: var(--color-text-secondary);
+}

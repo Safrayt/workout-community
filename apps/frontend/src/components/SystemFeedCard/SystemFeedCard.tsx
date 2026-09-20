@@ -33,8 +33,8 @@ type SystemFeedCardProps = {
  * оформлены карточки дневника (DiaryRecordTypeBadge).
  */
 const TYPE_TAGS: Record<SystemFeedItem["record"]["type"], string> = {
-    event_created: "Создана",
-    playground_created: "Новая",
+    event_created: "Анонс",
+    playground_created: "Добавлена",
 };
 
 const MAX_FEED_TITLE_LENGTH = 50;
@@ -109,7 +109,11 @@ export default function SystemFeedCard({
                 )
             }
 
-            <div className="home-feed-card__author-row home-feed-card__author-row--overlay">
+            <div
+                className={`home-feed-card__author-row home-feed-card__author-row--overlay ${
+                    photoUrl ? "" : "home-feed-card__author-row--no-photo"
+                }`}
+            >
                 <Link
                     to={`/u/${author.nickname}`}
                     className="home-feed-card__author"

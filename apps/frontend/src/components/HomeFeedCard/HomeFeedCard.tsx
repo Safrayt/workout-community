@@ -121,7 +121,11 @@ export default function HomeFeedCard({
                 )
             }
 
-            <div className="home-feed-card__author-row home-feed-card__author-row--overlay">
+            <div
+                className={`home-feed-card__author-row home-feed-card__author-row--overlay ${
+                    mainPhoto ? "" : "home-feed-card__author-row--no-photo"
+                }`}
+            >
                 <Link
                     to={`/u/${author.nickname}`}
                     className="home-feed-card__author"

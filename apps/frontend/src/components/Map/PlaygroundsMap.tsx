@@ -144,6 +144,41 @@ function MapClickHandler({
     }
 
 /**
+ * Leaflet измеряет размер своего контейнера один раз при инициализации
+ * и сам по себе не следит за его последующими изменениями (сворачивание
+ * соседнего блока, дозагрузка шрифтов, показ карты во вкладке/табе,
+ * которая до этого была не видна и т.п.) — если в этот момент размер
+ * ещё не устоялся, карта остаётся "зажатой" в неверном размере до
+ * следующей ручной перерисовки. `invalidateSize()` — штатный способ
+ * Leaflet заставить карту перемерить контейнер; вызываем его и сразу
+ * после монтирования (на случай гонки с версткой), и при любом
+ * изменении размера самого контейнера через ResizeObserver — это
+ * покрывает и переключение вкладки "Фотография/Карта" на странице
+ * площадки, и любые другие места, где карта показывается не сразу.
+ */
+function InvalidateSizeOnResize() {
+    const map = useMap();
+
+    useEffect(() => {
+        const container = map.getContainer();
+
+        const invalidate = () => map.invalidateSize();
+
+        const initialFrame = requestAnimationFrame(invalidate);
+
+        const resizeObserver = new ResizeObserver(invalidate);
+        resizeObserver.observe(container);
+
+        return () => {
+            cancelAnimationFrame(initialFrame);
+            resizeObserver.disconnect();
+        };
+    }, [map]);
+
+    return null;
+}
+
+/**
  * Панорамирует карту к выбранному маркеру и открывает его popup — только
  * при выборе площадки кликом по карточке в списке (раздел 32 UX-спеки:
  * "Карточка → Карта центрируется → Popup"). Клик по самому маркеру
@@ -238,6 +273,7 @@ export default function PlaygroundsMap({
             <MapClickHandler
                 onMapClick={onMapClick}
             />
+            <InvalidateSizeOnResize />
             <MapSelectionHandler
                 markers={markers}
                 focusMarkerId={focusMarkerId}

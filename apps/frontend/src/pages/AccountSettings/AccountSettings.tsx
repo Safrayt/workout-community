@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import Section from "../../components/ui/Section/Section";
 import Switch from "../../components/ui/Switch/Switch";
@@ -13,6 +14,8 @@ import {
 
 import type { PrivacySettings } from "../../types/privacySettings";
 
+import { downloadDiaryExport } from "../../api/diary";
+
 /**
  * /profile/settings — пока только приватность отдельных разделов
  * публичного профиля. Каждый переключатель отвечает за то, видит
@@ -26,6 +29,21 @@ export default function AccountSettings() {
     } = useCurrentUser();
 
     const navigate = useNavigate();
+
+    const [isExporting, setIsExporting] = useState(false);
+
+    async function handleExport() {
+        setIsExporting(true);
+
+        try {
+            await downloadDiaryExport();
+        } catch (error: unknown) {
+            console.error("Не удалось скачать записи дневника:", error);
+            window.alert("Не удалось скачать записи. Попробуйте ещё раз.");
+        } finally {
+            setIsExporting(false);
+        }
+    }
 
     function updatePrivacy(
         patch: Partial<PrivacySettings>
@@ -93,6 +111,24 @@ export default function AccountSettings() {
                         }
                     />
                 </div>
+
+                <h4 className="account-settings__group-title">
+                    Мои данные
+                </h4>
+
+                <p className="account-settings__group-hint">
+                    Архив со всеми твоими записями дневника (тренировки и
+                    заметки) и прикреплёнными фотографиями.
+                </p>
+
+                <Button
+                    variant="outline"
+                    className="account-settings__export-button"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                >
+                    {isExporting ? "Готовим архив…" : "Скачать записи"}
+                </Button>
             </div>
 
             <ActionGroup>

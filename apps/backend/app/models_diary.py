@@ -67,6 +67,28 @@ class WorkoutEntry(WorkoutEntryBase, table=True):
         default=None, foreign_key="playground.id"
     )
 
+    # Связь с программой (см. UX-документ «Раздел Программы», п.5) —
+    # в отличие от связи с комплексом (ComplexCompletion.diary_entry_id
+    # в models_complex.py, обратная ссылка), здесь это прямые поля на
+    # самой записи: документ описывает программу как то, что "в записи
+    # он может указать" — то есть атрибут записи, а не отдельная
+    # сущность "прохождение", которая может существовать сама по себе.
+    #
+    # program_version_id фиксируется в момент создания/привязки записи
+    # (п.6: "фиксация версии") и НИКОГДА не пересчитывается
+    # автоматически при выходе новой версии программы (п.6, п.5 —
+    # "старая запись дневника не должна автоматически переходить на
+    # новую версию"). section/scheme — свободный текст названий, а не
+    # ссылки на элементы структуры версии, потому что сами названия
+    # не стандартизируются (п.10) и могут не совпадать в старой и
+    # новой версии программы.
+    program_id: Optional[int] = Field(default=None, foreign_key="program.id")
+    program_version_id: Optional[int] = Field(
+        default=None, foreign_key="programversion.id"
+    )
+    program_section: Optional[str] = None
+    program_scheme: Optional[str] = None
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -78,6 +100,15 @@ class WorkoutEntry(WorkoutEntryBase, table=True):
 
 class WorkoutEntryCreate(WorkoutEntryBase):
     playground_id: Optional[int] = None
+
+    # program_version_id сюда намеренно не входит — клиент указывает
+    # только программу и (опционально) раздел/схему, версию сервер
+    # подставляет сам как текущую опубликованную (п.7 MVP: "выбор
+    # версии автоматически"), см. resolve_program_link в
+    # routers/programs.py.
+    program_id: Optional[int] = None
+    program_section: Optional[str] = None
+    program_scheme: Optional[str] = None
 
 
 class WorkoutEntryUpdate(SQLModel):
@@ -91,6 +122,16 @@ class WorkoutEntryUpdate(SQLModel):
     tags: Optional[List[str]] = None
     hide_from_feed: Optional[bool] = None
     is_private: Optional[bool] = None
+
+    program_id: Optional[int] = None
+    program_section: Optional[str] = None
+    program_scheme: Optional[str] = None
+
+    # Как clear_diary_entry у ComplexCompletionUpdate в
+    # models_complex.py: JSON null не отличить от "поле не передано"
+    # при exclude_unset, поэтому отвязка программы — отдельный явный
+    # флаг, а не program_id=null.
+    clear_program: bool = False
 
 
 class WorkoutEntryPhoto(SQLModel, table=True):
@@ -112,6 +153,10 @@ class WorkoutEntryRead(WorkoutEntryBase):
     id: int
     user_id: int
     playground_id: Optional[int] = None
+    program_id: Optional[int] = None
+    program_version_id: Optional[int] = None
+    program_section: Optional[str] = None
+    program_scheme: Optional[str] = None
     created_at: datetime
     photos: List[WorkoutEntryPhotoRead] = []
 

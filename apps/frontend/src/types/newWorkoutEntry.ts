@@ -18,6 +18,17 @@ export type NewWorkoutEntry = {
 
     playgroundId: string;
 
+    /** "" — программа не указана (см. UX-документ «Раздел Программы»,
+     *  п.5: указание программы в записи дневника необязательно). */
+    programId: string;
+
+    /** Свободный текст — раздел/схема программы не стандартизированы
+     *  (п.10), поэтому это просто то, что ввёл пользователь, а не
+     *  ссылка на элемент структуры версии. */
+    programSection: string;
+
+    programScheme: string;
+
     title: string;
 
     description: string;

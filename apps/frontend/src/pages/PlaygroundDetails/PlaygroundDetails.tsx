@@ -154,6 +154,9 @@ export default function PlaygroundDetails() {
             <PlaygroundMainPhoto
                 photos={playground.photos}
                 playgroundName={playground.name}
+                playgroundId={playground.id}
+                latitude={playground.coordinates.latitude}
+                longitude={playground.coordinates.longitude}
             />
 
             {/* 2. Title */}

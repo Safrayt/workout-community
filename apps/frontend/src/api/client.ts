@@ -95,6 +95,29 @@ export async function apiFetch<T>(
 }
 
 /**
+ * Как apiFetch, но для бинарных ответов (например, ZIP-архив
+ * экспорта дневника) — apiFetch всегда делает response.json(), что
+ * для не-JSON тела ответа упадёт с ошибкой парсинга.
+ */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+    const headers: Record<string, string> = {};
+
+    const token = getToken();
+
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+
+    if (!response.ok) {
+        throw new ApiError(response.status, await extractErrorMessage(response));
+    }
+
+    return response.blob();
+}
+
+/**
  * Собирает query-строку из объекта, пропуская undefined/null —
  * чтобы не писать вручную склейку "?a=1&b=2" в каждом api/*.ts.
  */

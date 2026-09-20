@@ -37,6 +37,11 @@ import PersonalTags from "../pages/PersonalTags/PersonalTags";
 import Complexes from "../pages/Complexes/Complexes";
 import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
 import ComplexCreate from "../pages/ComplexCreate/ComplexCreate";import ComplexEdit from "../pages/ComplexEdit/ComplexEdit";
+import Programs from "../pages/Programs/Programs";
+import ProgramDetails from "../pages/ProgramDetails/ProgramDetails";
+import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
+import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
+import ProgramVersionDetails from "../pages/ProgramVersionDetails/ProgramVersionDetails";
 import RequireAdmin from "./RequireAdmin";
 import AdminUsers from "../pages/AdminUsers/AdminUsers";
 import NotFound from "../pages/NotFound/NotFound";
@@ -217,6 +222,26 @@ export const router = createBrowserRouter([
                   <AdminUsers />
               </RequireAdmin>
           ),
+      },
+      {
+          path: "programs",
+          element: <Programs />,
+      },
+      {
+          path: "programs/create",
+          element: <ProgramCreate />,
+      },
+      {
+          path: "programs/:id",
+          element: <ProgramDetails />,
+      },
+      {
+          path: "programs/:id/edit",
+          element: <ProgramEdit />,
+      },
+      {
+          path: "programs/:id/versions/:versionId",
+          element: <ProgramVersionDetails />,
       },
       {
           // Любой не совпавший путь внутри защищённой части сайта —

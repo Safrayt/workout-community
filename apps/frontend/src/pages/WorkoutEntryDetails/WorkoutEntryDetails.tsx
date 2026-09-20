@@ -16,6 +16,7 @@ import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEnt
 import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
 import DiaryComments from "../../components/DiaryComments/DiaryComments";
 import WorkoutEntryComplexes from "../../components/WorkoutEntryComplexes/WorkoutEntryComplexes";
+import WorkoutEntryProgram from "../../components/WorkoutEntryProgram/WorkoutEntryProgram";
 
 import type {
     NewWorkoutEntry,
@@ -137,6 +138,9 @@ export default function WorkoutEntryDetails() {
             date: entry.date,
             timeOfDay: entry.timeOfDay ?? "",
             playgroundId: entry.playgroundId ?? "",
+            programId: entry.programId ?? "",
+            programSection: entry.programSection ?? "",
+            programScheme: entry.programScheme ?? "",
             title: entry.title,
             description: entry.description ?? "",
             photos:
@@ -210,6 +214,15 @@ export default function WorkoutEntryDetails() {
                 «Система стандартных комплексов», §23) */}
             <WorkoutEntryComplexes
                 entryId={entry.id}
+            />
+
+            {/* Связанная программа тренировок и зафиксированная версия
+                (см. UX-документ «Раздел Программы», п.6) */}
+            <WorkoutEntryProgram
+                programId={entry.programId}
+                programVersionId={entry.programVersionId}
+                programSection={entry.programSection}
+                programScheme={entry.programScheme}
             />
 
             {/* Компактный preview площадки (UX §16–18, §27) */}

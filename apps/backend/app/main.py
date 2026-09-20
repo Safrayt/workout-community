@@ -14,6 +14,7 @@ from app.routers import (
     events,
     external,
     playgrounds,
+    programs,
     reviews,
     social,
     users,
@@ -82,6 +83,7 @@ app.include_router(reviews.router)
 app.include_router(achievements.router)
 app.include_router(social.router)
 app.include_router(complexes.router)
+app.include_router(programs.router)
 app.include_router(external.router)
 
 

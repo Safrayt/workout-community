@@ -33,8 +33,13 @@ type PlaygroundEquipmentInfo = {
 
     name: string;
 
-    /** Путь к иконке 50x50 (см. src/assets/equipment/), а не эмодзи —
-     *  подставляется в <img src=...>, а не выводится как текст. */
+    /** Путь к иконке 100x100 (см. src/assets/equipment/), а не эмодзи —
+     *  подставляется в <img src=...>, а не выводится как текст.
+     *  Реальный размер на странице задаётся CSS/HTML-атрибутами
+     *  width/height у конкретного <img> (playground-equipment.css,
+     *  PlaygroundForm.tsx) и от исходного разрешения файла не зависит —
+     *  100x100 даёт более чёткую картинку на retina-экранах, но не
+     *  меняет то, как крупно иконка выглядит на странице. */
     icon: string;
 
     category: PlaygroundEquipmentCategory;

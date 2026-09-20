@@ -22,6 +22,17 @@ export type WorkoutEntry = {
 
     playgroundId?: string;
 
+    /** Связь с программой (см. UX-документ «Раздел Программы», п.5) —
+     *  версия фиксируется на сервере в момент создания записи и не
+     *  меняется, даже если программа позже обновится (п.6). */
+    programId?: string;
+
+    programVersionId?: string;
+
+    programSection?: string;
+
+    programScheme?: string;
+
     date: string;
 
     timeOfDay?: TimeOfDay;

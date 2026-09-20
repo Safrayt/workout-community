@@ -1,15 +1,22 @@
 import re
+import zipfile
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from app.auth import ensure_admin, get_current_user, get_optional_current_user
 from app.database import get_session
-from app.files import delete_image, save_image
+from app.files import UPLOAD_ROOT, delete_image, save_image
 from app.models import User
+from app.models_playground import Playground
+from app.models_program import ProgramDB, ProgramVersionDB
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
+from app.routers.programs import resolve_program_link
 from app.models_diary import (
     ActivityMapMarker,
     Comment,
@@ -26,6 +33,7 @@ from app.models_diary import (
     PersonalTagCreate,
     PersonalTagRead,
     PersonalTagUpdate,
+    TimeOfDay,
     WorkoutEntry,
     WorkoutEntryCreate,
     WorkoutEntryPhoto,
@@ -130,7 +138,18 @@ def create_workout_entry(
 ) -> WorkoutEntry:
     _validate_tags(data.tags)
 
-    entry = WorkoutEntry(**data.model_dump(), user_id=current_user.id)
+    entry_data = data.model_dump()
+
+    # Версия программы фиксируется сервером в момент создания записи
+    # (см. UX-документ «Раздел Программы», п.6-7 MVP) — клиент выбирает
+    # только программу, текущая опубликованная версия подставляется
+    # автоматически и дальше не меняется, даже если программа потом
+    # обновится (resolve_program_link в routers/programs.py).
+    if data.program_id is not None:
+        version = resolve_program_link(data.program_id, session)
+        entry_data["program_version_id"] = version.id if version else None
+
+    entry = WorkoutEntry(**entry_data, user_id=current_user.id)
 
     session.add(entry)
     _sync_personal_tags(current_user.id, data.tags, session)
@@ -365,11 +384,29 @@ def update_workout_entry(
     entry = _get_workout_entry_or_404(entry_id, session)
     _ensure_entry_owner(entry, current_user)
 
-    updates = data.model_dump(exclude_unset=True)
+    updates = data.model_dump(exclude_unset=True, exclude={"clear_program"})
 
     if "tags" in updates:
         _validate_tags(updates["tags"])
         _sync_personal_tags(current_user.id, updates["tags"], session)
+
+    # Как и у отвязки записи дневника от выполнения комплекса
+    # (ComplexCompletionUpdate.clear_diary_entry) — явный флаг, чтобы
+    # отличить "программу не трогаем" от "уберите программу".
+    if data.clear_program:
+        entry.program_id = None
+        entry.program_version_id = None
+        entry.program_section = None
+        entry.program_scheme = None
+        updates.pop("program_id", None)
+        updates.pop("program_section", None)
+        updates.pop("program_scheme", None)
+    elif "program_id" in updates:
+        if updates["program_id"] is None:
+            entry.program_version_id = None
+        else:
+            version = resolve_program_link(updates["program_id"], session)
+            entry.program_version_id = version.id if version else None
 
     for field_name, value in updates.items():
         setattr(entry, field_name, value)
@@ -1126,3 +1163,204 @@ def delete_comment(
 
     session.delete(comment)
     session.commit()
+
+
+# --- Экспорт дневника (кнопка "Скачать записи" на странице /diary) --------
+
+_TIME_OF_DAY_LABELS = {
+    TimeOfDay.morning: "утро",
+    TimeOfDay.day: "день",
+    TimeOfDay.evening: "вечер",
+    TimeOfDay.night: "ночь",
+}
+
+
+def _resolve_upload_path(url: str) -> Optional[Path]:
+    """Превращает сохранённый в БД url вида "/uploads/xxx/yyy.jpg" в
+    путь на диске — url всегда относительный (см. app/files.py:
+    save_image), абсолютный адрес бэкенда в нём не хранится."""
+    prefix = "/uploads/"
+
+    if not url.startswith(prefix):
+        return None
+
+    return UPLOAD_ROOT / url[len(prefix):]
+
+
+@router.get("/export")
+def export_diary(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StreamingResponse:
+    """
+    Личный архив дневника — по кнопке "Скачать записи" на странице
+    /diary. Отдаёт ZIP с читаемым текстовым файлом diary.txt (все
+    тренировки и заметки одним хронологическим списком, с площадкой,
+    программой и тегами) и папкой photos/ со всеми прикреплёнными
+    фотографиями.
+
+    Это личный экспорт для самого автора, а не публичный вид дневника:
+    сюда попадают и приватные записи, и то, что скрыто из общей ленты
+    (is_private/hide_from_feed) — эти флаги влияют только на то, что
+    видят ДРУГИЕ пользователи, а не на то, что видит сам автор.
+    """
+    workout_entries = session.exec(
+        select(WorkoutEntry)
+        .where(WorkoutEntry.user_id == current_user.id)
+        .order_by(WorkoutEntry.date, WorkoutEntry.created_at)
+    ).all()
+
+    notes = session.exec(
+        select(DiaryNote)
+        .where(DiaryNote.user_id == current_user.id)
+        .order_by(DiaryNote.date, DiaryNote.created_at)
+    ).all()
+
+    # Единый хронологический список вперемешку — именно так дневник и
+    # ведётся на самом деле, разносить на "сначала все тренировки,
+    # потом все заметки" было бы менее естественным для читателя.
+    combined = [
+        (entry.date, entry.created_at, "workout", entry) for entry in workout_entries
+    ] + [
+        (note.date, note.created_at, "note", note) for note in notes
+    ]
+    combined.sort(key=lambda item: (item[0], item[1]))
+
+    playground_ids = {
+        record.playground_id
+        for _, _, _, record in combined
+        if record.playground_id is not None
+    }
+    playgrounds = {}
+    if playground_ids:
+        for playground in session.exec(
+            select(Playground).where(Playground.id.in_(playground_ids))
+        ).all():
+            playgrounds[playground.id] = playground
+
+    program_ids = {
+        record.program_id
+        for _, _, kind, record in combined
+        if kind == "workout" and record.program_id is not None
+    }
+    programs = {}
+    if program_ids:
+        for program in session.exec(
+            select(ProgramDB).where(ProgramDB.id.in_(program_ids))
+        ).all():
+            programs[program.id] = program
+
+    version_ids = {
+        record.program_version_id
+        for _, _, kind, record in combined
+        if kind == "workout" and record.program_version_id is not None
+    }
+    versions = {}
+    if version_ids:
+        for version in session.exec(
+            select(ProgramVersionDB).where(ProgramVersionDB.id.in_(version_ids))
+        ).all():
+            versions[version.id] = version
+
+    lines: List[str] = [
+        f"Дневник тренировок — {current_user.nickname}",
+        f"Экспортировано: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')} UTC",
+        f"Всего записей: {len(combined)}",
+        "=" * 60,
+        "",
+    ]
+
+    zip_buffer = BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for date_value, _, kind, record in combined:
+            lines.append(
+                f"{date_value.strftime('%d.%m.%Y')} — "
+                f"{'Тренировка' if kind == 'workout' else 'Заметка'}"
+            )
+
+            if kind == "workout":
+                if record.title:
+                    lines.append(f"Название: {record.title}")
+
+                if record.time_of_day:
+                    lines.append(
+                        "Время суток: "
+                        + _TIME_OF_DAY_LABELS.get(
+                            record.time_of_day, record.time_of_day
+                        )
+                    )
+
+                if record.playground_id in playgrounds:
+                    lines.append(
+                        f"Площадка: {playgrounds[record.playground_id].name}"
+                    )
+
+                if record.program_id in programs:
+                    program = programs[record.program_id]
+                    version = versions.get(record.program_version_id)
+                    version_suffix = (
+                        f", версия {version.version_number}"
+                        if version and version.version_number
+                        else ""
+                    )
+                    lines.append(f"Программа: {program.title}{version_suffix}")
+
+                    if record.program_section:
+                        lines.append(f"Раздел программы: {record.program_section}")
+
+                    if record.program_scheme:
+                        lines.append(f"Схема программы: {record.program_scheme}")
+
+                if record.description:
+                    lines.append(f"Описание: {record.description}")
+
+                photos = record.photos
+            else:
+                if record.title:
+                    lines.append(f"Заголовок: {record.title}")
+
+                if record.playground_id in playgrounds:
+                    lines.append(
+                        f"Площадка: {playgrounds[record.playground_id].name}"
+                    )
+
+                lines.append(f"Текст: {record.text}")
+
+                photos = record.photos
+
+            if record.tags:
+                lines.append(f"Теги: {', '.join(record.tags)}")
+
+            if record.is_private:
+                lines.append("(запись помечена как видимая только вам)")
+            elif record.hide_from_feed:
+                lines.append("(запись скрыта из общей ленты)")
+
+            for photo_index, photo in enumerate(photos, start=1):
+                source_path = _resolve_upload_path(photo.url)
+
+                if source_path is None or not source_path.exists():
+                    continue
+
+                extension = Path(photo.url).suffix or ".jpg"
+                archive_name = (
+                    f"photos/{date_value.isoformat()}_{kind}_"
+                    f"{record.id}_{photo_index}{extension}"
+                )
+                zip_file.write(source_path, archive_name)
+                lines.append(f"Фото: {archive_name}")
+
+            lines.append("")
+
+        zip_file.writestr("diary.txt", "\n".join(lines))
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="diary-export.zip"'
+        },
+    )

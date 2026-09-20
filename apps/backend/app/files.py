@@ -49,7 +49,7 @@ ALLOWED_IMAGE_FORMATS = {
 def ensure_upload_dirs() -> None:
     """Создаёт подпапки для загрузок, если их ещё нет."""
     for subfolder in (
-        "playgrounds", "events", "workout_entries", "diary_notes",
+        "playgrounds", "events", "workout_entries", "diary_notes", "programs",
     ):
         (UPLOAD_ROOT / subfolder).mkdir(parents=True, exist_ok=True)
 

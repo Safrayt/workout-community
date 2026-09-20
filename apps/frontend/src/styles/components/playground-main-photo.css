@@ -1,4 +1,16 @@
 .playground-main-photo {
+    /* width: 100% обязателен здесь, не только max-width. Причина
+       найдена опытным путём: этот блок — flex-элемент на странице
+       площадки, и с одним только max-width его собственная ширина
+       остаётся "auto" — для <img> внутри это не страшно (у картинки
+       есть свой intrinsic-размер, по которому браузер и так растягивает
+       родителя), а вот для пустого <div> с картой (ширина которого сама
+       по себе 100% от родителя) это создаёт замкнутый круг с нулевым
+       intrinsic-размером — родитель схлопывается до минимума, и карта
+       вместе с ним. width: 100% с max-width как потолком даёт то же
+       адаптивное поведение (не шире 720px, но сужается на мобильных),
+       но уже с определённой шириной, без этого схлопывания. */
+    width: 100%;
     max-width: 720px;
     margin: 0 auto 16px;
 }
@@ -11,8 +23,51 @@
     display: block;
 }
 
+.playground-main-photo__map {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Leaflet сам не знает про border-radius родителя — обрезаем плитки
+   карты явно, иначе прямоугольная карта торчит из скруглённых углов. */
+.playground-main-photo__map .leaflet-container {
+    height: 100%;
+    width: 100%;
+    border-radius: var(--radius-lg);
+}
+
+.playground-main-photo__toggle {
+    display: inline-flex;
+    margin-top: var(--space-2);
+    padding: 3px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.playground-main-photo__toggle-button {
+    border: none;
+    background: transparent;
+    padding: 6px 16px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.playground-main-photo__toggle-button--active {
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
 @media (max-width: 640px) {
-    .playground-main-photo__image {
+    .playground-main-photo__image,
+    .playground-main-photo__map,
+    .playground-main-photo__map .leaflet-container {
         border-radius: var(--radius-md);
     }
 }

@@ -38,6 +38,10 @@ import {
     usePlaygrounds,
 } from "../../context/PlaygroundContext";
 
+import {
+    usePrograms,
+} from "../../context/ProgramContext";
+
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 
@@ -137,6 +141,30 @@ export default function WorkoutEntryForm({
     const {
         playgrounds,
     } = usePlaygrounds();
+
+    const { programs } = usePrograms();
+
+    const favoritePrograms = programs.filter(
+        (program) => program.isFavoritedByViewer
+    );
+
+    // Если у уже существующей записи указана программа, которую с тех
+    // пор убрали из избранного — не прячем её из списка молча (иначе
+    // при редактировании старой записи выбор выглядел бы пустым и его
+    // случайно можно было бы стереть), а просто добавляем отдельно.
+    const selectedProgramOutsideFavorites =
+        entry.programId &&
+        !favoritePrograms.some((program) => program.id === entry.programId)
+            ? programs.find((program) => program.id === entry.programId)
+            : undefined;
+
+    const programOptions = [
+        ...favoritePrograms,
+        ...(selectedProgramOutsideFavorites ? [selectedProgramOutsideFavorites] : []),
+    ].map((program) => ({
+        value: program.id,
+        label: program.title,
+    }));
 
     const playgroundMarkers =
         getPlaygroundMarkers(
@@ -318,6 +346,55 @@ export default function WorkoutEntryForm({
                         }
                     />
                 </div>
+            </Section>
+
+            <Section title="Программа тренировок">
+                <p className="workout-entry-form__section-lead">
+                    необязательно
+                </p>
+
+                <Select
+                    id="programId"
+                    label="Программы в избранном"
+                    emptyOptionLabel="Не указана"
+                    options={programOptions}
+                    value={entry.programId}
+                    onChange={(e) => {
+                        updateField("programId", e.target.value);
+                        // Раздел/схема имеют смысл только вместе с
+                        // программой (UX-документ «Раздел Программы», п.5).
+                        if (!e.target.value) {
+                            updateField("programSection", "");
+                            updateField("programScheme", "");
+                        }
+                    }}
+                />
+
+                {
+                    entry.programId && (
+                        <>
+                            <Input
+                                id="programSection"
+                                label="Раздел (необязательно)"
+                                placeholder="Например, Неделя 2"
+                                value={entry.programSection}
+                                onChange={(e) =>
+                                    updateField("programSection", e.target.value)
+                                }
+                            />
+
+                            <Input
+                                id="programScheme"
+                                label="Схема (необязательно)"
+                                placeholder="Например, Тренировка B"
+                                value={entry.programScheme}
+                                onChange={(e) =>
+                                    updateField("programScheme", e.target.value)
+                                }
+                            />
+                        </>
+                    )
+                }
             </Section>
 
             <Section title="Где тренировался?">

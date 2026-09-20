@@ -30,6 +30,10 @@ export type ApiWorkoutEntry = {
     id: number;
     user_id: number;
     playground_id: number | null;
+    program_id: number | null;
+    program_version_id: number | null;
+    program_section: string | null;
+    program_scheme: string | null;
     date: string;
     time_of_day: TimeOfDay | null;
     title: string;
@@ -51,6 +55,16 @@ export function mapApiWorkoutEntryToEntry(
             apiEntry.playground_id !== null
                 ? String(apiEntry.playground_id)
                 : undefined,
+        programId:
+            apiEntry.program_id !== null
+                ? String(apiEntry.program_id)
+                : undefined,
+        programVersionId:
+            apiEntry.program_version_id !== null
+                ? String(apiEntry.program_version_id)
+                : undefined,
+        programSection: apiEntry.program_section ?? undefined,
+        programScheme: apiEntry.program_scheme ?? undefined,
         date: apiEntry.date,
         timeOfDay: apiEntry.time_of_day ?? undefined,
         tags: apiEntry.tags.length > 0 ? apiEntry.tags : undefined,
@@ -74,6 +88,9 @@ export function mapNewWorkoutEntryToApi(
         playground_id: entry.playgroundId
             ? Number(entry.playgroundId)
             : null,
+        program_id: entry.programId ? Number(entry.programId) : null,
+        program_section: entry.programSection || null,
+        program_scheme: entry.programScheme || null,
         title: entry.title,
         description: entry.description,
         tags: entry.tags,
