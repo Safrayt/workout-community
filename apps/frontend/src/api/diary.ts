@@ -37,7 +37,7 @@ export async function listWorkoutEntries(
     return apiEntries.map(mapApiWorkoutEntryToEntry);
 }
 
-async function getWorkoutEntry(id: string): Promise<WorkoutEntry> {
+export async function getWorkoutEntry(id: string): Promise<WorkoutEntry> {
     const apiEntry = await apiFetch<ApiWorkoutEntry>(`/diary/entries/${id}`);
 
     return mapApiWorkoutEntryToEntry(apiEntry);

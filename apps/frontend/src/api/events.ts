@@ -1,16 +1,19 @@
 import { apiFetch } from "./client";
 import { dataUrlToFile, isDataUrl } from "./imageUpload";
 import {
+    mapApiEventCommentToComment,
     mapApiEventToEvent,
     mapApiRegistrationToRegistration,
     mapNewEventToApi,
     type ApiEvent,
+    type ApiEventComment,
     type ApiEventRegistration,
 } from "./mappers/event";
 
 import type { Event } from "../types/event";
 import type { NewEvent } from "../types/newEvent";
 import type { EventRegistration } from "../types/eventRegistration";
+import type { EventComment } from "../types/eventComment";
 
 export async function listEvents(): Promise<Event[]> {
     const apiEvents = await apiFetch<ApiEvent[]>("/events/");
@@ -115,4 +118,52 @@ export async function cancelEventRegistration(
     eventId: string
 ): Promise<void> {
     await apiFetch(`/events/${eventId}/register`, { method: "DELETE" });
+}
+
+// =====================================================================
+// Комментарии к мероприятию
+// =====================================================================
+
+export async function listEventComments(
+    eventId: string
+): Promise<EventComment[]> {
+    const apiComments = await apiFetch<ApiEventComment[]>(
+        `/events/${eventId}/comments`
+    );
+
+    return apiComments.map(mapApiEventCommentToComment);
+}
+
+export async function createEventComment(
+    eventId: string,
+    text: string
+): Promise<EventComment> {
+    const apiComment = await apiFetch<ApiEventComment>(
+        `/events/${eventId}/comments`,
+        {
+            method: "POST",
+            body: { text },
+        }
+    );
+
+    return mapApiEventCommentToComment(apiComment);
+}
+
+export async function updateEventComment(
+    id: string,
+    text: string
+): Promise<EventComment> {
+    const apiComment = await apiFetch<ApiEventComment>(
+        `/events/comments/${id}`,
+        {
+            method: "PUT",
+            body: { text },
+        }
+    );
+
+    return mapApiEventCommentToComment(apiComment);
+}
+
+export async function deleteEventComment(id: string): Promise<void> {
+    await apiFetch(`/events/comments/${id}`, { method: "DELETE" });
 }

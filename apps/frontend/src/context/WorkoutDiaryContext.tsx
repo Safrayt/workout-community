@@ -11,6 +11,7 @@ import type { NewWorkoutEntry } from "../types/newWorkoutEntry";
 import {
     createWorkoutEntry,
     deleteWorkoutEntry as apiDeleteEntry,
+    getWorkoutEntry,
     listWorkoutEntries,
     updateWorkoutEntry,
 } from "../api/diary";
@@ -29,6 +30,21 @@ type WorkoutDiaryContextType = {
     ) => Promise<WorkoutEntry | undefined>;
 
     deleteEntry: (id: string) => Promise<void>;
+
+    /**
+     * Перечитывает с сервера ОДНУ конкретную запись и подменяет её в
+     * локальном списке `entries`.
+     *
+     * `entries` целиком загружается один раз при старте SPA-сессии
+     * (см. useEffect ниже) и дальше не перезапрашивается сам по себе
+     * — значит, если запись поменял (или отредактировал форматирование
+     * описания) кто-то другой, в вашей уже открытой вкладке останется
+     * старая версия, пока вы не перезагрузите страницу целиком. Чтобы
+     * страница конкретной записи (WorkoutEntryDetails) всегда
+     * показывала актуальный текст, а не то, что было в списке на
+     * момент запуска сессии, она вызывает эту функцию при открытии.
+     */
+    refreshEntry: (id: string) => Promise<void>;
 
     /**
      * Перечитывает записи с сервера — используется PersonalTagsContext
@@ -109,6 +125,24 @@ export function WorkoutDiaryProvider({
     }
 
 
+    async function refreshEntry(id: string): Promise<void> {
+        const fresh = await getWorkoutEntry(id);
+
+        setEntries((current) => {
+            const exists = current.some((item) => item.id === id);
+
+            if (!exists) {
+                // Запись могла не попасть в изначальный список (её
+                // тогда ещё не было, или видимость поменялась) —
+                // добавляем, а не молча игнорируем.
+                return [...current, fresh];
+            }
+
+            return current.map((item) => (item.id === id ? fresh : item));
+        });
+    }
+
+
     return (
         <WorkoutDiaryContext.Provider
             value={{
@@ -117,6 +151,7 @@ export function WorkoutDiaryProvider({
                 addEntry,
                 updateEntry,
                 deleteEntry,
+                refreshEntry,
                 refreshEntries,
             }}
         >

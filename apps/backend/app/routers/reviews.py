@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from app.auth import ensure_owner_or_admin, get_current_user
 from app.database import get_session
 from app.models import User
+from app.models_notification import NotificationType
 from app.models_playground import Playground
 from app.models_review import (
     PlaygroundReview,
@@ -13,6 +14,7 @@ from app.models_review import (
     PlaygroundReviewRead,
     PlaygroundReviewUpdate,
 )
+from app.notifications import notify_mentions, notify_new_comment
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -49,7 +51,9 @@ def create_review(
     и ту же площадку — на фронтенде (ReviewContext.addReview) такого
     ограничения нет, поэтому и здесь его не добавляем.
     """
-    if session.get(Playground, data.playground_id) is None:
+    playground = session.get(Playground, data.playground_id)
+
+    if playground is None:
         raise HTTPException(status_code=404, detail="Площадка не найдена")
 
     trimmed_text = _validate_review_text(data.text)
@@ -61,6 +65,26 @@ def create_review(
     )
 
     session.add(review)
+
+    target_url = f"/playgrounds/{playground.id}"
+
+    notify_new_comment(
+        session,
+        recipient_ids=[playground.creator_id],
+        actor=current_user,
+        type=NotificationType.playground_comment,
+        target_url=target_url,
+        target_title=playground.name,
+    )
+
+    notify_mentions(
+        session,
+        text=trimmed_text,
+        actor=current_user,
+        target_url=target_url,
+        target_title=playground.name,
+    )
+
     session.commit()
     session.refresh(review)
 

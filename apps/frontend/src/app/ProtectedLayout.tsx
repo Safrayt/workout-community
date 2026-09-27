@@ -7,6 +7,7 @@ import { useAuth } from "../context/CurrentUserContext";
 import { PlaygroundProvider } from "../context/PlaygroundContext";
 import { EventProvider } from "../context/EventContext";
 import { RegistrationProvider } from "../context/RegistrationContext";
+import { EventCommentProvider } from "../context/EventCommentContext";
 import { WorkoutDiaryProvider } from "../context/WorkoutDiaryContext";
 import { ComplexProvider } from "../context/ComplexContext";
 import { ComplexCommentProvider } from "../context/ComplexCommentContext";
@@ -78,29 +79,31 @@ export default function ProtectedLayout() {
             <PlaygroundProvider>
                 <EventProvider>
                     <RegistrationProvider>
-                        <FavoriteProvider>
-                            <WorkoutDiaryProvider>
-                                <DiaryNotesProvider>
-                                    <PersonalTagsProvider>
-                                        <ReviewProvider>
-                                            <SubscriptionProvider>
-                                                <CommentProvider>
-                                                    <ComplexProvider>
-                                                        <ComplexCommentProvider>
-                                                            <ProgramProvider>
-                                                                <ProgramCommentProvider>
-                                                                    <Layout />
-                                                                </ProgramCommentProvider>
-                                                            </ProgramProvider>
-                                                        </ComplexCommentProvider>
-                                                    </ComplexProvider>
-                                                </CommentProvider>
-                                            </SubscriptionProvider>
-                                        </ReviewProvider>
-                                    </PersonalTagsProvider>
-                                </DiaryNotesProvider>
-                            </WorkoutDiaryProvider>
-                        </FavoriteProvider>
+                        <EventCommentProvider>
+                            <FavoriteProvider>
+                                <WorkoutDiaryProvider>
+                                    <DiaryNotesProvider>
+                                        <PersonalTagsProvider>
+                                            <ReviewProvider>
+                                                <SubscriptionProvider>
+                                                    <CommentProvider>
+                                                        <ComplexProvider>
+                                                            <ComplexCommentProvider>
+                                                                <ProgramProvider>
+                                                                    <ProgramCommentProvider>
+                                                                        <Layout />
+                                                                    </ProgramCommentProvider>
+                                                                </ProgramProvider>
+                                                            </ComplexCommentProvider>
+                                                        </ComplexProvider>
+                                                    </CommentProvider>
+                                                </SubscriptionProvider>
+                                            </ReviewProvider>
+                                        </PersonalTagsProvider>
+                                    </DiaryNotesProvider>
+                                </WorkoutDiaryProvider>
+                            </FavoriteProvider>
+                        </EventCommentProvider>
                     </RegistrationProvider>
                 </EventProvider>
             </PlaygroundProvider>

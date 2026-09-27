@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import Input from "../ui/Input/Input";
 import Textarea from "../ui/Textarea/Textarea";
@@ -382,6 +382,7 @@ function SchemeItem({
     scheme,
     index,
     count,
+    defaultCollapsed,
     onChange,
     onRemove,
     onMove,
@@ -389,11 +390,12 @@ function SchemeItem({
     scheme: ProgramScheme;
     index: number;
     count: number;
+    defaultCollapsed: boolean;
     onChange: (scheme: ProgramScheme) => void;
     onRemove: () => void;
     onMove: (direction: -1 | 1) => void;
 }) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
     return (
         <div className="program-structure-editor__scheme-wrapper">
@@ -431,9 +433,11 @@ function SchemeItem({
 
 function SchemeListEditor({
     schemes,
+    initialSchemeIds,
     onChange,
 }: {
     schemes: ProgramScheme[];
+    initialSchemeIds: Set<string>;
     onChange: (schemes: ProgramScheme[]) => void;
 }) {
     function updateScheme(index: number, scheme: ProgramScheme) {
@@ -468,6 +472,7 @@ function SchemeListEditor({
                         scheme={scheme}
                         index={index}
                         count={schemes.length}
+                        defaultCollapsed={initialSchemeIds.has(scheme.id ?? "")}
                         onChange={(updated) => updateScheme(index, updated)}
                         onRemove={() => removeScheme(index)}
                         onMove={(direction) => moveScheme(index, direction)}
@@ -493,6 +498,8 @@ function SectionItem({
     section,
     index,
     count,
+    defaultCollapsed,
+    initialSchemeIds,
     onChange,
     onRemove,
     onMove,
@@ -500,11 +507,13 @@ function SectionItem({
     section: ProgramSection;
     index: number;
     count: number;
+    defaultCollapsed: boolean;
+    initialSchemeIds: Set<string>;
     onChange: (section: ProgramSection) => void;
     onRemove: () => void;
     onMove: (direction: -1 | 1) => void;
 }) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
     return (
         <div className="program-structure-editor__section">
@@ -539,6 +548,7 @@ function SectionItem({
                 !isCollapsed && (
                     <SchemeListEditor
                         schemes={section.schemes}
+                        initialSchemeIds={initialSchemeIds}
                         onChange={(schemes) =>
                             onChange({ ...section, schemes })
                         }
@@ -558,6 +568,24 @@ export default function ProgramStructureEditor({
     value,
     onChange,
 }: ProgramStructureEditorProps) {
+    // Зафиксированный на момент первого рендера снимок id разделов и
+    // схем — то, что уже было в структуре при открытии страницы,
+    // должно открываться свёрнутым (см. UX-замечание: раскрытое сразу
+    // всё сбивает ориентирование на длинных программах). Раздел или
+    // схема, которых не было в этом снимке (только что добавлены
+    // кнопкой "Добавить..."), наоборот, разворачиваются сразу — иначе
+    // непонятно, куда делось только что созданное поле для ввода.
+    const initialSectionIdsRef = useRef<Set<string>>(
+        new Set(value.sections.map((section) => section.id ?? ""))
+    );
+    const initialSchemeIdsRef = useRef<Set<string>>(
+        new Set(
+            value.sections.flatMap((section) =>
+                section.schemes.map((scheme) => scheme.id ?? "")
+            )
+        )
+    );
+
     const sections =
         value.sections.length > 0
             ? value.sections
@@ -619,6 +647,7 @@ export default function ProgramStructureEditor({
             <div className="program-structure-editor">
                 <SchemeListEditor
                     schemes={sections[0].schemes}
+                    initialSchemeIds={initialSchemeIdsRef.current}
                     onChange={(schemes) =>
                         updateSection(0, { ...sections[0], schemes })
                     }
@@ -645,6 +674,10 @@ export default function ProgramStructureEditor({
                         section={section}
                         index={index}
                         count={sections.length}
+                        defaultCollapsed={initialSectionIdsRef.current.has(
+                            section.id ?? ""
+                        )}
+                        initialSchemeIds={initialSchemeIdsRef.current}
                         onChange={(updated) => updateSection(index, updated)}
                         onRemove={() => removeSection(index)}
                         onMove={(direction) => moveSection(index, direction)}

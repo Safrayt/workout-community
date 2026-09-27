@@ -43,6 +43,7 @@ import EventWeather from "../../components/EventWeather/EventWeather";
 import EventPlaygroundPreview from "../../components/EventPlaygroundPreview/EventPlaygroundPreview";
 import EventStickyAction from "../../components/EventStickyAction/EventStickyAction";
 import EventNotFound from "../../components/EventNotFound/EventNotFound";
+import EventComments from "../../components/EventComments/EventComments";
 
 
 export default function EventDetails() {
@@ -176,6 +177,9 @@ export default function EventDetails() {
                 />
 
             </InfoSection>
+
+            {/* 6.5. Комментарии — вопросы к организатору, обсуждение */}
+            <EventComments eventId={event.id} />
 
             {
                 isOwner && isUpcoming && (

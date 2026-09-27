@@ -122,10 +122,10 @@ export default function ProgramEdit() {
         );
     }
 
-    if (program.authorId !== currentUser.id) {
+    if (program.authorId !== currentUser.id && !currentUser.isAdmin) {
         return (
             <div className="program-edit__not-found">
-                <p>Редактировать эту программу можете только вы, если вы её автор.</p>
+                <p>Редактировать эту программу можете только вы, если вы её автор, или администратор.</p>
                 <Link to={`/programs/${id}`}>← К программе</Link>
             </div>
         );
@@ -364,24 +364,21 @@ export default function ProgramEdit() {
                 )
             }
 
-            {
-                !program.isPublished && (
-                    <FormSection title="Опасная зона">
-                        <p className="program-edit__hint">
-                            Программу можно удалить, только пока она ещё ни
-                            разу не публиковалась.
-                        </p>
+            <FormSection title="Опасная зона">
+                <p className="program-edit__hint">
+                    Удаление необратимо. Если программа уже опубликована и
+                    на неё ссылаются записи в чьих-то дневниках, эти записи
+                    останутся, но потеряют привязку к программе.
+                </p>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleDelete}
-                        >
-                            Удалить программу
-                        </Button>
-                    </FormSection>
-                )
-            }
+                <Button
+                    type="button"
+                    variant="danger"
+                    onClick={handleDelete}
+                >
+                    Удалить программу
+                </Button>
+            </FormSection>
         </div>
     );
 }

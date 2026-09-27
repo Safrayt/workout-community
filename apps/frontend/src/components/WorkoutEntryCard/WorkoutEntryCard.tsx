@@ -6,6 +6,7 @@ import type { Playground } from "../../types/playground";
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
+import { getCardPhotoUrl } from "../../utils/entryPhoto";
 
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
@@ -32,11 +33,10 @@ export default function WorkoutEntryCard({
 }: WorkoutEntryCardProps) {
     // Миниатюра записи — главная фотография, выбранная пользователем
     // в форме, либо первая загруженная, если главная не отмечена
-    // явно (§23). Если фото нет вовсе — просто нет картинки, а не
-    // сломанный вид (§24).
-    const mainPhoto =
-        entry.photos?.find((photo) => photo.isMain) ??
-        entry.photos?.[0];
+    // явно (§23). Если своих фото нет, но в записи отмечена площадка
+    // — берём главное фото площадки (см. utils/entryPhoto.ts). Если и
+    // там нет — просто нет картинки, а не сломанный вид (§24).
+    const photoUrl = getCardPhotoUrl(entry.photos, playground);
 
     return (
         <Link
@@ -44,9 +44,9 @@ export default function WorkoutEntryCard({
             className="workout-entry-card"
         >
             {
-                mainPhoto && (
+                photoUrl && (
                     <img
-                        src={mainPhoto.url}
+                        src={photoUrl}
                         alt=""
                         className="workout-entry-card__photo"
                     />
@@ -66,15 +66,15 @@ export default function WorkoutEntryCard({
                             )
                         }
                     </div>
-
-                    <p className="workout-entry-card__date">
-                        {formatWorkoutEntryDate(entry.date)}
-                        {
-                            entry.timeOfDay &&
-                                ` • ${getTimeOfDayName(entry.timeOfDay)}`
-                        }
-                    </p>
                 </div>
+
+                <p className="workout-entry-card__date">
+                    {formatWorkoutEntryDate(entry.date)}
+                    {
+                        entry.timeOfDay &&
+                            ` • ${getTimeOfDayName(entry.timeOfDay)}`
+                    }
+                </p>
 
                 <h4 className="workout-entry-card__title">
                     {entry.title}
@@ -95,7 +95,7 @@ export default function WorkoutEntryCard({
                     // одного размера (высоту описания без фото
                     // ограничивает workout-entry-card__description
                     // в CSS).
-                    !mainPhoto && entry.description && (
+                    !photoUrl && entry.description && (
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(entry.description)}
                         </p>

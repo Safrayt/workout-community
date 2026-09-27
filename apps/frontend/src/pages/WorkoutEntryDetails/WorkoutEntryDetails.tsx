@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
 import "../../styles/components/workout-entry-details.css";
@@ -52,6 +52,7 @@ export default function WorkoutEntryDetails() {
         entries,
         updateEntry,
         deleteEntry,
+        refreshEntry,
     } = useWorkoutDiary();
 
     const {
@@ -64,6 +65,24 @@ export default function WorkoutEntryDetails() {
 
     const navigate =
         useNavigate();
+
+    // `entries` в контексте загружается один раз при старте
+    // SPA-сессии и дальше не перезапрашивается сам по себе (см.
+    // комментарий у refreshEntry в WorkoutDiaryContext) — без этого
+    // здесь могла бы показываться версия записи из момента запуска
+    // сессии, даже если автор с тех пор её отредактировал (типичный
+    // симптом — пропавшие переносы строк в описании, которые на самом
+    // деле есть на сервере, но не в устаревшем локальном кеше).
+    useEffect(() => {
+        if (!id) {
+            return;
+        }
+
+        refreshEntry(id).catch((error: unknown) => {
+            console.error("Не удалось обновить запись:", error);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     const entry =
         id

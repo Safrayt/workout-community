@@ -4,6 +4,7 @@ import type {
     EventRegistration,
     RegistrationStatus,
 } from "../../types/eventRegistration";
+import type { EventComment } from "../../types/eventComment";
 
 import { resolveMediaUrl } from "../media";
 
@@ -73,5 +74,25 @@ export function mapApiRegistrationToRegistration(
         registeredAt: apiRegistration.registered_at,
         status: apiRegistration.status,
         experienceAwarded: apiRegistration.experience_awarded,
+    };
+}
+
+export type ApiEventComment = {
+    id: number;
+    event_id: number;
+    user_id: number;
+    text: string;
+    created_at: string;
+};
+
+export function mapApiEventCommentToComment(
+    apiComment: ApiEventComment
+): EventComment {
+    return {
+        id: String(apiComment.id),
+        eventId: String(apiComment.event_id),
+        userId: String(apiComment.user_id),
+        text: apiComment.text,
+        createdAt: apiComment.created_at,
     };
 }

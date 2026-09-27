@@ -1,6 +1,6 @@
 import Section from "../ui/Section/Section";
 import Input from "../ui/Input/Input";
-import Textarea from "../ui/Textarea/Textarea";
+import RichTextarea from "../ui/RichTextarea/RichTextarea";
 import Select from "../ui/Select/Select";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
@@ -311,15 +311,15 @@ export default function WorkoutEntryForm({
                     }
                 />
 
-                <Textarea
+                <RichTextarea
                     id="description"
                     label="Что делал?"
                     placeholder="Расскажи, как прошла тренировка"
                     value={entry.description}
-                    onChange={(e) =>
+                    onChange={(value) =>
                         updateField(
                             "description",
-                            e.target.value
+                            value
                         )
                     }
                 />

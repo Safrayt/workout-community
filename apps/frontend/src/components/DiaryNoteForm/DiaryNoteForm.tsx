@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import Section from "../ui/Section/Section";
 import Input from "../ui/Input/Input";
-import Textarea from "../ui/Textarea/Textarea";
+import RichTextarea from "../ui/RichTextarea/RichTextarea";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import TagsField from "../TagsField/TagsField";
@@ -198,7 +198,7 @@ export default function DiaryNoteForm({
                     }
                 />
 
-                <Textarea
+                <RichTextarea
                     id="noteText"
                     label="Текст"
                     placeholder="О чём хочется рассказать? Прогресс, самочувствие, впечатления от площадки — что угодно."
@@ -206,8 +206,8 @@ export default function DiaryNoteForm({
                     error={
                         getFieldError(errors, "text")
                     }
-                    onChange={(e) =>
-                        updateField("text", e.target.value)
+                    onChange={(value) =>
+                        updateField("text", value)
                     }
                 />
 

@@ -1,0 +1,43 @@
+.rich-textarea__toolbar {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-1);
+}
+
+.rich-textarea__toolbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 32px;
+    height: 32px;
+    padding: 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    color: var(--color-text);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    cursor: pointer;
+
+    transition: background var(--transition-fast);
+}
+
+.rich-textarea__toolbar-button:hover {
+    background: var(--color-border);
+}
+
+.rich-textarea__toolbar-button--bold {
+    font-weight: 700;
+}
+
+.rich-textarea__toolbar-button--italic {
+    font-style: italic;
+}
+
+.rich-textarea__toolbar-button--underline {
+    text-decoration: underline;
+}

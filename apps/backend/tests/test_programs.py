@@ -176,20 +176,75 @@ def test_only_author_can_edit_or_publish(client: TestClient):
     ).status_code == 403
 
 
-def test_cannot_delete_published_program(client: TestClient):
+def _make_admin(session, nickname: str) -> None:
+    from sqlmodel import select
+
+    from app.models import User
+
+    user = session.exec(select(User).where(User.nickname == nickname)).first()
+    user.is_admin = True
+    session.add(user)
+    session.commit()
+
+
+def test_author_can_delete_published_program_and_diary_entries_are_detached(
+    client: TestClient, session
+):
+    """
+    Раньше опубликованную программу нельзя было удалить вовсе — теперь
+    можно, но связанные записи дневника не должны сломаться: у них
+    просто обнуляются program_id/program_version_id, а свободный текст
+    (program_scheme) остаётся как есть.
+    """
     user = register_user(client)
     program = _create_program(client, user["token"])
     headers = auth_headers(user["token"])
 
-    # Пока это чистый черновик — удалить можно.
-    other = _create_program(client, user["token"], title="Другая программа")
-    assert client.delete(f"/programs/{other['id']}", headers=headers).status_code == 204
-
     client.put(f"/programs/{program['id']}/draft", json=SAMPLE_STRUCTURE, headers=headers)
     client.post(f"/programs/{program['id']}/publish", json={}, headers=headers)
 
+    entry = client.post(
+        "/diary/entries",
+        json={
+            "date": "2026-09-16",
+            "title": "Тренировка",
+            "description": "",
+            "tags": [],
+            "program_id": program["id"],
+            "program_scheme": "Тренировка A",
+        },
+        headers=headers,
+    ).json()
+    assert entry["program_id"] == program["id"]
+    assert entry["program_version_id"] is not None
+
     response = client.delete(f"/programs/{program['id']}", headers=headers)
-    assert response.status_code == 400
+    assert response.status_code == 204
+
+    assert client.get(f"/programs/{program['id']}", headers=headers).status_code == 404
+
+    updated_entry = client.get(f"/diary/entries/{entry['id']}", headers=headers).json()
+    assert updated_entry["program_id"] is None
+    assert updated_entry["program_version_id"] is None
+    # Свободный текст схемы — не ссылка, поэтому не трогаем при удалении.
+    assert updated_entry["program_scheme"] == "Тренировка A"
+
+
+def test_stranger_cannot_delete_program_but_admin_can(client: TestClient, session):
+    author = register_user(client, nickname="author")
+    stranger = register_user(client, nickname="stranger")
+    admin = register_user(client, nickname="admin")
+    _make_admin(session, "admin")
+
+    program = _create_program(client, author["token"])
+
+    assert client.delete(
+        f"/programs/{program['id']}", headers=auth_headers(stranger["token"])
+    ).status_code == 403
+
+    assert client.delete(
+        f"/programs/{program['id']}", headers=auth_headers(admin["token"])
+    ).status_code == 204
 
 
 def test_favorite_is_independent_from_training_stats(client: TestClient):
@@ -315,3 +370,117 @@ def test_comments_do_not_change_program_structure(client: TestClient):
     comments = client.get(f"/programs/{program['id']}/comments").json()
     assert len(comments) == 1
     assert comments[0]["text"] == "А можно заменить подтягивания?"
+
+
+def test_delete_published_program_with_real_foreign_key_enforcement():
+    """
+    conftest.py даёт SQLite-базу без включённой проверки внешних
+    ключей (PRAGMA foreign_keys не выставлен), поэтому обычный фикстурный
+    `client` не отличает "ссылка обнулена/удалена в правильном порядке"
+    от "просто осталась висеть на удалённую строку" — а именно так на
+    практике дважды возникал баг при удалении опубликованной программы:
+    сначала из-за необнулённого ProgramDB.current_version_id (тоже
+    внешний ключ на programversion, не только у WorkoutEntry), потом
+    из-за того, что DELETE FROM program выполнялся раньше DELETE FROM
+    programfavorite/programcomment в рамках одного flush() при
+    commit() — SQLAlchemy не гарантирует порядок нескольких DELETE без
+    промежуточных flush() между зависимыми шагами. На PostgreSQL, где
+    такие проверки включены всегда, оба раза удаление падало с 500.
+
+    Этот тест поднимает отдельный SQLite-движок с явно включённым
+    PRAGMA foreign_keys=ON — так он ведёт себя как настоящая
+    PostgreSQL-база и реально проверяет порядок UPDATE/DELETE внутри
+    delete_program (включая избранное и комментарий от другого
+    пользователя), а не просто то, что финальное состояние верное.
+    """
+    import os
+
+    from fastapi.testclient import TestClient
+    from sqlalchemy import event
+    from sqlmodel import Session, SQLModel, create_engine
+    from sqlmodel.pool import StaticPool
+
+    from app.database import get_session
+    from app.main import app
+    from app.models_complex import seed_complexes_if_empty
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    @event.listens_for(engine, "connect")
+    def _enable_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as setup_session:
+        seed_complexes_if_empty(setup_session)
+        setup_session.commit()
+
+    session = Session(engine)
+    app.dependency_overrides[get_session] = lambda: session
+
+    try:
+        with TestClient(app) as client:
+            author = register_user(client, nickname="author")
+            fan = register_user(client, nickname="fan")
+            author_headers = auth_headers(author["token"])
+            fan_headers = auth_headers(fan["token"])
+
+            program = _create_program(client, author["token"])
+            client.put(
+                f"/programs/{program['id']}/draft",
+                json=SAMPLE_STRUCTURE,
+                headers=author_headers,
+            )
+            client.post(
+                f"/programs/{program['id']}/publish", json={}, headers=author_headers
+            )
+
+            # Избранное и комментарий от другого пользователя — именно
+            # эта комбинация раньше приводила к ForeignKeyViolation на
+            # "programfavorite_program_id_fkey": DELETE FROM program
+            # выполнялся раньше DELETE FROM programfavorite, потому что
+            # без flush() между шагами SQLAlchemy не гарантирует, в
+            # каком порядке применить несколько DELETE из одного commit().
+            assert client.post(
+                f"/programs/{program['id']}/favorite", headers=fan_headers
+            ).status_code == 200
+            assert client.post(
+                f"/programs/{program['id']}/comments",
+                json={"text": "Отличная программа!"},
+                headers=fan_headers,
+            ).status_code == 200
+
+            entry = client.post(
+                "/diary/entries",
+                json={
+                    "date": "2026-09-16",
+                    "title": "Тренировка",
+                    "description": "",
+                    "tags": [],
+                    "program_id": program["id"],
+                    "program_scheme": "Тренировка A",
+                },
+                headers=author_headers,
+            ).json()
+
+            response = client.delete(
+                f"/programs/{program['id']}", headers=author_headers
+            )
+            assert response.status_code == 204, response.text
+
+            updated_entry = client.get(
+                f"/diary/entries/{entry['id']}", headers=author_headers
+            ).json()
+            assert updated_entry["program_id"] is None
+            assert updated_entry["program_version_id"] is None
+            assert updated_entry["program_scheme"] == "Тренировка A"
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+        session.close()

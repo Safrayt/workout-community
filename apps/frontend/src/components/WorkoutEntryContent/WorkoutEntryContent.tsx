@@ -1,6 +1,6 @@
 import "../../styles/components/workout-entry-content.css";
 
-import { linkifyText } from "../../utils/linkifyText";
+import { renderRichText } from "../../utils/richText";
 
 type Props = {
 
@@ -16,8 +16,11 @@ type Props = {
  * ширина строки. Если описания нет — блок не рендерится вовсе,
  * без подписи "Описание:" и пустого места под ней (§13).
  *
- * Ссылки в тексте (http://, https://, www.) автоматически становятся
- * кликабельными — см. linkifyText.
+ * Поддерживает лёгкую разметку — **жирный**, *курсив*,
+ * __подчёркнутый__, [ссылки](url) (расставляется через
+ * RichTextToolbar в форме или руками) — и по-прежнему делает
+ * кликабельными обычные "голые" ссылки без разметки. См.
+ * utils/richText.tsx.
  */
 export default function WorkoutEntryContent({
     description,
@@ -30,7 +33,7 @@ export default function WorkoutEntryContent({
     return (
 
         <div className="workout-entry-content">
-            {linkifyText(description)}
+            {renderRichText(description)}
         </div>
 
     );

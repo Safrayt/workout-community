@@ -12,6 +12,8 @@ from app.auth import (
 from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
+from app.models_diary import WorkoutEntry
+from app.notifications import notify_mentions
 from app.models_program import (
     ProgramComment,
     ProgramCommentCreate,
@@ -71,6 +73,19 @@ def _ensure_is_author(program: ProgramDB, current_user: User) -> None:
         program.author_id,
         current_user,
         detail="Редактировать эту программу может только её автор",
+    )
+
+
+def _ensure_can_delete_program(program: ProgramDB, current_user: User) -> None:
+    """
+    Как _ensure_is_author, но с формулировкой под удаление — по правам
+    доступа это то же самое (ensure_owner_or_admin уже пускает
+    администратора наравне с автором), разница только в тексте ошибки.
+    """
+    ensure_owner_or_admin(
+        program.author_id,
+        current_user,
+        detail="Удалить эту программу может только её автор или администратор",
     )
 
 
@@ -261,28 +276,70 @@ def delete_program(
     session: Session = Depends(get_session),
 ) -> None:
     """
-    Удалить можно только программу, которая ни разу не публиковалась —
-    у опубликованной программы уже могут быть записи в чужих дневниках,
-    ссылающиеся на неё и её версии (п.6 документа: старые записи должны
-    сохранять историческую достоверность), удалять такую историю из-под
-    пользователей нельзя. Для опубликованной программы автору доступно
-    только редактирование информации и создание новых версий.
+    Автор или администратор может удалить программу в любой момент,
+    даже опубликованную и уже привязанную к чужим записям в дневниках.
+
+    Раньше это было запрещено ради "исторической достоверности" (п.6
+    документа), но по просьбе администрации портала это ограничение
+    снято. Чтобы удаление не оставляло битых ссылок, записи дневников,
+    указывавшие на эту программу или любую её версию, отвязываются:
+    WorkoutEntry.program_id и program_version_id обнуляются.
+    program_section/program_scheme — свободный текст, а не ссылка (см.
+    комментарий у WorkoutEntry в models_diary.py) — не трогаем, он как
+    был написан пользователем, так и остаётся видимым в записи.
     """
     program = _get_program_or_404(program_id, session)
-    _ensure_is_author(program, current_user)
+    _ensure_can_delete_program(program, current_user)
 
-    if program.is_published:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Нельзя удалить программу, у которой есть опубликованные "
-                "версии — на неё уже могут ссылаться записи в дневниках."
-            ),
-        )
+    versions = session.exec(
+        select(ProgramVersionDB).where(ProgramVersionDB.program_id == program_id)
+    ).all()
+    version_ids = [version.id for version in versions]
 
-    draft = _get_draft_version(program_id, session)
-    if draft is not None:
-        session.delete(draft)
+    # Порядок ниже важен: перед DELETE строки, на которую ссылается
+    # внешний ключ, нужно сначала явным flush() применить все UPDATE,
+    # обнуляющие эту ссылку — иначе на PostgreSQL DELETE упадёт с
+    # ошибкой целостности (foreign key violation), даже если сами
+    # обновления уже поставлены в очередь той же сессии. SQLite в
+    # тестах эту проверку не делает вовсе, поэтому в дев-режиме такой
+    # баг был не виден.
+
+    # ProgramDB.current_version_id — тоже внешний ключ на programversion
+    # (кэш "текущей" версии для показа, см. models_program.py).
+    if program.current_version_id is not None:
+        program.current_version_id = None
+        session.add(program)
+        session.flush()
+
+    linked_entries = session.exec(
+        select(WorkoutEntry).where(WorkoutEntry.program_id == program_id)
+    ).all()
+    for entry in linked_entries:
+        entry.program_id = None
+        entry.program_version_id = None
+        session.add(entry)
+
+    if version_ids:
+        # На случай, если у записи почему-то остался program_version_id
+        # без program_id (не должно происходить в обычном сценарии, но
+        # это внешний ключ на удаляемую версию — обнуляем на всякий
+        # случай, а не полагаемся на то, что такого не бывает).
+        orphaned_version_entries = session.exec(
+            select(WorkoutEntry).where(
+                WorkoutEntry.program_version_id.in_(version_ids)
+            )
+        ).all()
+        for entry in orphaned_version_entries:
+            entry.program_id = None
+            entry.program_version_id = None
+            session.add(entry)
+
+    session.flush()
+
+    for version in versions:
+        session.delete(version)
+
+    session.flush()
 
     for comment in session.exec(
         select(ProgramComment).where(ProgramComment.program_id == program_id)
@@ -293,6 +350,8 @@ def delete_program(
         select(ProgramFavorite).where(ProgramFavorite.program_id == program_id)
     ).all():
         session.delete(favorite)
+
+    session.flush()
 
     session.delete(program)
     session.commit()
@@ -668,13 +727,24 @@ def create_program_comment(
     program = _get_program_or_404(program_id, session)
     _ensure_can_view_program(program, current_user)
 
+    text = _validate_comment_text(data.text)
+
     comment = ProgramComment(
         program_id=program_id,
         user_id=current_user.id,
-        text=_validate_comment_text(data.text),
+        text=text,
     )
 
     session.add(comment)
+
+    notify_mentions(
+        session,
+        text=text,
+        actor=current_user,
+        target_url=f"/programs/{program_id}",
+        target_title=program.title,
+    )
+
     session.commit()
     session.refresh(comment)
 

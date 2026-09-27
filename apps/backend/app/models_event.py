@@ -85,3 +85,35 @@ class EventRegistrationRead(EventRegistrationBase):
     user_id: int
     event_id: int
     registered_at: datetime
+
+
+# --- Комментарии к мероприятию -------------------------------------------
+
+class EventCommentBase(SQLModel):
+    text: str
+
+
+class EventComment(EventCommentBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    event_id: int = Field(foreign_key="event.id")
+    user_id: int = Field(foreign_key="user.id")
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
+
+class EventCommentCreate(EventCommentBase):
+    pass
+
+
+class EventCommentUpdate(SQLModel):
+    text: str
+
+
+class EventCommentRead(EventCommentBase):
+    id: int
+    event_id: int
+    user_id: int
+    created_at: datetime

@@ -116,6 +116,7 @@ export default function ProgramDetails() {
     }
 
     const isAuthor = program.authorId === currentUser.id;
+    const canManage = isAuthor || currentUser.isAdmin;
 
     return (
         <div className="program-details">
@@ -145,7 +146,7 @@ export default function ProgramDetails() {
                 }
 
                 {
-                    isAuthor && (
+                    canManage && (
                         <Link
                             to={`/programs/${program.id}/edit`}
                             className="program-details__edit-link"

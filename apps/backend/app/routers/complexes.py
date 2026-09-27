@@ -12,6 +12,7 @@ from app.auth import (
 )
 from app.database import get_session
 from app.models import User
+from app.notifications import notify_mentions
 from app.models_complex import (
     ComparisonOperator,
     Complex,
@@ -563,7 +564,7 @@ def create_complex_comment(
     комментариев под одним комплексом — как и с отзывами площадок,
     отдельного ограничения "один комментарий на комплекс" нет.
     """
-    _get_complex_or_404(complex_id, session)
+    complex_ = _get_complex_or_404(complex_id, session)
 
     trimmed_text = _validate_comment_text(data.text)
 
@@ -574,6 +575,15 @@ def create_complex_comment(
     )
 
     session.add(comment)
+
+    notify_mentions(
+        session,
+        text=trimmed_text,
+        actor=current_user,
+        target_url=f"/complexes/{complex_id}",
+        target_title=complex_.name,
+    )
+
     session.commit()
     session.refresh(comment)
 

@@ -62,3 +62,27 @@
     flex-shrink: 0;
     margin-left: auto;
 }
+
+.app-navigation__notifications {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.app-navigation__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+
+    background: var(--color-danger, #d33);
+    border-radius: 999px;
+}

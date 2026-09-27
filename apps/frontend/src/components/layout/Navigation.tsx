@@ -1,9 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../context/CurrentUserContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 export default function Navigation() {
     const { user, logout } = useAuth();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
 
     function handleLogout() {
@@ -24,6 +26,24 @@ export default function Navigation() {
             <NavLink to="/complexes">Комплексы</NavLink>
 
             <NavLink to="/programs">Программы</NavLink>
+
+            {
+                user && (
+                    <NavLink
+                        to="/notifications"
+                        className="app-navigation__notifications"
+                    >
+                        Уведомления
+                        {
+                            unreadCount > 0 && (
+                                <span className="app-navigation__badge">
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                </span>
+                            )
+                        }
+                    </NavLink>
+                )
+            }
 
             <NavLink to="/profile">Профиль</NavLink>
 

@@ -1,3 +1,5 @@
+import { stripRichTextMarkup } from "./richText";
+
 export const MAX_DESCRIPTION_PREVIEW_LINES = 5;
 
 export function getDescriptionPreview(
@@ -38,7 +40,7 @@ export function getCardDescriptionPreview(
     description: string,
     maxLength: number = MAX_CARD_DESCRIPTION_LENGTH
 ) {
-    const withNormalizedLines = description
+    const withNormalizedLines = stripRichTextMarkup(description)
         .split("\n")
         .map((line) => line.replace(/[ \t]+/g, " ").trim())
         .join("\n")

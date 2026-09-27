@@ -13,7 +13,9 @@ from app.auth import ensure_admin, get_current_user, get_optional_current_user
 from app.database import get_session
 from app.files import UPLOAD_ROOT, delete_image, save_image
 from app.models import User
+from app.models_notification import NotificationType
 from app.models_playground import Playground
+from app.notifications import notify_mentions, notify_new_comment
 from app.models_program import ProgramDB, ProgramVersionDB
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
 from app.routers.programs import resolve_program_link
@@ -1081,9 +1083,13 @@ def create_comment(
 
     # Комментировать можно только то, что реально существует.
     if record_type == DiaryRecordType.workout:
-        _get_workout_entry_or_404(record_id, session)
+        record = _get_workout_entry_or_404(record_id, session)
+        target_url = f"/diary/{record_id}"
+        target_title = record.title
     else:
-        _get_diary_note_or_404(record_id, session)
+        record = _get_diary_note_or_404(record_id, session)
+        target_url = f"/diary/notes/{record_id}"
+        target_title = record.title
 
     comment = Comment(
         record_id=record_id,
@@ -1093,6 +1099,24 @@ def create_comment(
     )
 
     session.add(comment)
+
+    notify_new_comment(
+        session,
+        recipient_ids=[record.user_id],
+        actor=current_user,
+        type=NotificationType.diary_comment,
+        target_url=target_url,
+        target_title=target_title,
+    )
+
+    notify_mentions(
+        session,
+        text=trimmed,
+        actor=current_user,
+        target_url=target_url,
+        target_title=target_title,
+    )
+
     session.commit()
     session.refresh(comment)
 

@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
@@ -7,6 +9,10 @@ from app.files import delete_image, save_image
 from app.models import User
 from app.models_event import (
     Event,
+    EventComment,
+    EventCommentCreate,
+    EventCommentRead,
+    EventCommentUpdate,
     EventCreate,
     EventRead,
     EventRegistration,
@@ -14,7 +20,9 @@ from app.models_event import (
     EventUpdate,
     RegistrationStatus,
 )
+from app.models_notification import NotificationType
 from app.models_playground import Playground
+from app.notifications import notify_mentions, notify_new_comment
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -319,3 +327,154 @@ def delete_event_poster(
     session.refresh(event)
 
     return _to_event_read(event, session)
+
+
+# --- Комментарии к мероприятию -------------------------------------------
+
+COMMENT_MAX_LENGTH = 500
+
+
+def _validate_comment_text(text: str) -> str:
+    trimmed = text.strip()
+
+    if not trimmed:
+        raise HTTPException(status_code=400, detail="Комментарий не может быть пустым.")
+
+    if len(trimmed) > COMMENT_MAX_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Комментарий не должен превышать {COMMENT_MAX_LENGTH} символов.",
+        )
+
+    return trimmed
+
+
+def _get_event_comment_or_404(comment_id: int, session: Session) -> EventComment:
+    comment = session.get(EventComment, comment_id)
+
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Комментарий не найден")
+
+    return comment
+
+
+def _notify_about_event_comment(
+    event: Event, actor: User, comment_text: str, session: Session
+) -> None:
+    """
+    Уведомляет о новом комментарии создателя мероприятия и всех, кто
+    зарегистрирован на участие (включая уже отмеченных как
+    "посетил"), кроме самого автора комментария. Плюс отдельно —
+    любых @Ник, упомянутых в тексте, даже если они не участвуют в
+    мероприятии вовсе.
+    """
+    target_url = f"/events/{event.id}"
+
+    participant_ids = session.exec(
+        select(EventRegistration.user_id).where(
+            EventRegistration.event_id == event.id,
+            EventRegistration.status != RegistrationStatus.cancelled,
+        )
+    ).all()
+
+    recipient_ids = {event.creator_id, *participant_ids}
+
+    notify_new_comment(
+        session,
+        recipient_ids=recipient_ids,
+        actor=actor,
+        type=NotificationType.event_comment,
+        target_url=target_url,
+        target_title=event.title,
+    )
+
+    notify_mentions(
+        session,
+        text=comment_text,
+        actor=actor,
+        target_url=target_url,
+        target_title=event.title,
+    )
+
+
+@router.get("/{event_id}/comments", response_model=List[EventCommentRead])
+def list_event_comments(
+    event_id: int,
+    session: Session = Depends(get_session),
+) -> List[EventComment]:
+    _get_event_or_404(event_id, session)
+
+    return session.exec(
+        select(EventComment)
+        .where(EventComment.event_id == event_id)
+        .order_by(EventComment.created_at)
+    ).all()
+
+
+@router.post("/{event_id}/comments", response_model=EventCommentRead)
+def create_event_comment(
+    event_id: int,
+    data: EventCommentCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> EventComment:
+    event = _get_event_or_404(event_id, session)
+
+    text = _validate_comment_text(data.text)
+
+    comment = EventComment(
+        event_id=event_id,
+        user_id=current_user.id,
+        text=text,
+    )
+
+    session.add(comment)
+
+    _notify_about_event_comment(event, current_user, text, session)
+
+    session.commit()
+    session.refresh(comment)
+
+    return comment
+
+
+@router.put("/comments/{comment_id}", response_model=EventCommentRead)
+def update_event_comment(
+    comment_id: int,
+    data: EventCommentUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> EventComment:
+    comment = _get_event_comment_or_404(comment_id, session)
+
+    ensure_owner_or_admin(
+        comment.user_id,
+        current_user,
+        detail="Редактировать этот комментарий может только его автор",
+    )
+
+    comment.text = _validate_comment_text(data.text)
+
+    session.add(comment)
+    session.commit()
+    session.refresh(comment)
+
+    return comment
+
+
+@router.delete("/comments/{comment_id}", status_code=204)
+def delete_event_comment(
+    comment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> None:
+    comment = _get_event_comment_or_404(comment_id, session)
+
+    ensure_owner_or_admin(
+        comment.user_id,
+        current_user,
+        detail="Удалить этот комментарий может только его автор или администратор",
+    )
+
+    session.delete(comment)
+    session.commit()

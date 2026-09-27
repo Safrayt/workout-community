@@ -17,6 +17,7 @@ import Subscriptions from "../pages/Subscriptions/Subscriptions";
 import Events from "../pages/Events/Events";
 import CreateEvent from "../pages/CreateEvent/CreateEvent";
 import Diary from "../pages/Diary/Diary";
+import Notifications from "../pages/Notifications/Notifications";
 import AddDiaryEntry from "../pages/AddDiaryEntry/AddDiaryEntry";
 import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
 import AddDiaryNote from "../pages/AddDiaryNote/AddDiaryNote";
@@ -138,6 +139,10 @@ export const router = createBrowserRouter([
       {
         path: "diary",
         element: <Diary />,
+      },
+      {
+        path: "notifications",
+        element: <Notifications />,
       },
       {
         path: "diary/create",

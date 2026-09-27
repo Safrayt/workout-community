@@ -5,6 +5,7 @@ import type { Playground } from "../../types/playground";
 
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
+import { getCardPhotoUrl } from "../../utils/entryPhoto";
 
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
@@ -29,9 +30,9 @@ export default function DiaryNoteCard({
     note,
     playground,
 }: DiaryNoteCardProps) {
-    const mainPhoto =
-        note.photos?.find((photo) => photo.isMain) ??
-        note.photos?.[0];
+    // См. аналогичный комментарий в WorkoutEntryCard: своя фотография,
+    // а если её нет — главное фото отмеченной площадки.
+    const photoUrl = getCardPhotoUrl(note.photos, playground);
 
     const heading =
         note.title ?? getCardDescriptionPreview(note.text, 60);
@@ -42,9 +43,9 @@ export default function DiaryNoteCard({
             className="workout-entry-card"
         >
             {
-                mainPhoto && (
+                photoUrl && (
                     <img
-                        src={mainPhoto.url}
+                        src={photoUrl}
                         alt=""
                         className="workout-entry-card__photo"
                     />
@@ -64,11 +65,11 @@ export default function DiaryNoteCard({
                             )
                         }
                     </div>
-
-                    <p className="workout-entry-card__date">
-                        {formatWorkoutEntryDate(note.date)}
-                    </p>
                 </div>
+
+                <p className="workout-entry-card__date">
+                    {formatWorkoutEntryDate(note.date)}
+                </p>
 
                 <h4 className="workout-entry-card__title">
                     {heading}
@@ -87,7 +88,7 @@ export default function DiaryNoteCard({
                     // если фото есть, в карточке остаётся только
                     // название (см. аналогичную логику в
                     // WorkoutEntryCard).
-                    !mainPhoto && note.title && (
+                    !photoUrl && note.title && (
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(note.text)}
                         </p>

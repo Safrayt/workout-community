@@ -9,6 +9,7 @@ import { isActivityDateDivergent } from "../../utils/timeAgo";
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
+import { getCardPhotoUrl } from "../../utils/entryPhoto";
 import { getDiaryRecordUrl } from "../../utils/diaryRecords";
 import { truncateText } from "../../utils/truncateText";
 
@@ -63,9 +64,10 @@ export default function HomeFeedCard({
 
     const recordUrl = getDiaryRecordUrl(record);
 
-    const mainPhoto =
-        record.data.photos?.find((photo) => photo.isMain) ??
-        record.data.photos?.[0];
+    // Своя фотография записи, а если её нет — главное фото отмеченной
+    // площадки (см. utils/entryPhoto.ts; тот же приём, что и в
+    // WorkoutEntryCard/DiaryNoteCard на странице Дневника).
+    const photoUrl = getCardPhotoUrl(record.data.photos, playground);
 
     const isWorkout = record.type === "workout";
 
@@ -112,9 +114,9 @@ export default function HomeFeedCard({
             }}
         >
             {
-                mainPhoto && (
+                photoUrl && (
                     <img
-                        src={mainPhoto.url}
+                        src={photoUrl}
                         alt=""
                         className="workout-entry-card__photo"
                     />
@@ -123,7 +125,7 @@ export default function HomeFeedCard({
 
             <div
                 className={`home-feed-card__author-row home-feed-card__author-row--overlay ${
-                    mainPhoto ? "" : "home-feed-card__author-row--no-photo"
+                    photoUrl ? "" : "home-feed-card__author-row--no-photo"
                 }`}
             >
                 <Link
