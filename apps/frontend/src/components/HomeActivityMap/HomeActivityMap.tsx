@@ -12,6 +12,10 @@ import { getActivityMap } from "../../api/diary";
 import { getPlaygroundById } from "../../utils/playgrounds";
 import { formatTimeAgo } from "../../utils/timeAgo";
 import { pluralizeRu } from "../../utils/pluralize";
+import {
+    EURASIA_MAP_CENTER,
+    EURASIA_MAP_ZOOM,
+} from "../../constants/map";
 
 import {
     HOME_ACTIVITY_MAP_COLLAPSED_KEY,
@@ -195,6 +199,8 @@ export default function HomeActivityMap({
                                     markers={mapMarkers}
                                     height="var(--home-activity-map-height, 440px)"
                                     detailsLinkLabel="Открыть площадку"
+                                    initialCenter={EURASIA_MAP_CENTER}
+                                    initialZoom={EURASIA_MAP_ZOOM}
                                 />
                             )
                         }

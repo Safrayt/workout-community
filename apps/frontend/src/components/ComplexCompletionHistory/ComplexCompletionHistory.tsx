@@ -10,6 +10,9 @@ import type { ComplexCompletion } from "../../types/complexCompletion";
 
 import { formatDate } from "../../utils/formatDate";
 import { formatCompletionResult } from "../../utils/complexResult";
+import { getWorkoutEntryPath } from "../../utils/diaryPaths";
+
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 type ComplexCompletionHistoryProps = {
 
@@ -29,6 +32,10 @@ export default function ComplexCompletionHistory({
     onEdit,
     onDelete,
 }: ComplexCompletionHistoryProps) {
+    // История выполнений всегда личная — записи дневника, на которые
+    // она ссылается, принадлежат текущему пользователю.
+    const { currentUser } = useCurrentUser();
+
     const sorted = [...completions].sort(
         (a, b) => new Date(b.completedDate).getTime() - new Date(a.completedDate).getTime()
     );
@@ -62,7 +69,10 @@ export default function ComplexCompletionHistory({
                             {
                                 completion.diaryEntryId ? (
                                     <Link
-                                        to={`/diary/${completion.diaryEntryId}`}
+                                        to={getWorkoutEntryPath(
+                                            currentUser.nickname,
+                                            completion.diaryEntryId
+                                        )}
                                         className="complex-completion-history__diary-link"
                                     >
                                         Открыть запись

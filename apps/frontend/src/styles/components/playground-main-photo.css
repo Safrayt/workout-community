@@ -30,9 +30,12 @@
     overflow: hidden;
 }
 
-/* Leaflet сам не знает про border-radius родителя — обрезаем плитки
-   карты явно, иначе прямоугольная карта торчит из скруглённых углов. */
-.playground-main-photo__map .leaflet-container {
+/* MapLibre сам не знает про border-radius родителя — обрезаем канвас
+   карты явно, иначе прямоугольная карта торчит из скруглённых углов
+   (родительский overflow: hidden клипует по СВОЕМУ радиусу, но угол
+   canvas-элемента без совпадающего собственного radius всё равно
+   может проступать тонкой линией из-за антиалиасинга). */
+.playground-main-photo__map .maplibregl-map {
     height: 100%;
     width: 100%;
     border-radius: var(--radius-lg);
@@ -67,7 +70,7 @@
 @media (max-width: 640px) {
     .playground-main-photo__image,
     .playground-main-photo__map,
-    .playground-main-photo__map .leaflet-container {
+    .playground-main-photo__map .maplibregl-map {
         border-radius: var(--radius-md);
     }
 }

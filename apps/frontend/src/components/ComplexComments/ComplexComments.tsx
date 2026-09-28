@@ -47,6 +47,17 @@ export default function ComplexComments({ complexId }: ComplexCommentsProps) {
 
     const [errors, setErrors] = useState<ValidationError[]>([]);
 
+    const textareaId = `complex-comment-new-${complexId}`;
+
+    function handleReply(nickname: string) {
+        setText(`@${nickname} `);
+        setErrors([]);
+
+        const textarea = document.getElementById(textareaId);
+        textarea?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (textarea as HTMLTextAreaElement | null)?.focus();
+    }
+
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
 
@@ -86,6 +97,7 @@ export default function ComplexComments({ complexId }: ComplexCommentsProps) {
                                 <ComplexCommentItem
                                     key={comment.id}
                                     comment={comment}
+                                    onReply={handleReply}
                                 />
                             ))
                         }
@@ -98,7 +110,7 @@ export default function ComplexComments({ complexId }: ComplexCommentsProps) {
                 onSubmit={handleSubmit}
             >
                 <Textarea
-                    id={`complex-comment-new-${complexId}`}
+                    id={textareaId}
                     label="Оставить комментарий"
                     placeholder="Что думаешь об этой схеме?"
                     value={text}

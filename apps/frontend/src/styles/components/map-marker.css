@@ -1,6 +1,8 @@
 .playground-marker-icon {
+    display: block;
     background: transparent;
     border: none;
+    cursor: pointer;
 }
 
 .playground-marker-icon__dot {

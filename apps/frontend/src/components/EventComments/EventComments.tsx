@@ -39,6 +39,17 @@ export default function EventComments({ eventId }: EventCommentsProps) {
 
     const [errors, setErrors] = useState<ValidationError[]>([]);
 
+    const textareaId = `event-comment-new-${eventId}`;
+
+    function handleReply(nickname: string) {
+        setText(`@${nickname} `);
+        setErrors([]);
+
+        const textarea = document.getElementById(textareaId);
+        textarea?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (textarea as HTMLTextAreaElement | null)?.focus();
+    }
+
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
 
@@ -78,6 +89,7 @@ export default function EventComments({ eventId }: EventCommentsProps) {
                                 <EventCommentItem
                                     key={comment.id}
                                     comment={comment}
+                                    onReply={handleReply}
                                 />
                             ))
                         }
@@ -90,7 +102,7 @@ export default function EventComments({ eventId }: EventCommentsProps) {
                 onSubmit={handleSubmit}
             >
                 <Textarea
-                    id={`event-comment-new-${eventId}`}
+                    id={textareaId}
                     label="Оставить комментарий"
                     placeholder="Вопрос организатору, план встречи, отметьте участников через @Ник…"
                     value={text}

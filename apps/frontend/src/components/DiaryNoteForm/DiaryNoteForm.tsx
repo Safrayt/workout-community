@@ -10,11 +10,6 @@ import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhot
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 
-import {
-    DEFAULT_MAP_PICKER_CENTER,
-    DEFAULT_MAP_PICKER_ZOOM,
-} from "../../constants/map";
-
 import type {
     ValidationError,
 } from "../../validation";
@@ -239,8 +234,6 @@ export default function DiaryNoteForm({
                         markers={playgroundMarkers}
                         height="var(--workout-entry-map-height, 350px)"
                         showDetailsLink={false}
-                        initialCenter={DEFAULT_MAP_PICKER_CENTER}
-                        initialZoom={DEFAULT_MAP_PICKER_ZOOM}
                         selectedLatitude={
                             selectedPlayground?.coordinates.latitude
                         }

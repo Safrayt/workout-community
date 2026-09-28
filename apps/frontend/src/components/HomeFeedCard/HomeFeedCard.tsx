@@ -62,7 +62,7 @@ export default function HomeFeedCard({
     const { record, author, playground, commentsCount } = feedRecord;
     const navigate = useNavigate();
 
-    const recordUrl = getDiaryRecordUrl(record);
+    const recordUrl = getDiaryRecordUrl(record, author.nickname);
 
     // Своя фотография записи, а если её нет — главное фото отмеченной
     // площадки (см. utils/entryPhoto.ts; тот же приём, что и в

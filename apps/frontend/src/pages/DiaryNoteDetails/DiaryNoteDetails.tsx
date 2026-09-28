@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 
 import "../../styles/components/workout-entry-details.css";
 import "../../styles/components/workout-entry-hero.css";
@@ -31,6 +31,8 @@ import {
     useCurrentUser,
 } from "../../context/CurrentUserContext";
 
+import { useUserDirectory } from "../../hooks/useUserDirectory";
+import { getDiaryNotePath } from "../../utils/diaryPaths";
 import {
     getPlaygroundById,
 } from "../../utils/playgrounds";
@@ -42,7 +44,7 @@ import {
  * только Hero (заголовок опционален) и формой редактирования.
  */
 export default function DiaryNoteDetails() {
-    const { id } = useParams();
+    const { id, username } = useParams();
 
     const [mode, setMode] =
         useState<"view" | "edit">("view");
@@ -64,6 +66,8 @@ export default function DiaryNoteDetails() {
     const navigate =
         useNavigate();
 
+    const { getUserById } = useUserDirectory();
+
     const note =
         id
             ? notes.find((item) => item.id === id)
@@ -77,8 +81,34 @@ export default function DiaryNoteDetails() {
 
     const noteId = note.id;
 
+    // Канонический адрес — в дневнике автора: /u/<ник автора>/diary/...
+    // Если ник в адресе не совпал с ником автора (кто-то подставил
+    // чужой или опечатался) — перекидываем на правильный адрес.
+    const noteAuthor = getUserById(note.userId);
+
+    if (noteAuthor && username !== noteAuthor.nickname) {
+        return (
+            <Navigate
+                to={getDiaryNotePath(
+                    noteAuthor.nickname,
+                    noteId
+                )}
+                replace
+            />
+        );
+    }
+
     const isOwner =
         note.userId === currentUser.id;
+
+    // "← Дневник" ведёт в дневник АВТОРА записи, а не всегда в свой
+    // (/diary — это дневник вошедшего пользователя): при просмотре
+    // чужой записи возврат на свою страницу дневника сбивал с толку.
+    const author = isOwner ? undefined : getUserById(note.userId);
+
+    const diaryPath = author
+        ? `/u/${encodeURIComponent(author.nickname)}/diary`
+        : "/diary";
 
     const playground =
         note.playgroundId
@@ -117,7 +147,7 @@ export default function DiaryNoteDetails() {
         }
 
         deleteNote(noteId).then(() => {
-            navigate("/diary");
+            navigate(diaryPath);
         }).catch((error: unknown) => {
             console.error(
                 "Не удалось удалить заметку:",
@@ -169,7 +199,7 @@ export default function DiaryNoteDetails() {
         <div className="workout-entry-details">
 
             <Link
-                to="/diary"
+                to={diaryPath}
                 className="workout-entry-details__back"
             >
                 ← Дневник

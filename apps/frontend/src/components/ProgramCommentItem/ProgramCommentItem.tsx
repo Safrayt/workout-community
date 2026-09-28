@@ -24,6 +24,7 @@ import { formatDate } from "../../utils/formatDate";
 
 type Props = {
     comment: ProgramComment;
+    onReply: (nickname: string) => void;
 };
 
 /**
@@ -31,7 +32,7 @@ type Props = {
  * документа) — этот компонент не имеет никакого отношения к
  * ProgramStructureEditor, только к странице программы.
  */
-export default function ProgramCommentItem({ comment }: Props) {
+export default function ProgramCommentItem({ comment, onReply }: Props) {
     const { updateComment, deleteComment } = useProgramComments();
     const { currentUser } = useCurrentUser();
 
@@ -145,7 +146,7 @@ export default function ProgramCommentItem({ comment }: Props) {
                             </p>
 
                             {
-                                isOwnComment && (
+                                isOwnComment ? (
                                     <div className="program-comments__owner-actions">
                                         <button
                                             type="button"
@@ -161,6 +162,20 @@ export default function ProgramCommentItem({ comment }: Props) {
                                             onClick={handleDelete}
                                         >
                                             Удалить
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="program-comments__owner-actions">
+                                        <button
+                                            type="button"
+                                            className="program-comments__action"
+                                            onClick={() =>
+                                                onReply(
+                                                    author?.nickname ?? "неизвестный"
+                                                )
+                                            }
+                                        >
+                                            Ответить
                                         </button>
                                     </div>
                                 )

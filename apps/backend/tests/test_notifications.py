@@ -95,12 +95,49 @@ def test_diary_comment_notifies_entry_owner_but_not_commenter(client: TestClient
     owner_notifications = _get_notifications(client, owner["token"])
     assert len(owner_notifications) == 1
     assert owner_notifications[0]["type"] == "diary_comment"
-    assert owner_notifications[0]["target_url"] == f"/diary/{entry['id']}"
+    # Канонический адрес записи — в дневнике её автора.
+    assert owner_notifications[0]["target_url"] == f"/u/owner/diary/{entry['id']}"
     assert owner_notifications[0]["target_title"] == "Пробежка"
     assert owner_notifications[0]["is_read"] is False
 
     # Комментатору о собственном комментарии уведомление не приходит.
     assert _get_notifications(client, commenter["token"]) == []
+
+
+def test_diary_notification_url_encodes_nickname_and_supports_notes(
+    client: TestClient,
+):
+    """
+    Ник может содержать пробелы и кириллицу — в адресе он
+    кодируется целиком (фронтенд раскодирует его через useParams()).
+    Для заметок адрес — /u/<ник>/diary/notes/<id>.
+    """
+    from urllib.parse import quote
+
+    owner = register_user(client, nickname="Иван Петров")
+    commenter = register_user(client, nickname="commenter_url")
+
+    note_response = client.post(
+        "/diary/notes",
+        json={"title": "Заметка", "text": "Текст заметки", "tags": []},
+        headers=auth_headers(owner["token"]),
+    )
+    assert note_response.status_code == 200, note_response.text
+    note = note_response.json()
+
+    response = client.post(
+        f"/diary/comments?record_id={note['id']}&record_type=note",
+        json={"text": "Отличная заметка"},
+        headers=auth_headers(commenter["token"]),
+    )
+    assert response.status_code == 200, response.text
+
+    notifications = _get_notifications(client, owner["token"])
+    assert len(notifications) == 1
+    assert (
+        notifications[0]["target_url"]
+        == f"/u/{quote('Иван Петров', safe='')}/diary/notes/{note['id']}"
+    )
 
 
 def test_commenting_own_entry_does_not_self_notify(client: TestClient):
@@ -240,7 +277,7 @@ def test_mention_in_diary_comment_notifies_mentioned_user(client: TestClient):
 
     mentioned_notifications = _get_notifications(client, mentioned["token"], type="mention")
     assert len(mentioned_notifications) == 1
-    assert mentioned_notifications[0]["target_url"] == f"/diary/{entry['id']}"
+    assert mentioned_notifications[0]["target_url"] == f"/u/entry_owner/diary/{entry['id']}"
 
     # Владелец записи ОТДЕЛЬНО получает свой diary_comment — упоминание
     # его не заменяет и не дублирует.

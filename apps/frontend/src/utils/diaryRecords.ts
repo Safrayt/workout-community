@@ -2,6 +2,8 @@ import type { WorkoutEntry } from "../types/workoutEntry";
 import type { DiaryNote } from "../types/diaryNote";
 import type { DiaryRecord } from "../types/diaryRecord";
 
+import { getDiaryNotePath, getWorkoutEntryPath } from "./diaryPaths";
+
 /**
  * Единая хронологическая лента дневника (UX-DIARY-V2 §2, §8):
  * тренировки и заметки — это два типа одной сущности "Запись
@@ -38,12 +40,16 @@ export function buildDiaryRecords(
 
 /**
  * Единая точка формирования URL записи дневника — тренировки и
- * заметки живут на разных маршрутах (`/diary/:id` и
- * `/diary/notes/:id`), и эту развилку не стоит дублировать в каждом
- * месте, где на запись нужно сослаться.
+ * заметки живут на разных маршрутах (`/u/:ник/diary/:id` и
+ * `/u/:ник/diary/notes/:id`, см. utils/diaryPaths.ts), и эту
+ * развилку не стоит дублировать в каждом месте, где на запись нужно
+ * сослаться. authorNickname — ник автора записи.
  */
-export function getDiaryRecordUrl(record: DiaryRecord): string {
+export function getDiaryRecordUrl(
+    record: DiaryRecord,
+    authorNickname: string | undefined
+): string {
     return record.type === "workout"
-        ? `/diary/${record.data.id}`
-        : `/diary/notes/${record.data.id}`;
+        ? getWorkoutEntryPath(authorNickname, record.data.id)
+        : getDiaryNotePath(authorNickname, record.data.id);
 }

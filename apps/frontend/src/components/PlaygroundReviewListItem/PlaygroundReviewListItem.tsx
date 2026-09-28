@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Textarea from "../ui/Textarea/Textarea";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
@@ -26,7 +27,11 @@ type Props = {
 /**
  * Один отзыв в полном списке отзывов площадки. Автору отзыва
  * показывает "Редактировать"/"Удалить"; редактирование — инлайн,
- * без перехода на отдельную страницу.
+ * без перехода на отдельную страницу. Остальным — "Ответить": в
+ * отличие от комментариев дневника/программ/комплексов/событий,
+ * форма нового отзыва живёт на отдельной странице (/reviews/create),
+ * а не рядом со списком — поэтому подставляем "@Ник " через
+ * navigate(..., { state }), а не напрямую в textarea.
  */
 export default function PlaygroundReviewListItem({
     review,
@@ -35,6 +40,10 @@ export default function PlaygroundReviewListItem({
     const { currentUser } = useCurrentUser();
 
     const { getUserById } = useUserDirectory();
+
+    const author = getUserById(review.userId);
+
+    const navigate = useNavigate();
 
     const isOwnReview = review.userId === currentUser.id;
 
@@ -95,14 +104,20 @@ export default function PlaygroundReviewListItem({
         });
     }
 
+    function handleReply() {
+        navigate(`/playgrounds/${review.playgroundId}/reviews/create`, {
+            state: {
+                replyToNickname: author?.nickname ?? "неизвестный",
+            },
+        });
+    }
+
     return (
         <li className="playground-reviews-list__item">
             <div className="playground-reviews-list__meta">
                 <span className="playground-reviews-list__author">
                     <UserLink
-                        username={
-                            getUserById(review.userId)?.nickname ?? "неизвестный"
-                        }
+                        username={author?.nickname ?? "неизвестный"}
                     />
                 </span>
 
@@ -185,6 +200,20 @@ export default function PlaygroundReviewListItem({
                                         }
                                     </div>
 
+                                )
+                            }
+
+                            {
+                                !isOwnReview && (
+                                    <div className="playground-reviews-list__owner-actions">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleReply}
+                                        >
+                                            Ответить
+                                        </Button>
+                                    </div>
                                 )
                             }
                         </>

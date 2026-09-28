@@ -6,6 +6,9 @@ import type { Playground } from "../../types/playground";
 import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 import { getCardPhotoUrl } from "../../utils/entryPhoto";
+import { getDiaryNotePath } from "../../utils/diaryPaths";
+
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
@@ -37,9 +40,16 @@ export default function DiaryNoteCard({
     const heading =
         note.title ?? getCardDescriptionPreview(note.text, 60);
 
+    // Заметка живёт в дневнике своего автора: /u/<ник>/diary/notes/<id>.
+    const { getUserById } = useUserDirectory();
+    const notePath = getDiaryNotePath(
+        getUserById(note.userId)?.nickname,
+        note.id
+    );
+
     return (
         <Link
-            to={`/diary/notes/${note.id}`}
+            to={notePath}
             className="workout-entry-card"
         >
             {

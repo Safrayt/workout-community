@@ -139,7 +139,7 @@ export async function listDiaryNotes(
     return apiNotes.map(mapApiDiaryNoteToNote);
 }
 
-async function getDiaryNote(id: string): Promise<DiaryNote> {
+export async function getDiaryNote(id: string): Promise<DiaryNote> {
     const apiNote = await apiFetch<ApiDiaryNote>(`/diary/notes/${id}`);
 
     return mapApiDiaryNoteToNote(apiNote);

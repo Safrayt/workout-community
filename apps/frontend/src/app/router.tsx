@@ -23,6 +23,7 @@ import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
 import AddDiaryNote from "../pages/AddDiaryNote/AddDiaryNote";
 import WorkoutEntryDetails from "../pages/WorkoutEntryDetails/WorkoutEntryDetails";
 import DiaryNoteDetails from "../pages/DiaryNoteDetails/DiaryNoteDetails";
+import LegacyDiaryRedirect from "../pages/LegacyDiaryRedirect/LegacyDiaryRedirect";
 import Playgrounds from "../pages/Playgrounds/Playgrounds";
 import EventDetails from "../pages/EventDetails/EventDetails";
 import EditEvent from "../pages/EditEvent/EditEvent";
@@ -156,13 +157,24 @@ export const router = createBrowserRouter([
         path: "diary/create/note",
         element: <AddDiaryNote />,
       },
+      // Канонические адреса записей — в дневнике их автора (см.
+      // utils/diaryPaths.ts); старые /diary/:id и /diary/notes/:id
+      // остались только как редиректы на них.
       {
-        path: "diary/notes/:id",
+        path: "u/:username/diary/notes/:id",
         element: <DiaryNoteDetails />,
       },
       {
-        path: "diary/:id",
+        path: "u/:username/diary/:id",
         element: <WorkoutEntryDetails />,
+      },
+      {
+        path: "diary/notes/:id",
+        element: <LegacyDiaryRedirect kind="note" />,
+      },
+      {
+        path: "diary/:id",
+        element: <LegacyDiaryRedirect kind="workout" />,
       },
       {
         path: "playgrounds",

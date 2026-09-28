@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -1084,12 +1085,25 @@ def create_comment(
     # Комментировать можно только то, что реально существует.
     if record_type == DiaryRecordType.workout:
         record = _get_workout_entry_or_404(record_id, session)
-        target_url = f"/diary/{record_id}"
+        target_path = f"diary/{record_id}"
         target_title = record.title
     else:
         record = _get_diary_note_or_404(record_id, session)
-        target_url = f"/diary/notes/{record_id}"
+        target_path = f"diary/notes/{record_id}"
         target_title = record.title
+
+    # Канонический адрес записи — в дневнике её автора:
+    # /u/<ник автора>/diary/<id> (см. utils/diaryPaths.ts на фронтенде).
+    # Ник кодируем целиком (safe=""), в нём может быть что угодно,
+    # включая "/" — фронтенд раскодирует его через useParams().
+    # Автора не нашли (не должно случаться) — старый адрес
+    # /diary/<id>: фронтенд перекинет его на канонический сам.
+    record_author = session.get(User, record.user_id)
+    target_url = (
+        f"/u/{quote(record_author.nickname, safe='')}/{target_path}"
+        if record_author
+        else f"/{target_path}"
+    )
 
     comment = Comment(
         record_id=record_id,

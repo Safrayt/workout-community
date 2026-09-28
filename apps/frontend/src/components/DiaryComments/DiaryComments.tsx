@@ -47,6 +47,21 @@ export default function DiaryComments({
     const [errors, setErrors] =
         useState<ValidationError[]>([]);
 
+    const textareaId = `comment-new-${recordType}-${recordId}`;
+
+    function handleReply(nickname: string) {
+        setText(`@${nickname} `);
+        setErrors([]);
+
+        // Textarea не прокидывает ref наружу (см. компонент) — берём
+        // сам DOM-элемент по id, это дешевле, чем добавлять forwardRef
+        // в самый массово используемый компонент формы ради одного
+        // этого сценария.
+        const textarea = document.getElementById(textareaId);
+        textarea?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (textarea as HTMLTextAreaElement | null)?.focus();
+    }
+
     function handleSubmit(
         event: React.FormEvent
     ) {
@@ -88,6 +103,7 @@ export default function DiaryComments({
                                 <DiaryCommentItem
                                     key={comment.id}
                                     comment={comment}
+                                    onReply={handleReply}
                                 />
                             ))
                         }
@@ -100,7 +116,7 @@ export default function DiaryComments({
                 onSubmit={handleSubmit}
             >
                 <Textarea
-                    id={`comment-new-${recordType}-${recordId}`}
+                    id={textareaId}
                     label="Оставить комментарий"
                     placeholder="Что думаешь об этой записи?"
                     value={text}

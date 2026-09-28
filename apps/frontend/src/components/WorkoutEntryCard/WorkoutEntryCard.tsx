@@ -7,6 +7,9 @@ import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
 import { getTimeOfDayName } from "../../utils/timeOfDay";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 import { getCardPhotoUrl } from "../../utils/entryPhoto";
+import { getWorkoutEntryPath } from "../../utils/diaryPaths";
+
+import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import DiaryRecordTypeBadge from "../DiaryRecordTypeBadge/DiaryRecordTypeBadge";
 
@@ -38,9 +41,16 @@ export default function WorkoutEntryCard({
     // там нет — просто нет картинки, а не сломанный вид (§24).
     const photoUrl = getCardPhotoUrl(entry.photos, playground);
 
+    // Запись живёт в дневнике своего автора: /u/<ник>/diary/<id>.
+    const { getUserById } = useUserDirectory();
+    const entryPath = getWorkoutEntryPath(
+        getUserById(entry.userId)?.nickname,
+        entry.id
+    );
+
     return (
         <Link
-            to={`/diary/${entry.id}`}
+            to={entryPath}
             className="workout-entry-card"
         >
             {

@@ -44,6 +44,17 @@ export default function ProgramComments({ programId }: ProgramCommentsProps) {
 
     const [errors, setErrors] = useState<ValidationError[]>([]);
 
+    const textareaId = `program-comment-new-${programId}`;
+
+    function handleReply(nickname: string) {
+        setText(`@${nickname} `);
+        setErrors([]);
+
+        const textarea = document.getElementById(textareaId);
+        textarea?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (textarea as HTMLTextAreaElement | null)?.focus();
+    }
+
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
 
@@ -83,6 +94,7 @@ export default function ProgramComments({ programId }: ProgramCommentsProps) {
                                 <ProgramCommentItem
                                     key={comment.id}
                                     comment={comment}
+                                    onReply={handleReply}
                                 />
                             ))
                         }
@@ -95,7 +107,7 @@ export default function ProgramComments({ programId }: ProgramCommentsProps) {
                 onSubmit={handleSubmit}
             >
                 <Textarea
-                    id={`program-comment-new-${programId}`}
+                    id={textareaId}
                     label="Оставить комментарий"
                     placeholder="Вопрос автору, предложение, замечание…"
                     value={text}

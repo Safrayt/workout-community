@@ -1,0 +1,41 @@
+/* MapLibre, как раньше и Leaflet, использует собственные внутренние
+   слои с очень высоким z-index (например, экран подсказки о жестах
+   и полноэкранный режим — 99999, см. maplibre-gl/dist/maplibre-gl.css),
+   а сам .maplibregl-map при этом не создаёт собственный контекст
+   наложения (у него есть position, но нет z-index) — то есть в
+   точности та же причина, из-за которой раньше карта на Leaflet
+   перекрывала шапку и выпадающие меню. Задаём контейнеру карты
+   z-index, чтобы принудительно "запереть" все его внутренние слои
+   в локальном контексте наложения — снаружи карта после этого
+   ведёт себя как обычный элемент с z-index: 0 и не может перекрыть
+   ничего с более высоким z-index (см. navigation.css/header.css). */
+.maplibregl-map {
+    z-index: 0;
+}
+
+/* Переопределяем паддинг/скругление, которые MapLibre задаёт своему
+   popup по умолчанию — чтобы фото было заподлицо с краями, как у
+   карточки площадки в списке (аналог прежних правил для
+   .leaflet-popup-content-wrapper/.leaflet-popup-content). */
+.maplibregl-popup-content {
+    padding: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.maplibregl-popup-close-button {
+    top: 6px;
+    right: 6px;
+
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+
+    color: var(--color-text);
+}

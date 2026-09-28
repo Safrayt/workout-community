@@ -26,6 +26,10 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Badge from "../../components/ui/Badge/Badge";
 
 import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
+import {
+    EURASIA_MAP_CENTER,
+    EURASIA_MAP_ZOOM,
+} from "../../constants/map";
 import { getEventPlaygroundMarkers } from "../../utils/eventMaps";
 
 import EventFilters from "../../components/EventFilters/EventFilters";
@@ -178,6 +182,8 @@ export default function Events() {
                 selectedMarkerId={effectiveSelectedPlaygroundId ?? undefined}
                 focusMarkerId={focusMarkerId ?? undefined}
                 onMarkerClick={(marker) => setSelectedPlaygroundId(marker.id)}
+                initialCenter={EURASIA_MAP_CENTER}
+                initialZoom={EURASIA_MAP_ZOOM}
             />
 
             <hr />

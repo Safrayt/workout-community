@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 
 import "../../styles/components/workout-entry-details.css";
 
@@ -38,12 +38,14 @@ import {
     getWorkoutEntryById,
 } from "../../utils/workoutEntries";
 
+import { useUserDirectory } from "../../hooks/useUserDirectory";
+import { getWorkoutEntryPath } from "../../utils/diaryPaths";
 import {
     getPlaygroundById,
 } from "../../utils/playgrounds";
 
 export default function WorkoutEntryDetails() {
-    const { id } = useParams();
+    const { id, username } = useParams();
 
     const [mode, setMode] =
         useState<"view" | "edit">("view");
@@ -65,6 +67,8 @@ export default function WorkoutEntryDetails() {
 
     const navigate =
         useNavigate();
+
+    const { getUserById } = useUserDirectory();
 
     // `entries` в контексте загружается один раз при старте
     // SPA-сессии и дальше не перезапрашивается сам по себе (см.
@@ -100,8 +104,34 @@ export default function WorkoutEntryDetails() {
 
     const entryId = entry.id;
 
+    // Канонический адрес — в дневнике автора: /u/<ник автора>/diary/...
+    // Если ник в адресе не совпал с ником автора (кто-то подставил
+    // чужой или опечатался) — перекидываем на правильный адрес.
+    const entryAuthor = getUserById(entry.userId);
+
+    if (entryAuthor && username !== entryAuthor.nickname) {
+        return (
+            <Navigate
+                to={getWorkoutEntryPath(
+                    entryAuthor.nickname,
+                    entryId
+                )}
+                replace
+            />
+        );
+    }
+
     const isOwner =
         entry.userId === currentUser.id;
+
+    // "← Дневник" ведёт в дневник АВТОРА записи, а не всегда в свой
+    // (/diary — это дневник вошедшего пользователя): при просмотре
+    // чужой записи возврат на свою страницу дневника сбивал с толку.
+    const author = isOwner ? undefined : getUserById(entry.userId);
+
+    const diaryPath = author
+        ? `/u/${encodeURIComponent(author.nickname)}/diary`
+        : "/diary";
 
     const playground =
         entry.playgroundId
@@ -140,7 +170,7 @@ export default function WorkoutEntryDetails() {
         }
 
         deleteEntry(entryId).then(() => {
-            navigate("/diary");
+            navigate(diaryPath);
         }).catch((error: unknown) => {
             console.error(
                 "Не удалось удалить запись:",
@@ -198,7 +228,7 @@ export default function WorkoutEntryDetails() {
 
             {/* Back Navigation (UX §6) */}
             <Link
-                to="/diary"
+                to={diaryPath}
                 className="workout-entry-details__back"
             >
                 ← Дневник

@@ -24,15 +24,18 @@ import { formatDate } from "../../utils/formatDate";
 
 type Props = {
     comment: Comment;
+    onReply: (nickname: string) => void;
 };
 
 /**
  * Один комментарий. Автору — "Редактировать"/"Удалить" инлайн, без
  * перехода на отдельную страницу (тот же паттерн, что и в отзывах
- * площадки — PlaygroundReviewListItem).
+ * площадки — PlaygroundReviewListItem). Остальным — "Ответить",
+ * подставляет "@Ник " в форму нового комментария ниже (см. onReply).
  */
 export default function DiaryCommentItem({
     comment,
+    onReply,
 }: Props) {
     const { updateComment, deleteComment } = useComments();
     const { currentUser } = useCurrentUser();
@@ -148,7 +151,7 @@ export default function DiaryCommentItem({
                             </p>
 
                             {
-                                isOwnComment && (
+                                isOwnComment ? (
                                     <div className="diary-comments__owner-actions">
                                         <button
                                             type="button"
@@ -164,6 +167,20 @@ export default function DiaryCommentItem({
                                             onClick={handleDelete}
                                         >
                                             Удалить
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="diary-comments__owner-actions">
+                                        <button
+                                            type="button"
+                                            className="diary-comments__action"
+                                            onClick={() =>
+                                                onReply(
+                                                    author?.nickname ?? "неизвестный"
+                                                )
+                                            }
+                                        >
+                                            Ответить
                                         </button>
                                     </div>
                                 )

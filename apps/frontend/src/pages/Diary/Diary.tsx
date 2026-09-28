@@ -70,6 +70,14 @@ import {
 
 import { pluralizeRu } from "../../utils/pluralize";
 
+/**
+ * Отдельный (больший, чем DEFAULT_PAGE_SIZE) размер страницы для
+ * Дневника: здесь карточки компактнее и уже, чем, например, в общей
+ * ленте на Главной, так что на экране умещается заметно больше
+ * записей за раз — 16 вместо стандартных 7.
+ */
+const DIARY_PAGE_SIZE = 16;
+
 const RECORD_TYPE_OPTIONS = [
     { value: "workout", label: "Тренировки" },
     { value: "note", label: "Заметки" },
@@ -160,13 +168,15 @@ export default function Diary() {
 
     const totalPages =
         getTotalPages(
-            visibleRecords.length
+            visibleRecords.length,
+            DIARY_PAGE_SIZE
         );
 
     const pageRecords =
         paginate(
             visibleRecords,
-            page
+            page,
+            DIARY_PAGE_SIZE
         );
 
     function updateFilters(next: typeof filters) {

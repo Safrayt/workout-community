@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import "../../styles/components/write-review.css";
 
@@ -26,6 +26,7 @@ export default function WriteReview() {
     const { id } = useParams();
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     const { playgrounds } = usePlaygrounds();
     const { addReview } = useReviews();
@@ -35,13 +36,40 @@ export default function WriteReview() {
             ? getPlaygroundById(playgrounds, id)
             : undefined;
 
-    const [text, setText] = useState("");
+    // "Ответить" на чужой отзыв (PlaygroundReviewListItem) переходит
+    // сюда с этим состоянием — в отличие от комментариев дневника/
+    // программ/комплексов/событий, форма отзыва живёт на отдельной
+    // странице, а не рядом со списком, поэтому подставить "@Ник"
+    // напрямую в поле нельзя — передаём через navigate(..., { state }).
+    const replyToNickname = (
+        location.state as { replyToNickname?: string } | null
+    )?.replyToNickname;
+
+    const [text, setText] = useState(
+        replyToNickname ? `@${replyToNickname} ` : ""
+    );
 
     const [errors, setErrors] =
         useState<ValidationError[]>([]);
 
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (!replyToNickname) {
+            return;
+        }
+
+        const textarea = document.getElementById(
+            "review-text"
+        ) as HTMLTextAreaElement | null;
+
+        textarea?.focus();
+        textarea?.setSelectionRange(text.length, text.length);
+        // Только при заходе через "Ответить" — дальше пользователь сам
+        // редактирует текст, перехватывать курсор не нужно.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (!playground) {
 

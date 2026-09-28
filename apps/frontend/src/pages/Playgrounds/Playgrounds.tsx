@@ -13,6 +13,10 @@ import Badge from "../../components/ui/Badge/Badge";
 
 import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
 import {
+    EURASIA_MAP_CENTER,
+    EURASIA_MAP_ZOOM,
+} from "../../constants/map";
+import {
     getPlaygroundMarkers,
 } from "../../utils/maps";
 
@@ -84,6 +88,8 @@ export default function Playgrounds() {
                 selectedMarkerId={selectedPlaygroundId ?? undefined}
                 focusMarkerId={focusPlaygroundId ?? undefined}
                 onMarkerClick={(marker) => setSelectedPlaygroundId(marker.id)}
+                initialCenter={EURASIA_MAP_CENTER}
+                initialZoom={EURASIA_MAP_ZOOM}
             />
 
             <hr />

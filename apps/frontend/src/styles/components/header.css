@@ -1,12 +1,64 @@
 .app-header {
-    padding: var(--space-6) 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
 }
 
-.app-header h1 {
-    margin-bottom: var(--space-2);
+.app-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+
+    padding: var(--space-3) var(--space-4);
 }
 
-.app-header p {
-    color: var(--color-text-secondary);
+.app-header__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    flex-shrink: 0;
+
+    color: var(--color-text);
+}
+
+.app-header__brand:hover {
+    color: var(--color-text);
+}
+
+.app-header__logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+
+    background: var(--color-primary);
+    color: #fff;
+
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.app-header__brand-name {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .app-header__brand-name {
+        display: none;
+    }
 }

@@ -24,9 +24,10 @@ import { formatDate } from "../../utils/formatDate";
 
 type Props = {
     comment: EventComment;
+    onReply: (nickname: string) => void;
 };
 
-export default function EventCommentItem({ comment }: Props) {
+export default function EventCommentItem({ comment, onReply }: Props) {
     const { updateComment, deleteComment } = useEventComments();
     const { currentUser } = useCurrentUser();
 
@@ -140,7 +141,7 @@ export default function EventCommentItem({ comment }: Props) {
                             </p>
 
                             {
-                                isOwnComment && (
+                                isOwnComment ? (
                                     <div className="event-comments__owner-actions">
                                         <button
                                             type="button"
@@ -156,6 +157,20 @@ export default function EventCommentItem({ comment }: Props) {
                                             onClick={handleDelete}
                                         >
                                             Удалить
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="event-comments__owner-actions">
+                                        <button
+                                            type="button"
+                                            className="event-comments__action"
+                                            onClick={() =>
+                                                onReply(
+                                                    author?.nickname ?? "неизвестный"
+                                                )
+                                            }
+                                        >
+                                            Ответить
                                         </button>
                                     </div>
                                 )

@@ -46,11 +46,6 @@ import PlaygroundsMap from "../Map/PlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 
 import {
-    DEFAULT_MAP_PICKER_CENTER,
-    DEFAULT_MAP_PICKER_ZOOM,
-} from "../../constants/map";
-
-import {
     getPlaygroundById,
 } from "../../utils/playgrounds";
 
@@ -407,8 +402,6 @@ export default function WorkoutEntryForm({
                         markers={playgroundMarkers}
                         height="var(--workout-entry-map-height, 350px)"
                         showDetailsLink={false}
-                        initialCenter={DEFAULT_MAP_PICKER_CENTER}
-                        initialZoom={DEFAULT_MAP_PICKER_ZOOM}
                         selectedLatitude={
                             selectedPlayground?.coordinates.latitude
                         }

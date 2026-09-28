@@ -1,88 +1,368 @@
-.app-navigation {
+.app-nav {
     display: flex;
-    gap: var(--space-5);
+    align-items: center;
+    gap: var(--space-4);
 
-    padding: var(--space-4) 0;
-
-    border-bottom: 1px solid var(--color-border);
-
-    margin-bottom: var(--space-6);
-
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex: 1;
+    min-width: 0;
 }
 
-.app-navigation::-webkit-scrollbar {
+/* ===== Бургер (только мобильная/узкая раскладка) ===== */
+
+.app-nav__burger {
     display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 40px;
+    height: 40px;
+
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--color-text);
+
+    transition: background var(--transition-fast);
 }
 
-.app-navigation a {
+.app-nav__burger:hover {
+    background: var(--color-background);
+}
+
+.app-nav__burger svg {
+    width: 22px;
+    height: 22px;
+}
+
+/* ===== Основные пункты (десктоп) ===== */
+
+.app-nav__links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    flex-shrink: 0;
+}
+
+.app-nav__link {
     flex-shrink: 0;
 
     color: var(--color-text-secondary);
-
     font-weight: 500;
 
     transition: color var(--transition-fast);
 }
 
-.app-navigation a:hover {
+.app-nav__link:hover {
     color: var(--color-primary);
 }
 
-.app-navigation a.active {
+.app-nav__link.active {
     color: var(--color-primary);
-
     font-weight: 700;
 }
 
-.app-navigation__logout {
-    flex-shrink: 0;
-    margin-left: auto;
+/* ===== Выпадающие списки (общие стили) ===== */
+
+.app-nav__dropdown {
+    position: relative;
+}
+
+.app-nav__dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 
     background: none;
     border: none;
     padding: 0;
     cursor: pointer;
 
+    font: inherit;
     color: var(--color-text-secondary);
     font-weight: 500;
-    font-family: inherit;
-    font-size: inherit;
 
     transition: color var(--transition-fast);
 }
 
-.app-navigation__logout:hover {
+.app-nav__dropdown-trigger:hover {
+    color: var(--color-primary);
+}
+
+.app-nav__dropdown-trigger.active {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.app-nav__dropdown-trigger svg {
+    width: 14px;
+    height: 14px;
+}
+
+.app-nav__dropdown-panel {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    left: 0;
+    z-index: 20;
+
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    padding: var(--space-2);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.app-nav__dropdown-panel--right {
+    left: auto;
+    right: 0;
+}
+
+.app-nav__dropdown-item {
+    display: block;
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    color: var(--color-text);
+    font-weight: 500;
+
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.app-nav__dropdown-item:hover {
+    background: var(--color-background);
+    color: var(--color-primary);
+}
+
+.app-nav__dropdown-item.active {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.app-nav__dropdown-item--danger:hover {
     color: var(--color-danger);
 }
 
-.app-navigation__login {
-    flex-shrink: 0;
-    margin-left: auto;
+/* ===== Правая часть: уведомления, профиль/вход ===== */
+
+.app-nav__spacer {
+    flex: 1;
 }
 
-.app-navigation__notifications {
+.app-nav__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+}
+
+.app-nav__icon-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1);
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+
+    color: var(--color-text-secondary);
+
+    transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.app-navigation__badge {
+.app-nav__icon-btn:hover,
+.app-nav__icon-btn.active {
+    color: var(--color-primary);
+    background: var(--color-background);
+}
+
+.app-nav__icon-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.app-nav__badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    min-width: 18px;
-    height: 18px;
+    min-width: 16px;
+    height: 16px;
     padding: 0 4px;
 
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     line-height: 1;
     color: #fff;
 
     background: var(--color-danger, #d33);
     border-radius: 999px;
+}
+
+.app-nav__badge--inline {
+    position: static;
+    margin-left: var(--space-2);
+}
+
+.app-nav__account-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    color: var(--color-text);
+
+    transition: background var(--transition-fast);
+}
+
+.app-nav__account-trigger:hover {
+    background: var(--color-background);
+}
+
+.app-nav__account-trigger svg {
+    width: 14px;
+    height: 14px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+}
+
+.app-nav__account-name {
+    max-width: 140px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-weight: 600;
+}
+
+.app-nav__login {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+
+    transition: background var(--transition-fast);
+}
+
+.app-nav__login:hover {
+    background: var(--color-primary-dark);
+    color: #fff;
+}
+
+/* ===== Мобильная выпадающая панель ===== */
+
+.app-nav__mobile-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 30;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    padding: var(--space-3) var(--space-4) var(--space-4);
+
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+.app-nav__mobile-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.app-nav__mobile-link:hover {
+    background: var(--color-background);
+}
+
+.app-nav__mobile-link.active {
+    color: var(--color-primary);
+    font-weight: 700;
+    background: var(--color-background);
+}
+
+.app-nav__mobile-link--danger {
+    color: var(--color-danger);
+}
+
+.app-nav__mobile-divider {
+    height: 1px;
+    margin: var(--space-2) 0;
+    background: var(--color-border);
+}
+
+/* ===== Переключение между раскладками ===== */
+
+@media (max-width: 880px) {
+    .app-nav__links {
+        display: none;
+    }
+
+    .app-nav__burger {
+        display: inline-flex;
+    }
+}
+
+@media (min-width: 881px) {
+    .app-nav__mobile-panel {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-nav__account-name,
+    .app-nav__account-trigger svg {
+        display: none;
+    }
+
+    .app-nav__account-trigger {
+        padding: var(--space-1);
+    }
 }
