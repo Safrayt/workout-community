@@ -232,11 +232,9 @@ export default function Navigation() {
                                     Настройки
                                 </NavLink>
 
-                                {user.isAdmin && (
-                                    <NavLink to="/admin/users" className="app-nav__dropdown-item" onClick={closeAll}>
-                                        Пользователи
-                                    </NavLink>
-                                )}
+                                <NavLink to="/admin/users" className="app-nav__dropdown-item" onClick={closeAll}>
+                                    Пользователи
+                                </NavLink>
 
                                 <button
                                     type="button"
@@ -302,11 +300,9 @@ export default function Navigation() {
                                 Настройки
                             </NavLink>
 
-                            {user.isAdmin && (
-                                <NavLink to="/admin/users" className="app-nav__mobile-link" onClick={closeAll}>
-                                    Пользователи
-                                </NavLink>
-                            )}
+                            <NavLink to="/admin/users" className="app-nav__mobile-link" onClick={closeAll}>
+                                Пользователи
+                            </NavLink>
 
                             <button
                                 type="button"

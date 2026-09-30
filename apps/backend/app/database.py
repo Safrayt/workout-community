@@ -100,6 +100,9 @@ def _run_migrations() -> None:
             _add_column_if_missing(
                 connection, "user", "is_feed_restricted", boolean_default_false
             )
+            _add_column_if_missing(
+                connection, "user", "last_seen_at", "TIMESTAMP"
+            )
 
         # Приватность отдельной записи (см. UX-обсуждение "Не
         # публиковать в общую ленту" / "Запись видна только мне"):

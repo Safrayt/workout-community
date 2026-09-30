@@ -76,6 +76,18 @@ class User(UserBase, table=True):
     # через отдельный admin-эндпоинт.
     is_feed_restricted: bool = False
 
+    # "Последнее посещение сайта" в разделе "Пользователи" — не дата
+    # входа в систему (токен живёт 24 часа и не перевыпускается при
+    # каждом заходе), а именно последняя активность: обновляется
+    # проходом через get_current_user (см. touch_last_seen в auth.py)
+    # при любом запросе с валидным токеном, но не чаще раза в
+    # несколько минут — чтобы не писать в базу на каждый чих. None —
+    # пользователь с момента появления этого поля ни разу не заходил
+    # с действующим токеном (например, зарегистрировался и не заходил
+    # с другого устройства/после истечения токена). Нет ни в
+    # UserCreate, ни в UserUpdate — не управляется через API вообще.
+    last_seen_at: Optional[datetime] = None
+
 
 class UserCreate(UserBase):
     """
@@ -156,3 +168,4 @@ class UserRead(UserBase):
     # модерации на чужом контенте (см. isAdmin в types/user.ts).
     is_admin: bool
     is_feed_restricted: bool
+    last_seen_at: Optional[datetime] = None

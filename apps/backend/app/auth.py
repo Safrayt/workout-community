@@ -18,6 +18,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # токен действует 24 час
 # токена, когда вы нажимаете кнопку "Authorize" на странице /docs.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+# Не чаще этого интервала пишем last_seen_at в базу — иначе пришлось
+# бы делать запись на каждый запрос с валидным токеном, а через
+# get_current_user/get_optional_current_user проходит практически
+# любой защищённый эндпоинт.
+LAST_SEEN_UPDATE_INTERVAL = timedelta(minutes=5)
+
 
 def hash_password(password: str) -> str:
     """Превращает пароль в необратимый хеш для хранения в базе."""
@@ -49,6 +55,32 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def _touch_last_seen(user: User, session: Session) -> None:
+    """
+    Обновляет "последнее посещение сайта" (last_seen_at, раздел
+    "Пользователи") — не чаще LAST_SEEN_UPDATE_INTERVAL, см. её выше.
+
+    SQLite (в отличие от PostgreSQL) отдаёт TIMESTAMP-колонки обратно
+    как naive datetime, без информации о часовом поясе, хотя пишем мы
+    туда всегда UTC (как и created_at в models.py) — поэтому naive
+    значение ниже считаем уже UTC, а не сравниваем как есть с aware
+    datetime.now(timezone.utc): иначе Python бросил бы TypeError на
+    сравнении naive/aware datetime.
+    """
+    now = datetime.now(timezone.utc)
+    last_seen = user.last_seen_at
+
+    if last_seen is not None and last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+    if last_seen is not None and now - last_seen < LAST_SEEN_UPDATE_INTERVAL:
+        return
+
+    user.last_seen_at = now
+    session.add(user)
+    session.commit()
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: Session = Depends(get_session),
@@ -77,6 +109,8 @@ def get_current_user(
 
     if user is None:
         raise credentials_error
+
+    _touch_last_seen(user, session)
 
     return user
 
@@ -112,7 +146,12 @@ def get_optional_current_user(
     except jwt.PyJWTError:
         return None
 
-    return session.get(User, int(user_id))
+    user = session.get(User, int(user_id))
+
+    if user is not None:
+        _touch_last_seen(user, session)
+
+    return user
 
 
 def ensure_owner_or_admin(

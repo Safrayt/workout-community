@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Input from "../../components/ui/Input/Input";
 import Button from "../../components/ui/Button/Button";
 import Badge from "../../components/ui/Badge/Badge";
+import SubscribeButton from "../../components/SubscribeButton/SubscribeButton";
 
 import "../../styles/components/admin-users.css";
 
@@ -12,20 +13,30 @@ import type { User } from "../../types/user";
 import { deleteUser, listUsers, setUserFeedRestriction } from "../../api/users";
 import { ApiError } from "../../api/errors";
 import { formatDate } from "../../utils/formatDate";
+import { formatTimeAgo } from "../../utils/timeAgo";
 
 import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useSubscriptions } from "../../context/SubscriptionContext";
 
 /**
- * Раздел "Пользователи" в админ-панели — виден и доступен только
- * администратору (см. app/RequireAdmin.tsx и маршрут /admin/users в
- * router.tsx). Намеренно не переиспользует общий UserDirectoryContext
- * (он read-only и нужен всему остальному приложению для резолвинга
- * чужих профилей) — здесь своя копия списка со своими мутациями
- * (удаление, ограничение ленты), чтобы не путать эти два разных
- * назначения одного и того же списка пользователей.
+ * Раздел "Пользователи" — список открыт для всех вошедших (можно
+ * посмотреть, когда кто последний раз заходил, и подписаться), но
+ * пункты модерации — бейдж "Администратор" и кнопки "Убрать из
+ * ленты"/"Вернуть в ленту"/"Удалить" — видны и работают только для
+ * самого администратора (см. currentUser.isAdmin ниже); бэкенд эти
+ * действия тоже независимо проверяет через ensure_admin, так что
+ * скрытие в интерфейсе — это только про удобство, а не единственная
+ * защита. Маршрут /admin/users в router.tsx поэтому больше не обёрнут
+ * в RequireAdmin. Намеренно не переиспользует общий
+ * UserDirectoryContext (он read-only и нужен всему остальному
+ * приложению для резолвинга чужих профилей) — здесь своя копия
+ * списка со своими мутациями (удаление, ограничение ленты), чтобы не
+ * путать эти два разных назначения одного и того же списка
+ * пользователей.
  */
 export default function AdminUsers() {
     const { currentUser } = useCurrentUser();
+    const { checkSubscription } = useSubscriptions();
 
     const [users, setUsers] = useState<User[]>([]);
     const [status, setStatus] = useState<"loading" | "loaded" | "error">(
@@ -189,61 +200,97 @@ export default function AdminUsers() {
                                             className="admin-users__row"
                                         >
                                             <div className="admin-users__info">
-                                                <Link
-                                                    to={`/u/${user.nickname}`}
-                                                    className="admin-users__nickname"
-                                                >
-                                                    {user.nickname}
-                                                </Link>
+                                                <div className="admin-users__identity">
+                                                    <Link
+                                                        to={`/u/${user.nickname}`}
+                                                        className="admin-users__nickname"
+                                                    >
+                                                        {user.nickname}
+                                                    </Link>
 
-                                                {
-                                                    user.isAdmin && (
-                                                        <Badge variant="warning">
-                                                            Администратор
-                                                        </Badge>
-                                                    )
-                                                }
+                                                    {
+                                                        currentUser.isAdmin && user.isAdmin && (
+                                                            <Badge variant="warning">
+                                                                Администратор
+                                                            </Badge>
+                                                        )
+                                                    }
 
-                                                {
-                                                    user.isFeedRestricted && (
-                                                        <span className="private-record-badge">
-                                                            Скрыт из ленты
-                                                        </span>
-                                                    )
-                                                }
+                                                    {
+                                                        user.isFeedRestricted && (
+                                                            <span className="private-record-badge">
+                                                                Скрыт из ленты
+                                                            </span>
+                                                        )
+                                                    }
 
-                                                <span className="admin-users__date">
-                                                    Регистрация: {formatDate(user.createdAt)}
-                                                </span>
+                                                    {
+                                                        user.id !== currentUser.id &&
+                                                        checkSubscription(user.id) && (
+                                                            <Badge variant="success">
+                                                                Вы подписаны
+                                                            </Badge>
+                                                        )
+                                                    }
+                                                </div>
+
+                                                <div className="admin-users__dates">
+                                                    <span className="admin-users__date">
+                                                        Регистрация: {formatDate(user.createdAt)}
+                                                    </span>
+
+                                                    <span className="admin-users__date">
+                                                        Последнее посещение:{" "}
+                                                        {
+                                                            user.lastSeenAt
+                                                                ? formatTimeAgo(user.lastSeenAt)
+                                                                : "ещё не заходил"
+                                                        }
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="admin-users__actions">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    disabled={busyUserId === user.id}
-                                                    onClick={() =>
-                                                        handleToggleFeedRestriction(user)
-                                                    }
-                                                >
-                                                    {
-                                                        user.isFeedRestricted
-                                                            ? "Вернуть в ленту"
-                                                            : "Убрать из ленты"
-                                                    }
-                                                </Button>
+                                                {
+                                                    user.id !== currentUser.id && (
+                                                        <SubscribeButton
+                                                            userId={user.id}
+                                                        />
+                                                    )
+                                                }
 
-                                                <Button
-                                                    type="button"
-                                                    variant="danger"
-                                                    disabled={
-                                                        busyUserId === user.id ||
-                                                        user.id === currentUser.id
-                                                    }
-                                                    onClick={() => handleDelete(user)}
-                                                >
-                                                    Удалить
-                                                </Button>
+                                                {
+                                                    currentUser.isAdmin && (
+                                                        <>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                disabled={busyUserId === user.id}
+                                                                onClick={() =>
+                                                                    handleToggleFeedRestriction(user)
+                                                                }
+                                                            >
+                                                                {
+                                                                    user.isFeedRestricted
+                                                                        ? "Вернуть в ленту"
+                                                                        : "Убрать из ленты"
+                                                                }
+                                                            </Button>
+
+                                                            <Button
+                                                                type="button"
+                                                                variant="danger"
+                                                                disabled={
+                                                                    busyUserId === user.id ||
+                                                                    user.id === currentUser.id
+                                                                }
+                                                                onClick={() => handleDelete(user)}
+                                                            >
+                                                                Удалить
+                                                            </Button>
+                                                        </>
+                                                    )
+                                                }
                                             </div>
                                         </li>
                                     ))

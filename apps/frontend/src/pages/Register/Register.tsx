@@ -19,6 +19,7 @@ export default function Register() {
 
     const [nickname, setNickname] = useState("");
     const [password, setPassword] = useState("");
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,6 +30,9 @@ export default function Register() {
         }
         if (password.length < MIN_PASSWORD_LENGTH) {
             return `Пароль должен быть не короче ${MIN_PASSWORD_LENGTH} символов.`;
+        }
+        if (!agreedToTerms) {
+            return "Нужно принять пользовательское соглашение и политику конфиденциальности.";
         }
 
         return null;
@@ -84,6 +88,26 @@ export default function Register() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                     />
+
+                    <label className="auth-form__checkbox">
+                        <input
+                            type="checkbox"
+                            checked={agreedToTerms}
+                            onChange={(event) =>
+                                setAgreedToTerms(event.target.checked)
+                            }
+                        />
+                        <span>
+                            Я принимаю{" "}
+                            <Link to="/terms" target="_blank">
+                                пользовательское соглашение
+                            </Link>{" "}
+                            и{" "}
+                            <Link to="/privacy" target="_blank">
+                                политику конфиденциальности
+                            </Link>
+                        </span>
+                    </label>
 
                     {error && (
                         <p className="auth-form__error" role="alert">

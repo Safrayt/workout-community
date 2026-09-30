@@ -4,6 +4,8 @@ import ProtectedLayout from "./ProtectedLayout";
 
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
+import PrivacyPolicy from "../pages/PrivacyPolicy/PrivacyPolicy";
+import TermsOfService from "../pages/TermsOfService/TermsOfService";
 
 import Home from "../pages/Home/Home";
 import Profile from "../pages/Profile/Profile";
@@ -56,6 +58,16 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    // Публичные — доступны и без входа: их читают в том числе до
+    // регистрации (ссылка с чекбокса на странице /register).
+    path: "/privacy",
+    element: <PrivacyPolicy />,
+  },
+  {
+    path: "/terms",
+    element: <TermsOfService />,
   },
   {
     path: "/",
@@ -233,12 +245,13 @@ export const router = createBrowserRouter([
           ),
       },
       {
+          // Раздел "Пользователи" открыт для всех вошедших — доступ
+          // ограничивает только сама AdminUsers, скрывая пункты
+          // модерации (бейдж "Администратор", "Убрать из ленты",
+          // "Удалить") от не-администраторов; RequireAdmin здесь
+          // больше не нужен.
           path: "admin/users",
-          element: (
-              <RequireAdmin>
-                  <AdminUsers />
-              </RequireAdmin>
-          ),
+          element: <AdminUsers />,
       },
       {
           path: "programs",

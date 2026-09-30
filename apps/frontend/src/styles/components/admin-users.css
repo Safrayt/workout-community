@@ -55,6 +55,12 @@
 
 .admin-users__info {
     display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.admin-users__identity {
+    display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
@@ -63,6 +69,11 @@
 .admin-users__nickname {
     font-weight: 600;
     color: var(--color-text);
+}
+
+.admin-users__dates {
+    display: flex;
+    flex-direction: column;
 }
 
 .admin-users__date {
