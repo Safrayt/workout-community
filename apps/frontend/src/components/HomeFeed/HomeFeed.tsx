@@ -12,6 +12,7 @@ import HomeFeedTabs from "../HomeFeedTabs/HomeFeedTabs";
 import HomeFeedCard from "../HomeFeedCard/HomeFeedCard";
 import SystemFeedCard from "../SystemFeedCard/SystemFeedCard";
 import Button from "../ui/Button/Button";
+import MasonryGrid from "../MasonryGrid/MasonryGrid";
 
 import {
     getAdminFeedRecords,
@@ -229,7 +230,7 @@ export default function HomeFeed({
                     />
                 ) : (
                     <>
-                        <div className="home-feed__list">
+                        <MasonryGrid className="home-feed__list">
                             {
                                 feedItems.map((item) =>
                                     item.kind === "diary" ? (
@@ -246,7 +247,7 @@ export default function HomeFeed({
                                     )
                                 )
                             }
-                        </div>
+                        </MasonryGrid>
 
                         {
                             hasMore && (

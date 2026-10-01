@@ -12,6 +12,7 @@ import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
 import EventSummary from "../../components/EventSummary/EventSummary";
 import SubscriptionsList from "../../components/SubscriptionsList/SubscriptionsList";
+import FavoritePlaygroundsSection from "../../components/FavoritePlaygroundsSection/FavoritePlaygroundsSection";
 
 import "../../styles/components/profile.css";
 
@@ -435,6 +436,19 @@ export default function Profile() {
                     )
                 }
             </InfoSection>
+
+            {
+                // Избранное — личные данные, сервер отдаёт его только
+                // самому пользователю, поэтому в чужом профиле раздела нет.
+                isOwnProfile && (
+                    <InfoSection
+                        title="Избранные площадки"
+                        className="profile-section"
+                    >
+                        <FavoritePlaygroundsSection />
+                    </InfoSection>
+                )
+            }
 
             <InfoSection
                 title="Подписки"

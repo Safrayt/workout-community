@@ -6,8 +6,10 @@ import type { HomeFeedRecord } from "../../types/homeFeedRecord";
 import Avatar from "../ui/Avatar/Avatar";
 
 import { isActivityDateDivergent } from "../../utils/timeAgo";
-import { formatWorkoutEntryDate } from "../../utils/formatWorkoutEntryDate";
-import { getTimeOfDayName } from "../../utils/timeOfDay";
+import {
+    formatWorkoutEntryDate,
+    formatWorkoutEntryDateShort,
+} from "../../utils/formatWorkoutEntryDate";
 import { getCardDescriptionPreview } from "../../utils/workoutEntryDescription";
 import { getCardPhotoUrl } from "../../utils/entryPhoto";
 import { getDiaryRecordUrl } from "../../utils/diaryRecords";
@@ -39,10 +41,12 @@ const MAX_FEED_DESCRIPTION_LENGTH = 100;
  * фото, тип записи — короткая пометка в квадратных скобках прямо в
  * заголовке вместо отдельного цветного бейджа, время публикации
  * ("2 часа назад") не показывается вовсе — это был шум. Дата самой
- * тренировки/заметки, когда она отличается от даты публикации —
- * содержательная информация, а не шум, поэтому осталась, только
- * переехала строкой ниже заголовка, вместе с временем суток и
- * площадкой — там же, где у SystemFeedCard время и место мероприятия.
+ * тренировки — содержательная информация, поэтому у тренировок она
+ * показывается всегда (коротко, "27.09.2026"), а время суток в
+ * ленте не выводится. У заметок дата показывается только когда
+ * отличается от даты публикации. Строка с датой идёт ниже заголовка,
+ * вместе с площадкой — там же, где у SystemFeedCard время и место
+ * мероприятия.
  *
  * Вся карточка ведёт на саму запись, но автор, площадка и счётчик
  * комментариев — самостоятельные ссылки: клик по ним не должен
@@ -173,20 +177,20 @@ export default function HomeFeedCard({
 
                 <div className="home-feed-card__extra">
                     {
-                        dateDiverges && (
+                        isWorkout && (
                             <p className="home-feed-card__extra-line">
                                 <span aria-hidden="true">◷</span>{" "}
-                                {isWorkout ? "Тренировка" : "Заметка"} от{" "}
-                                {formatWorkoutEntryDate(record.date)}
+                                {formatWorkoutEntryDateShort(record.date)}
                             </p>
                         )
                     }
 
                     {
-                        isWorkout && record.data.timeOfDay && !dateDiverges && (
+                        !isWorkout && dateDiverges && (
                             <p className="home-feed-card__extra-line">
-                                <span aria-hidden="true">☀</span>{" "}
-                                {getTimeOfDayName(record.data.timeOfDay)}
+                                <span aria-hidden="true">◷</span>{" "}
+                                Заметка от{" "}
+                                {formatWorkoutEntryDate(record.date)}
                             </p>
                         )
                     }

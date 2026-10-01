@@ -78,6 +78,16 @@ type PlaygroundsMapProps = {
     focusMarkerId?: string;
 
     /**
+     * Номер запроса на фокусировку. Без него повторный запрос на ту же
+     * самую площадку игнорируется (id не изменился) — а пользователю
+     * нужно, чтобы повторный клик по уже выбранной площадке снова
+     * возвращал карту к ней, например, после того как он уехал
+     * в другое место или закрыл popup. Увеличивайте число при каждом
+     * новом запросе. Для остальных карт не нужен.
+     */
+    focusRequestId?: number;
+
+    /**
      * Начальный центр карты — только для первого рендера (карта не
      * перецентрируется при изменении этого пропа после монтажа).
      * По умолчанию — обзорный вид всей Евразии с центром над
@@ -404,6 +414,7 @@ export default function PlaygroundsMap({
     hoveredMarkerId,
     selectedMarkerId,
     focusMarkerId,
+    focusRequestId = 0,
     initialCenter = EURASIA_MAP_CENTER,
     initialZoom = EURASIA_MAP_ZOOM,
 }: PlaygroundsMapProps) {
@@ -413,6 +424,11 @@ export default function PlaygroundsMap({
     const mapRef = useRef<maplibregl.Map | null>(null);
     const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
     const pickerMarkerRef = useRef<maplibregl.Marker | null>(null);
+    // Popup, открытый механизмом focusMarkerId, — чтобы закрыть его при
+    // выборе другой площадки или при снятии фокуса.
+    const focusedPopupRef = useRef<maplibregl.Popup | null>(null);
+
+    // Ключ последнего обработанного запроса: id площадки + номер запроса.
     const previousFocusIdRef = useRef<string | undefined>(undefined);
 
     // Значения, которые нужны внутри обработчиков событий карты
@@ -630,6 +646,15 @@ export default function PlaygroundsMap({
             const popup = new maplibregl.Popup({
                 closeButton: true,
                 offset: 18,
+                // По умолчанию MapLibre при открытии popup (и при
+                // каждом setDOMContent) переводит фокус на его кнопку
+                // "закрыть", а браузер при этом прокручивает страницу к
+                // ней. Если popup находится далеко за пределами
+                // видимой части карты (например, при выборе площадки
+                // из списка, пока карта приближена к другой), страница
+                // "улетала" вверх. Фокус нам не нужен — popup
+                // закрывается мышью/крестиком.
+                focusAfterOpen: false,
             }).setDOMContent(
                 buildPopupContentElement(markerData, {
                     showDetailsLink: showDetailsLinkRef.current,
@@ -661,11 +686,23 @@ export default function PlaygroundsMap({
     useEffect(() => {
         const map = mapRef.current;
 
-        if (
-            !map ||
-            !focusMarkerId ||
-            focusMarkerId === previousFocusIdRef.current
-        ) {
+        if (!map) {
+            return;
+        }
+
+        // Фокус снят (например, выбор площадки отменён) — закрываем
+        // popup и сбрасываем запомненный запрос, чтобы следующий
+        // выбор той же площадки сработал снова.
+        if (!focusMarkerId) {
+            focusedPopupRef.current?.remove();
+            focusedPopupRef.current = null;
+            previousFocusIdRef.current = undefined;
+            return;
+        }
+
+        const focusKey = `${focusMarkerId}:${focusRequestId}`;
+
+        if (focusKey === previousFocusIdRef.current) {
             return;
         }
 
@@ -678,7 +715,18 @@ export default function PlaygroundsMap({
             return;
         }
 
-        previousFocusIdRef.current = focusMarkerId;
+        previousFocusIdRef.current = focusKey;
+
+        // Выбрана другая площадка — popup предыдущей закрываем, чтобы
+        // на карте не копились открытые окна.
+        if (
+            focusedPopupRef.current &&
+            focusedPopupRef.current !== entry.popup
+        ) {
+            focusedPopupRef.current.remove();
+        }
+
+        focusedPopupRef.current = entry.popup;
 
         map.flyTo({
             center: [markerData.longitude, markerData.latitude],
@@ -687,7 +735,7 @@ export default function PlaygroundsMap({
         });
 
         entry.popup.addTo(map);
-    }, [focusMarkerId, markers, isMapReady]);
+    }, [focusMarkerId, focusRequestId, markers, isMapReady]);
 
     return (
         <div

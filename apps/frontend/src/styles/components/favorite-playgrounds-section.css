@@ -1,0 +1,105 @@
+.favorite-playgrounds {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-3);
+}
+
+.favorite-playgrounds__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    padding: var(--space-2) var(--space-3);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    transition: border-color var(--transition-fast);
+}
+
+.favorite-playgrounds__item:hover {
+    border-color: var(--color-primary);
+}
+
+/* Вся левая часть строки — ссылка на страницу площадки; кнопка
+   "Убрать" лежит рядом, а не внутри неё (кнопка внутри ссылки
+   некорректна и ломает клавиатурную навигацию). */
+.favorite-playgrounds__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    flex: 1;
+    min-width: 0;
+
+    color: inherit;
+    text-decoration: none;
+}
+
+.favorite-playgrounds__photo {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 auto;
+
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.favorite-playgrounds__photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px;
+
+    background: var(--color-background);
+    color: var(--color-text-secondary);
+    font-size: .75rem;
+    text-align: center;
+}
+
+.favorite-playgrounds__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    min-width: 0;
+}
+
+.favorite-playgrounds__name {
+    font-weight: 600;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.favorite-playgrounds__link:hover .favorite-playgrounds__name {
+    color: var(--color-primary);
+}
+
+.favorite-playgrounds__locality {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.favorite-playgrounds .favorite-playgrounds__remove {
+    flex: 0 0 auto;
+
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.favorite-playgrounds__error {
+    margin: 0 0 var(--space-3);
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}

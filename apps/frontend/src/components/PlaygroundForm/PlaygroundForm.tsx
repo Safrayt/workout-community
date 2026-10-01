@@ -9,7 +9,7 @@ import Button from "../ui/Button/Button";
 import PlaygroundPhotoUpload from "../PlaygroundPhotoUpload/PlaygroundPhotoUpload";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import { getPlaygroundMarkers } from "../../utils/maps";
@@ -97,6 +97,15 @@ type PlaygroundFormProps = {
     onSubmit: (
         playground: NewPlayground
     ) => void;
+
+    /**
+     * Вызывается при каждом изменении формы пользователем (но не при
+     * первом показе) — страница добавления использует это для
+     * автосохранения черновика.
+     */
+    onChange?: (
+        playground: NewPlayground
+    ) => void;
 };
 
 export default function PlaygroundForm({
@@ -105,6 +114,7 @@ export default function PlaygroundForm({
     excludePlaygroundId,
     isEditing = false,
     onSubmit,
+    onChange,
 }: PlaygroundFormProps) {
     const [errors, setErrors] =
         useState<ValidationError[]>([]);
@@ -119,6 +129,25 @@ export default function PlaygroundForm({
     const {
         playgrounds,
     } = usePlaygrounds();
+
+    // Актуальный onChange держим в ref, чтобы эффект ниже срабатывал
+    // только на изменение самой формы, а не на новую функцию-колбэк
+    // при каждом рендере родителя.
+    const onChangeRef = useRef(onChange);
+    const isFirstRenderRef = useRef(true);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    });
+
+    useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            return;
+        }
+
+        onChangeRef.current?.(playground);
+    }, [playground]);
 
     const mapPlaygrounds =
         excludePlaygroundId

@@ -9,7 +9,7 @@ import TagsField from "../TagsField/TagsField";
 
 import "../../styles/components/checkbox-grid.css";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type {
     ValidationError,
@@ -44,6 +44,15 @@ import {
 
 import PlaygroundsMap from "../Map/PlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
+import FavoritePlaygroundQuickPick from "../FavoritePlaygroundQuickPick/FavoritePlaygroundQuickPick";
+
+import {
+    useFavorites,
+} from "../../context/FavoriteContext";
+
+import {
+    getRecentFavoritePlaygrounds,
+} from "../../utils/favorites";
 
 import {
     getPlaygroundById,
@@ -73,6 +82,9 @@ import "../../styles/components/workout-entry-form.css";
 import "../../styles/components/workout-entry-map-picker.css";
 
 import type { ReactNode } from "react";
+
+/** Сколько избранных площадок показывать для быстрого выбора. */
+const FAVORITE_QUICK_PICK_LIMIT = 4;
 
 type WorkoutEntryFormProps = {
     /**
@@ -139,6 +151,38 @@ export default function WorkoutEntryForm({
 
     const { programs } = usePrograms();
 
+    const { favorites } = useFavorites();
+
+    // Площадка, к которой нужно приблизить карту, и номер запроса:
+    // номер растёт при каждом нажатии, поэтому повторное нажатие на
+    // ту же площадку (после того как карту увели в сторону) снова
+    // возвращает к ней.
+    const [focusPlaygroundId, setFocusPlaygroundId] =
+        useState<string>();
+    const [focusRequestId, setFocusRequestId] = useState(0);
+
+    // Быстрый выбор: 4 последние добавленные в избранное площадки.
+    const quickPickPlaygrounds = getRecentFavoritePlaygrounds(
+        playgrounds,
+        favorites,
+        currentUser.id,
+        FAVORITE_QUICK_PICK_LIMIT
+    );
+
+    function handleQuickPick(playgroundId: string) {
+        // Повторное нажатие на уже выбранную площадку отменяет выбор.
+        if (entry.playgroundId === playgroundId) {
+            updateField("playgroundId", "");
+            setFocusPlaygroundId(undefined);
+
+            return;
+        }
+
+        updateField("playgroundId", playgroundId);
+        setFocusPlaygroundId(playgroundId);
+        setFocusRequestId((current) => current + 1);
+    }
+
     const favoritePrograms = programs.filter(
         (program) => program.isFavoritedByViewer
     );
@@ -161,10 +205,13 @@ export default function WorkoutEntryForm({
         label: program.title,
     }));
 
-    const playgroundMarkers =
-        getPlaygroundMarkers(
-            playgrounds
-        );
+    // Метки считаем один раз на набор площадок: новый массив при
+    // каждом рендере формы заставлял бы карту заново пересобирать
+    // содержимое всех попапов после любого нажатия клавиши в форме.
+    const playgroundMarkers = useMemo(
+        () => getPlaygroundMarkers(playgrounds),
+        [playgrounds]
+    );
 
     const selectedPlayground =
         entry.playgroundId
@@ -408,6 +455,8 @@ export default function WorkoutEntryForm({
                         selectedLongitude={
                             selectedPlayground?.coordinates.longitude
                         }
+                        focusMarkerId={focusPlaygroundId}
+                        focusRequestId={focusRequestId}
                         onMarkerClick={(marker) =>
                             updateField(
                                 "playgroundId",
@@ -416,6 +465,14 @@ export default function WorkoutEntryForm({
                         }
                     />
                 </div>
+
+                <FavoritePlaygroundQuickPick
+                    playgrounds={quickPickPlaygrounds}
+                    selectedPlaygroundId={entry.playgroundId}
+                    onSelect={(playground) =>
+                        handleQuickPick(playground.id)
+                    }
+                />
 
                 {
                     selectedPlayground ? (
@@ -439,7 +496,8 @@ export default function WorkoutEntryForm({
                         </div>
                     ) : (
                         <p className="workout-entry-selected-playground__hint">
-                            Нажмите на площадку на карте, чтобы выбрать её
+                            Нажмите на площадку на карте или выберите
+                            из избранного, чтобы выбрать её
                         </p>
                     )
                 }

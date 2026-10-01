@@ -7,6 +7,7 @@ import Badge from "../../components/ui/Badge/Badge";
 import SubscribeButton from "../../components/SubscribeButton/SubscribeButton";
 
 import "../../styles/components/admin-users.css";
+import "../../styles/components/home-feed-tabs.css";
 
 import type { User } from "../../types/user";
 
@@ -14,6 +15,12 @@ import { deleteUser, listUsers, setUserFeedRestriction } from "../../api/users";
 import { ApiError } from "../../api/errors";
 import { formatDate } from "../../utils/formatDate";
 import { formatTimeAgo } from "../../utils/timeAgo";
+import {
+    sortUsers,
+    userSortOptions,
+    type UserListFilter,
+    type UserSortKey,
+} from "../../utils/userList";
 
 import { useCurrentUser } from "../../context/CurrentUserContext";
 import { useSubscriptions } from "../../context/SubscriptionContext";
@@ -43,6 +50,8 @@ export default function AdminUsers() {
         "loading"
     );
     const [search, setSearch] = useState("");
+    const [sortKey, setSortKey] = useState<UserSortKey>("registered-asc");
+    const [filter, setFilter] = useState<UserListFilter>("all");
     const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
     function load() {
@@ -65,8 +74,18 @@ export default function AdminUsers() {
     useEffect(load, []);
 
     const normalizedSearch = search.trim().toLowerCase();
-    const filteredUsers = users.filter((user) =>
-        user.nickname.toLowerCase().includes(normalizedSearch)
+
+    // Порядок: фильтр (все / только те, на кого подписан текущий
+    // пользователь) → поиск по нику → сортировка.
+    const filteredUsers = sortUsers(
+        users.filter(
+            (user) =>
+                (filter === "all" ||
+                    (user.id !== currentUser.id &&
+                        checkSubscription(user.id))) &&
+                user.nickname.toLowerCase().includes(normalizedSearch)
+        ),
+        sortKey
     );
 
     async function handleToggleFeedRestriction(user: User) {
@@ -164,6 +183,61 @@ export default function AdminUsers() {
                 placeholder="Введите nickname…"
             />
 
+            <div className="admin-users__controls">
+                <div
+                    className="home-feed-tabs admin-users__filter"
+                    role="group"
+                    aria-label="Показывать пользователей"
+                >
+                    <button
+                        type="button"
+                        aria-pressed={filter === "all"}
+                        className={`home-feed-tabs__tab ${filter === "all" ? "home-feed-tabs__tab--active" : ""}`}
+                        onClick={() => setFilter("all")}
+                    >
+                        Все пользователи
+                    </button>
+
+                    <button
+                        type="button"
+                        aria-pressed={filter === "following"}
+                        className={`home-feed-tabs__tab ${filter === "following" ? "home-feed-tabs__tab--active" : ""}`}
+                        onClick={() => setFilter("following")}
+                    >
+                        Мои подписки
+                    </button>
+                </div>
+
+                <div className="select admin-users__sort">
+                    <label
+                        className="select__label"
+                        htmlFor="admin-users-sort"
+                    >
+                        Сортировка
+                    </label>
+
+                    <select
+                        id="admin-users-sort"
+                        className="select__field"
+                        value={sortKey}
+                        onChange={(event) =>
+                            setSortKey(event.target.value as UserSortKey)
+                        }
+                    >
+                        {
+                            userSortOptions.map((option) => (
+                                <option
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
+            </div>
+
             {
                 status === "loading" && (
                     <p className="admin-users__status">Загрузка…</p>
@@ -188,7 +262,10 @@ export default function AdminUsers() {
                                 {
                                     users.length === 0
                                         ? "Пользователей пока нет."
-                                        : "По этому запросу никого не найдено."
+                                        : filter === "following" &&
+                                            normalizedSearch === ""
+                                          ? "Вы пока ни на кого не подписаны."
+                                          : "По этому запросу никого не найдено."
                                 }
                             </p>
                         ) : (
