@@ -1,0 +1,84 @@
+.recovery-key-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.recovery-key-panel__text {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.recovery-key-panel__box {
+    padding: var(--space-4);
+
+    background: var(--color-background);
+    border: 1px dashed var(--color-primary);
+    border-radius: var(--radius-md);
+
+    text-align: center;
+}
+
+/* user-select: all — одно нажатие выделяет весь ключ целиком, на случай
+   если автоматическое копирование недоступно. */
+.recovery-key-panel__value {
+    display: block;
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    overflow-wrap: anywhere;
+
+    user-select: all;
+}
+
+.recovery-key-panel__tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.recovery-key-panel .recovery-key-panel__tool {
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+}
+
+/* Резервируем строку под сообщение, чтобы форма не прыгала. */
+.recovery-key-panel__status {
+    min-height: 1.2em;
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+}
+
+.recovery-key-panel__notes {
+    margin: 0;
+    padding-left: var(--space-5);
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.recovery-key-panel__notes li + li {
+    margin-top: var(--space-1);
+}
+
+.recovery-key-panel__confirm {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.recovery-key-panel__confirm input {
+    margin-top: 3px;
+    flex-shrink: 0;
+}

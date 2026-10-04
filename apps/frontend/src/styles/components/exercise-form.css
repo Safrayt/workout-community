@@ -1,0 +1,165 @@
+.exercise-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    max-width: 960px;
+}
+
+.exercise-form__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.exercise-form__hint {
+    margin: var(--space-1) 0 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.exercise-form__subtitle {
+    margin: 0 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
+
+.exercise-form__error,
+.exercise-form__submit-error {
+    display: block;
+    margin-top: var(--space-1);
+
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+}
+
+.exercise-form__submit-error {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* ===== Мышцы: кнопки слева, схема справа ===== */
+
+.exercise-form__muscles {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+@media (max-width: 800px) {
+    .exercise-form__muscles {
+        grid-template-columns: 1fr;
+    }
+}
+
+.exercise-form__muscles-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.exercise-form__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.exercise-form__chips .filter-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.exercise-form__muscles-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    position: sticky;
+    top: 88px;
+}
+
+@media (max-width: 800px) {
+    .exercise-form__muscles-preview {
+        position: static;
+    }
+}
+
+/* ===== Фото и видео ===== */
+
+.exercise-form__media {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-5);
+}
+
+.exercise-form__media-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+}
+
+/* Рамка 4:3 — такая же, как у фото на странице упражнения: так видно,
+   как фото будет обрезано. */
+.exercise-form__photo-preview {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+}
+
+.exercise-form__video-preview {
+    height: 320px;
+    max-width: 100%;
+    aspect-ratio: 9 / 16;
+
+    background: #000;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+}
+
+.exercise-form__media-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* Системный выбор файла выглядит чужеродно — прячем его, а кнопкой
+   делаем подпись (клик по label открывает выбор файла). */
+.exercise-form__file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.exercise-form__file-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    padding: 10px 20px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+}
+
+.exercise-form__file-button:hover {
+    background: var(--color-background);
+}
+
+.exercise-form__file-button:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}

@@ -12,6 +12,7 @@ from app.routers import (
     complexes,
     diary,
     events,
+    exercises,
     external,
     notifications,
     playgrounds,
@@ -84,6 +85,7 @@ app.include_router(reviews.router)
 app.include_router(achievements.router)
 app.include_router(social.router)
 app.include_router(complexes.router)
+app.include_router(exercises.router)
 app.include_router(programs.router)
 app.include_router(external.router)
 app.include_router(notifications.router)

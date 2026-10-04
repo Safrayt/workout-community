@@ -86,6 +86,10 @@ export default function Login() {
                     </ActionGroup>
 
                     <p className="auth-form__hint">
+                        <Link to="/recover">Забыли пароль?</Link>
+                    </p>
+
+                    <p className="auth-form__hint">
                         Ещё нет аккаунта?{" "}
                         <Link to="/register">Зарегистрироваться</Link>
                     </p>

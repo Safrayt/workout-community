@@ -103,6 +103,17 @@ def _run_migrations() -> None:
             _add_column_if_missing(
                 connection, "user", "last_seen_at", "TIMESTAMP"
             )
+            # Восстановление доступа: хеш ключа и версия сессий (см.
+            # app/recovery.py и User.token_version в models.py).
+            _add_column_if_missing(
+                connection, "user", "recovery_key_hash", "TEXT"
+            )
+            _add_column_if_missing(
+                connection, "user", "recovery_key_created_at", "TIMESTAMP"
+            )
+            _add_column_if_missing(
+                connection, "user", "token_version", "INTEGER NOT NULL DEFAULT 0"
+            )
 
         # Приватность отдельной записи (см. UX-обсуждение "Не
         # публиковать в общую ленту" / "Запись видна только мне"):
@@ -143,8 +154,9 @@ def create_db_and_tables() -> None:
     Создаёт таблицы в базе данных на основе всех моделей SQLModel,
     которые были импортированы к моменту вызова, подчищает схему уже
     существующих таблиц через _run_migrations() и заполняет пустые
-    справочники стартовыми данными (сейчас — только каталог
-    комплексов, см. models_complex.seed_complexes_if_empty).
+    справочники стартовыми данными (каталог комплексов — см.
+    models_complex.seed_complexes_if_empty, база упражнений — см.
+    models_exercise.seed_exercises_if_empty).
     Вызывается один раз при старте приложения.
     """
     SQLModel.metadata.create_all(engine)
@@ -158,9 +170,11 @@ def create_db_and_tables() -> None:
     # симметрии с тем, что database.py остаётся "общим" модулем, не
     # завязанным на знание о конкретных моделях на уровне файла).
     from app.models_complex import seed_complexes_if_empty
+    from app.models_exercise import seed_exercises_if_empty
 
     with Session(engine) as session:
         seed_complexes_if_empty(session)
+        seed_exercises_if_empty(session)
 
 
 def get_session():

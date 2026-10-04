@@ -1,9 +1,10 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import ProtectedLayout from "./ProtectedLayout";
 
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
+import Recover from "../pages/Recover/Recover";
 import PrivacyPolicy from "../pages/PrivacyPolicy/PrivacyPolicy";
 import TermsOfService from "../pages/TermsOfService/TermsOfService";
 
@@ -42,6 +43,11 @@ import Complexes from "../pages/Complexes/Complexes";
 import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
 import ComplexCreate from "../pages/ComplexCreate/ComplexCreate";import ComplexEdit from "../pages/ComplexEdit/ComplexEdit";
 import Programs from "../pages/Programs/Programs";
+import KnowledgeExercises from "../pages/KnowledgeExercises/KnowledgeExercises";
+import KnowledgeExerciseDetails from "../pages/KnowledgeExerciseDetails/KnowledgeExerciseDetails";
+import KnowledgeExerciseCreate from "../pages/KnowledgeExerciseCreate/KnowledgeExerciseCreate";
+import KnowledgeExerciseEdit from "../pages/KnowledgeExerciseEdit/KnowledgeExerciseEdit";
+import KnowledgeArticles from "../pages/KnowledgeArticles/KnowledgeArticles";
 import ProgramDetails from "../pages/ProgramDetails/ProgramDetails";
 import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
 import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
@@ -58,6 +64,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/recover",
+    element: <Recover />,
   },
   {
     // Публичные — доступны и без входа: их читают в том числе до
@@ -272,6 +282,43 @@ export const router = createBrowserRouter([
       {
           path: "programs/:id/versions/:versionId",
           element: <ProgramVersionDetails />,
+      },
+      {
+          // База знаний: /knowledge сам по себе страницы не имеет —
+          // ведёт на первый подраздел.
+          path: "knowledge",
+          element: <Navigate to="/knowledge/exercises" replace />,
+      },
+      {
+          path: "knowledge/exercises",
+          element: <KnowledgeExercises />,
+      },
+      {
+          // Статичный сегмент "create" в React Router важнее :id, поэтому
+          // /knowledge/exercises/create не принимается за упражнение
+          // (на сервере слаг "create" тоже зарезервирован).
+          path: "knowledge/exercises/create",
+          element: (
+              <RequireAdmin redirectTo="/knowledge/exercises">
+                  <KnowledgeExerciseCreate />
+              </RequireAdmin>
+          ),
+      },
+      {
+          path: "knowledge/exercises/:id",
+          element: <KnowledgeExerciseDetails />,
+      },
+      {
+          path: "knowledge/exercises/:id/edit",
+          element: (
+              <RequireAdmin redirectTo="/knowledge/exercises">
+                  <KnowledgeExerciseEdit />
+              </RequireAdmin>
+          ),
+      },
+      {
+          path: "knowledge/articles",
+          element: <KnowledgeArticles />,
       },
       {
           // Любой не совпавший путь внутри защищённой части сайта —

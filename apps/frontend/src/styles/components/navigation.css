@@ -332,6 +332,20 @@
     color: var(--color-danger);
 }
 
+/* Подпись группы в мобильном меню ("Тренировки", "База знаний") —
+   без неё подряд идущие "Комплексы", "Программы", "Упражнения",
+   "Статьи" не отличить по смыслу друг от друга. */
+.app-nav__mobile-heading {
+    margin: var(--space-2) 0 0;
+    padding: var(--space-2) var(--space-3) 0;
+
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+
 .app-nav__mobile-divider {
     height: 1px;
     margin: var(--space-2) 0;
@@ -340,7 +354,7 @@
 
 /* ===== Переключение между раскладками ===== */
 
-@media (max-width: 880px) {
+@media (max-width: 1020px) {
     .app-nav__links {
         display: none;
     }
@@ -350,7 +364,7 @@
     }
 }
 
-@media (min-width: 881px) {
+@media (min-width: 1021px) {
     .app-nav__mobile-panel {
         display: none !important;
     }

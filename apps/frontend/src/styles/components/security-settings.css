@@ -1,0 +1,43 @@
+.security-settings__subtitle {
+    margin: var(--space-4) 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+}
+
+.security-settings__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    max-width: 360px;
+    margin-bottom: var(--space-3);
+}
+
+.security-settings__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* Как у кнопки экспорта в соседнем разделе: рядом с компактными
+   настройками полноразмерная кнопка выглядит слишком массивно. */
+.button.security-settings__button {
+    align-self: flex-start;
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+}
+
+.security-settings__error,
+.security-settings__success {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
+.security-settings__error {
+    color: var(--color-danger);
+}
+
+.security-settings__success {
+    color: var(--color-success);
+}

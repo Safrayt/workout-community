@@ -5,6 +5,7 @@ import Section from "../../components/ui/Section/Section";
 import Switch from "../../components/ui/Switch/Switch";
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import SecuritySettings from "../../components/SecuritySettings/SecuritySettings";
 
 import "../../styles/components/account-settings.css";
 
@@ -17,8 +18,9 @@ import type { PrivacySettings } from "../../types/privacySettings";
 import { downloadDiaryExport } from "../../api/diary";
 
 /**
- * /profile/settings — пока только приватность отдельных разделов
- * публичного профиля. Каждый переключатель отвечает за то, видит
+ * /profile/settings — приватность отдельных разделов публичного
+ * профиля, безопасность (пароль и ключ восстановления) и экспорт
+ * данных. Каждый переключатель отвечает за то, видит
  * ли посторонний пользователь этот раздел на /u/:username; сам
  * владелец свои разделы видит всегда, независимо от этих настроек.
  */
@@ -111,6 +113,8 @@ export default function AccountSettings() {
                         }
                     />
                 </div>
+
+                <SecuritySettings />
 
                 <h4 className="account-settings__group-title">
                     Мои данные

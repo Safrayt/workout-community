@@ -33,6 +33,9 @@ async function extractErrorMessage(
             return data.detail
                 .map((item: { msg?: string }) => item.msg)
                 .filter(Boolean)
+                // pydantic начинает сообщения собственных проверок
+                // (ValueError) с "Value error, " — для человека это шум.
+                .map((message: string) => message.replace(/^Value error, /, ""))
                 .join(", ");
         }
     } catch {

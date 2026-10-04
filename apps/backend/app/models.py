@@ -5,6 +5,25 @@ from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
 
+def validate_password_strength(value: str) -> str:
+    """
+    Общие требования к паролю — и для регистрации, и для смены и
+    сброса пароля, чтобы правила не разошлись между разными
+    эндпоинтами.
+    """
+    if len(value) < 8:
+        raise ValueError("Пароль должен содержать не менее 8 символов")
+
+    # bcrypt (см. hash_password в auth.py) физически не может
+    # учитывать пароль длиннее 72 байт — если не проверить здесь,
+    # при хешировании упадёт с необработанным исключением вместо
+    # понятной ошибки 422.
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Пароль слишком длинный (максимум 72 байта)")
+
+    return value
+
+
 class UserBase(SQLModel):
     """
     Поля, общие для всех вариантов пользователя:
@@ -88,6 +107,21 @@ class User(UserBase, table=True):
     # UserCreate, ни в UserUpdate — не управляется через API вообще.
     last_seen_at: Optional[datetime] = None
 
+    # Восстановление доступа (см. app/recovery.py). Хеш ключа
+    # восстановления — как и password_hash, никогда не отдаётся
+    # клиенту. None — у пользователя ещё нет ключа (аккаунты,
+    # созданные до появления этой функции): ему предлагается создать
+    # ключ в настройках аккаунта. Нет ни в UserCreate, ни в UserUpdate.
+    recovery_key_hash: Optional[str] = None
+    recovery_key_created_at: Optional[datetime] = None
+
+    # Версия сессий: зашивается в токен входа (см. create_access_token
+    # в auth.py) и при проверке сверяется с этим значением. Смена или
+    # сброс пароля увеличивает число, и все ранее выданные токены
+    # (в том числе у того, кто мог получить доступ к аккаунту) разом
+    # перестают работать — иначе они жили бы до конца своих 24 часов.
+    token_version: int = 0
+
 
 class UserCreate(UserBase):
     """
@@ -114,17 +148,38 @@ class UserCreate(UserBase):
     @field_validator("password")
     @classmethod
     def _validate_password(cls, value: str) -> str:
-        if len(value) < 8:
-            raise ValueError("Пароль должен содержать не менее 8 символов")
+        return validate_password_strength(value)
 
-        # bcrypt (см. hash_password в auth.py) физически не может
-        # учитывать пароль длиннее 72 байт — если не проверить здесь,
-        # при хешировании упадёт с необработанным исключением вместо
-        # понятной ошибки 422.
-        if len(value.encode("utf-8")) > 72:
-            raise ValueError("Пароль слишком длинный (максимум 72 байта)")
 
-        return value
+class PasswordChange(SQLModel):
+    """Смена пароля из настроек аккаунта: нужен и текущий пароль."""
+
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _validate_new_password(cls, value: str) -> str:
+        return validate_password_strength(value)
+
+
+class RecoveryKeyRegenerate(SQLModel):
+    """Создание нового ключа восстановления — только по текущему паролю."""
+
+    current_password: str
+
+
+class AccountRecovery(SQLModel):
+    """Сброс забытого пароля по ключу восстановления."""
+
+    nickname: str
+    recovery_key: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _validate_new_password(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class UserUpdate(SQLModel):
@@ -169,3 +224,15 @@ class UserRead(UserBase):
     is_admin: bool
     is_feed_restricted: bool
     last_seen_at: Optional[datetime] = None
+
+
+class CurrentUserRead(UserRead):
+    """
+    Профиль самого пользователя (GET/PUT /users/me). В отличие от
+    UserRead, которым пользуются и для чужих профилей, содержит то,
+    что касается только его аккаунта: есть ли у него ключ восстановления
+    (чтобы предложить создать его, если нет). Сам ключ и его хеш
+    отсюда никогда не отдаются.
+    """
+
+    has_recovery_key: bool

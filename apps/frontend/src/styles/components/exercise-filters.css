@@ -1,0 +1,89 @@
+.exercise-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    margin: var(--space-3) 0 var(--space-4);
+}
+
+.exercise-filters__title {
+    margin: 0 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
+
+.exercise-filters__hint {
+    margin: calc(var(--space-1) * -1) 0 var(--space-2);
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.exercise-filters__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.exercise-filters__reset {
+    display: flex;
+    justify-content: center;
+}
+
+/* ===== Кнопка-фильтр ===== */
+
+.filter-chip {
+    --chip-color: var(--color-primary);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 6px 14px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.filter-chip:hover {
+    border-color: var(--chip-color);
+}
+
+.filter-chip:focus-visible {
+    outline: 2px solid var(--chip-color);
+    outline-offset: 2px;
+}
+
+.filter-chip--active {
+    background: var(--chip-color);
+    border-color: var(--chip-color);
+    color: #fff;
+}
+
+/* Цветная точка типа движения — та же, что полоска на карточке
+   упражнения, так что кнопки заодно служат легендой цветов. */
+.filter-chip__dot {
+    width: 10px;
+    height: 10px;
+
+    background: var(--chip-color);
+    border-radius: 50%;
+}
+
+.filter-chip--active .filter-chip__dot {
+    background: #fff;
+}

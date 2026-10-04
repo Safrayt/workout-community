@@ -50,6 +50,7 @@ def ensure_upload_dirs() -> None:
     """Создаёт подпапки для загрузок, если их ещё нет."""
     for subfolder in (
         "playgrounds", "events", "workout_entries", "diary_notes", "programs",
+        "exercises",
     ):
         (UPLOAD_ROOT / subfolder).mkdir(parents=True, exist_ok=True)
 
@@ -148,3 +149,74 @@ def delete_image(url: Optional[str]) -> None:
 
     if file_path.exists():
         file_path.unlink()
+
+
+# Видео для упражнений (раздел "База знаний"). Загружать может только
+# администратор, поэтому проверка проще, чем у фото: файл не
+# перекодируется (на сервере нет ffmpeg), но должен по-настоящему быть
+# MP4 — это определяется по самим байтам, а не по имени файла или
+# заголовку Content-Type, которые присылает клиент и которым нельзя
+# доверять (по той же причине, что описана у ALLOWED_IMAGE_FORMATS).
+MAX_VIDEO_SIZE_BYTES = 25 * 1024 * 1024  # 25 МБ
+
+# MP4-файл начинается с блока "ftyp": 4 байта размера, 4 байта "ftyp" и
+# 4 байта "бренда" — это основные бренды MP4/H.264. Видео с iPhone в
+# формате .mov (бренд "qt  ") сюда сознательно не входит: многие
+# браузеры его не проигрывают.
+ALLOWED_VIDEO_BRANDS = {
+    b"isom", b"iso2", b"iso4", b"iso5", b"iso6",
+    b"mp41", b"mp42", b"avc1", b"M4V ", b"MSNV", b"dash",
+}
+
+_VIDEO_READ_CHUNK_BYTES = 1024 * 1024
+
+
+async def save_video(upload_file: UploadFile, subfolder: str) -> str:
+    """
+    Проверяет и сохраняет загруженное видео (MP4) на диск. Возвращает
+    URL вида /uploads/<subfolder>/<случайное имя>.mp4.
+    """
+    # Читаем кусками и останавливаемся, как только лимит превышен, а не
+    # грузим в память файл любого размера и только потом проверяем.
+    chunks: list[bytes] = []
+    total_size = 0
+
+    while True:
+        chunk = await upload_file.read(_VIDEO_READ_CHUNK_BYTES)
+
+        if not chunk:
+            break
+
+        total_size += len(chunk)
+
+        if total_size > MAX_VIDEO_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail="Видео слишком большое (максимум 25 МБ)",
+            )
+
+        chunks.append(chunk)
+
+    contents = b"".join(chunks)
+
+    if (
+        len(contents) < 12
+        or contents[4:8] != b"ftyp"
+        or contents[8:12] not in ALLOWED_VIDEO_BRANDS
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Допустим только формат MP4 (H.264)",
+        )
+
+    filename = f"{uuid.uuid4().hex}.mp4"
+    destination = UPLOAD_ROOT / subfolder / filename
+    destination.write_bytes(contents)
+
+    return f"/uploads/{subfolder}/{filename}"
+
+
+# Удаление не зависит от типа файла — по URL, который вернули
+# save_image или save_video. Отдельное имя нужно только для читаемости
+# там, где удаляется видео.
+delete_upload = delete_image

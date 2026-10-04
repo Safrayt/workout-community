@@ -5,6 +5,7 @@ import Section from "../../components/ui/Section/Section";
 import Input from "../../components/ui/Input/Input";
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
+import RecoveryKeyPanel from "../../components/RecoveryKeyPanel/RecoveryKeyPanel";
 
 import { useAuth } from "../../context/CurrentUserContext";
 import { ApiError } from "../../api/errors";
@@ -22,6 +23,12 @@ export default function Register() {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Ключ восстановления, выданный при регистрации. Пока он показан,
+    // аккаунт уже создан и вход выполнен, но на главную человека
+    // отправляем только после подтверждения, что ключ сохранён —
+    // потом посмотреть его будет нельзя.
+    const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
 
     function validate(): string | null {
         if (!nickname.trim()) return "Введите username.";
@@ -52,11 +59,12 @@ export default function Register() {
         setIsSubmitting(true);
 
         try {
-            await register({
+            const issuedKey = await register({
                 nickname: nickname.trim(),
                 password,
             });
-            navigate("/", { replace: true });
+
+            setRecoveryKey(issuedKey);
         } catch (err) {
             setError(
                 err instanceof ApiError
@@ -66,6 +74,21 @@ export default function Register() {
         } finally {
             setIsSubmitting(false);
         }
+    }
+
+    if (recoveryKey) {
+        return (
+            <div className="auth-page auth-page--wide">
+                <Section title="Сохраните ключ восстановления">
+                    <RecoveryKeyPanel
+                        recoveryKey={recoveryKey}
+                        nickname={nickname.trim()}
+                        confirmLabel="Продолжить"
+                        onConfirm={() => navigate("/", { replace: true })}
+                    />
+                </Section>
+            </div>
+        );
     }
 
     return (

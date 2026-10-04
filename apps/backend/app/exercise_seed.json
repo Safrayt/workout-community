@@ -1,0 +1,720 @@
+[
+  {
+    "id": "pullups-wide",
+    "name": "Подтягивания широким хватом",
+    "name_en": null,
+    "movement_type": "pull",
+    "target_muscles": [
+      "lats"
+    ],
+    "auxiliary_muscles": [
+      "biceps",
+      "rearDelts",
+      "lowerTrapezius",
+      "forearms"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Базовое вертикальное тяговое упражнение. Широкий хват смещает акцент на широчайшие мышцы спины.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Возьмитесь за перекладину хватом сверху шире плеч и повисните на прямых руках.",
+      "Сведите лопатки и подтяните грудь к перекладине, направляя локти вниз и в стороны.",
+      "Задержитесь в верхней точке, когда подбородок выше перекладины.",
+      "Плавно опуститесь до полного выпрямления рук, не раскачиваясь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "pullups-reverse",
+    "name": "Подтягивания обратным хватом",
+    "name_en": null,
+    "movement_type": "pull",
+    "target_muscles": [
+      "biceps",
+      "lats"
+    ],
+    "auxiliary_muscles": [
+      "rearDelts",
+      "lowerTrapezius",
+      "forearms"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Хват снизу на ширине плеч. По сравнению с хватом сверху сильнее нагружает бицепсы.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Возьмитесь за перекладину хватом снизу на ширине плеч и повисните на прямых руках.",
+      "Подтяните тело вверх, прижимая локти к корпусу, пока подбородок не окажется выше перекладины.",
+      "Плавно опуститесь до полного выпрямления рук."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "australian-rows",
+    "name": "Австралийские подтягивания",
+    "name_en": null,
+    "movement_type": "pull",
+    "target_muscles": [
+      "lats",
+      "rearDelts"
+    ],
+    "auxiliary_muscles": [
+      "biceps",
+      "lowerTrapezius",
+      "forearms",
+      "spinalErectors",
+      "glutes"
+    ],
+    "equipment": [
+      "Низкая перекладина или петли"
+    ],
+    "description": "Горизонтальная тяга собственным весом: тело под наклоном, чем ниже перекладина, тем сложнее. Хороший способ подойти к обычным подтягиваниям.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Лягте под низкой перекладиной и возьмитесь за неё хватом сверху чуть шире плеч.",
+      "Держите тело прямой линией от пяток до головы, пятки стоят на полу.",
+      "Подтяните грудь к перекладине, сводя лопатки.",
+      "Медленно опуститесь до выпрямления рук."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "pillar-pull-ups",
+    "name": "Подтягивания к столбу",
+    "name_en": "Pillar Pull-Ups",
+    "movement_type": "pull",
+    "target_muscles": [
+      "lats",
+      "biceps"
+    ],
+    "auxiliary_muscles": [
+      "lowerTrapezius",
+      "rearDelts",
+      "forearms",
+      "abs"
+    ],
+    "equipment": [
+      "Вертикальный столб"
+    ],
+    "description": "Подтягивания к столбу — это упражнение с собственным весом, при котором человек удерживается за вертикальный столб и, максимально отклонившись назад, подтягивает корпус к нему.",
+    "advantages": [
+      "Подходит для начинающих, которым пока сложно выполнять тягу с большим наклоном — австралийские подтягивания.",
+      "Не требует турника — достаточно устойчивого вертикального столба.",
+      "Помогает подготовить мышцы спины и рук к более сложным вариантам подтягиваний."
+    ],
+    "disadvantages": [
+      "Не каждый столб подходит для безопасного и удобного хвата."
+    ],
+    "technique": [
+      "Встаньте лицом к столбу вплотную и возьмитесь за него двумя руками примерно на уровне своего живота.",
+      "Отклонитесь назад и выпрямите руки. Чем сильнее наклон, тем выше нагрузка.",
+      "На вдохе: подтяните грудь к столбу, сгибая руки и отводя локти назад.",
+      "На выдохе: медленно выпрямите руки, возвращаясь в исходное положение."
+    ],
+    "features": [
+      "Старайтесь тянуть корпус к столбу за счёт мышц спины и сгибания рук.",
+      "Чем ближе стопы находятся к столбу, тем больше наклон тела и тем больше нагрузка."
+    ],
+    "suitable_for": [
+      "Новички, которые пока не готовы к австралийским подтягиваниям",
+      "Для разминки и постепенной подготовки к подтягиваниям и другим тянущим упражнениям"
+    ],
+    "photo_url": null,
+    "video_url": "/exercises/videos/pillar-pull-ups.mp4"
+  },
+  {
+    "id": "scapular-pullups",
+    "name": "Лопаточные подтягивания",
+    "name_en": null,
+    "movement_type": "pull",
+    "target_muscles": [
+      "lowerTrapezius",
+      "lats"
+    ],
+    "auxiliary_muscles": [
+      "forearms"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Движение только в лопатках, без сгибания рук: учит включать мышцы спины в начале подтягивания и укрепляет хват.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Повисните на перекладине хватом сверху, руки прямые.",
+      "Не сгибая локти, опустите лопатки вниз и слегка приподнимите тело.",
+      "Плавно вернитесь в вис, позволяя плечам подняться."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "front-lever",
+    "name": "Фронт-левер",
+    "name_en": null,
+    "movement_type": "pull",
+    "target_muscles": [
+      "lats",
+      "abs"
+    ],
+    "auxiliary_muscles": [
+      "lowerTrapezius",
+      "rearDelts",
+      "biceps",
+      "forearms",
+      "obliques",
+      "glutes"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Статическое удержание тела в горизонтальном положении под перекладиной на прямых руках. Требует очень сильных широчайших и корпуса; осваивается по прогрессиям: тук, продвинутый тук, разножка, полный фронт-левер.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Повисните на перекладине хватом сверху на прямых руках.",
+      "Подтяните колени к груди и выведите корпус в горизонталь, не сгибая локти.",
+      "Опустите и сведите лопатки, держите тело одной линией от плеч до таза (в более сложных вариантах — до пяток).",
+      "Удерживайте положение и под контролем вернитесь в вис."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": "/exercises/front-lever.jpg",
+    "video_url": null
+  },
+  {
+    "id": "dips",
+    "name": "Отжимания на брусьях",
+    "name_en": null,
+    "movement_type": "push",
+    "target_muscles": [
+      "triceps",
+      "pecMajor"
+    ],
+    "auxiliary_muscles": [
+      "frontDelts",
+      "upperChest"
+    ],
+    "equipment": [
+      "Брусья"
+    ],
+    "description": "Базовое жимовое упражнение. Наклон корпуса вперёд смещает нагрузку на грудные, вертикальное положение — на трицепсы.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Упритесь прямыми руками в брусья, плечи опущены, корпус слегка наклонён вперёд.",
+      "Согните локти и опуститесь до угла в локтях около 90°.",
+      "Выжмите тело вверх до полного выпрямления рук."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "pushups",
+    "name": "Отжимания от пола",
+    "name_en": null,
+    "movement_type": "push",
+    "target_muscles": [
+      "pecMajor",
+      "triceps"
+    ],
+    "auxiliary_muscles": [
+      "frontDelts",
+      "upperChest",
+      "abs"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Классическое жимовое упражнение. Нагрузку легко менять углом корпуса и шириной постановки рук.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Примите упор лёжа: ладони чуть шире плеч, тело — прямая линия от головы до пяток.",
+      "Согните локти и опустите грудь почти до пола, локти под углом около 45° к корпусу.",
+      "Выжмите тело вверх до выпрямления рук, не прогибая поясницу."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "close-grip-pushups",
+    "name": "Отжимания узким хватом",
+    "name_en": null,
+    "movement_type": "push",
+    "target_muscles": [
+      "triceps"
+    ],
+    "auxiliary_muscles": [
+      "pecMajor",
+      "frontDelts"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Руки стоят близко друг к другу под грудью, и основная нагрузка уходит на трицепсы.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Примите упор лёжа, ладони под грудью на ширине плеч или уже.",
+      "Опускайтесь, прижимая локти к корпусу.",
+      "Выжмите тело вверх до полного выпрямления рук."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "pike-pushups",
+    "name": "Отжимания углом",
+    "name_en": null,
+    "movement_type": "push",
+    "target_muscles": [
+      "frontDelts",
+      "triceps"
+    ],
+    "auxiliary_muscles": [
+      "sideDelts",
+      "upperTrapezius",
+      "pecMajor"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Отжимания с поднятым тазом: упор на плечи. Подводящее упражнение к отжиманиям в стойке на руках.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте в упор лёжа и поднимите таз вверх, образуя перевёрнутую букву V.",
+      "Согните локти, опуская голову к полу между ладонями.",
+      "Выжмите тело вверх, вернувшись в исходное положение."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "ring-reverse-flyes",
+    "name": "Обратные разведения на петлях",
+    "name_en": null,
+    "movement_type": "abduction",
+    "target_muscles": [
+      "rearDelts"
+    ],
+    "auxiliary_muscles": [
+      "lats",
+      "lowerTrapezius",
+      "sideDelts"
+    ],
+    "equipment": [
+      "Петли или кольца"
+    ],
+    "description": "Тело под наклоном, руки разводятся в стороны: работают задние дельты и мышцы между лопатками.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Возьмитесь за петли и отклонитесь назад, руки прямые перед грудью.",
+      "Разведите руки в стороны, сводя лопатки; тело остаётся прямым.",
+      "Плавно вернитесь в исходное положение."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "side-lying-leg-raise",
+    "name": "Отведение ноги лёжа на боку",
+    "name_en": null,
+    "movement_type": "abduction",
+    "target_muscles": [
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "obliques"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Изолированная работа ягодиц сбоку. Подходит для разминки и укрепления таза.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Лягте на бок, ноги вытянуты, нижняя рука под головой.",
+      "Не поворачивая таз, поднимите верхнюю ногу вверх примерно на 45°.",
+      "Плавно опустите ногу, не касаясь нижней."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "side-plank-leg-raise",
+    "name": "Боковая планка с отведением ноги",
+    "name_en": null,
+    "movement_type": "abduction",
+    "target_muscles": [
+      "glutes",
+      "obliques"
+    ],
+    "auxiliary_muscles": [
+      "sideDelts",
+      "abs"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Боковая планка с подъёмом верхней ноги: ягодицы и косые мышцы корпуса работают одновременно.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Примите боковую планку на предплечье: тело — прямая линия, таз приподнят.",
+      "Поднимите верхнюю ногу вверх, не заваливая таз вперёд или назад.",
+      "Опустите ногу и повторите, не теряя положения корпуса."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "hanging-knee-raise",
+    "name": "Подъём коленей в висе",
+    "name_en": null,
+    "movement_type": "crunch",
+    "target_muscles": [
+      "abs"
+    ],
+    "auxiliary_muscles": [
+      "forearms",
+      "lats",
+      "quads"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Пресс в висе на перекладине. Важно подкручивать таз, а не просто поднимать ноги.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Повисните на перекладине хватом сверху, плечи опущены, корпус неподвижен.",
+      "На выдохе подтяните колени к груди, слегка подкручивая таз вверх.",
+      "Медленно опустите ноги, не раскачиваясь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "crunches",
+    "name": "Скручивания лёжа",
+    "name_en": null,
+    "movement_type": "crunch",
+    "target_muscles": [
+      "abs"
+    ],
+    "auxiliary_muscles": [
+      "obliques"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Простое упражнение на верх пресса, с которого удобно начинать.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Лягте на спину, колени согнуты, стопы на полу, руки у висков.",
+      "Оторвите лопатки от пола, скручивая корпус и приближая рёбра к тазу.",
+      "Плавно вернитесь вниз, не бросая шею."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "hanging-knee-raise-twist",
+    "name": "Подъём коленей в висе с поворотом",
+    "name_en": null,
+    "movement_type": "crunch",
+    "target_muscles": [
+      "obliques",
+      "abs"
+    ],
+    "auxiliary_muscles": [
+      "forearms",
+      "lats"
+    ],
+    "equipment": [
+      "Турник"
+    ],
+    "description": "Вариант подъёма коленей в висе с поворотом таза: делает акцент на косых мышцах живота.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Повисните на перекладине хватом сверху, плечи опущены.",
+      "Подтяните колени к груди, поворачивая таз в одну сторону.",
+      "Опустите ноги и повторите в другую сторону."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "squats",
+    "name": "Приседания",
+    "name_en": null,
+    "movement_type": "kneeDominant",
+    "target_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "hamstrings",
+      "calves",
+      "spinalErectors",
+      "abs"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Базовое упражнение для ног. Нагрузку можно менять глубиной приседа, темпом и постановкой стоп.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте, стопы на ширине плеч, носки слегка развёрнуты.",
+      "Отведите таз назад и вниз, колени идут по линии носков, спина прямая.",
+      "Опуститесь на комфортную глубину и встаньте, отталкиваясь всей стопой."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "lunges",
+    "name": "Выпады",
+    "name_en": null,
+    "movement_type": "kneeDominant",
+    "target_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "hamstrings",
+      "calves",
+      "abs"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Упражнение на одну ногу за раз: развивает силу и баланс, помогает выровнять разницу между ногами.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Сделайте шаг вперёд, корпус прямой.",
+      "Опуститесь, пока оба колена не согнутся примерно до 90°; переднее колено не заваливается внутрь.",
+      "Оттолкнитесь передней ногой и вернитесь в исходное положение."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "pistol-squat",
+    "name": "Приседания на одной ноге (пистолет)",
+    "name_en": null,
+    "movement_type": "kneeDominant",
+    "target_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "hamstrings",
+      "calves",
+      "abs",
+      "spinalErectors"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Сложный вариант приседаний: нужны сила, баланс и подвижность голеностопа. Начинайте с опорой или присев на скамью.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте на одну ногу, вторую вытяните вперёд, руки перед собой.",
+      "Присядьте на опорной ноге, не отрывая пятку от пола и сохраняя ровную спину.",
+      "Встаньте, не опуская вытянутую ногу."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "glute-bridge",
+    "name": "Ягодичный мостик",
+    "name_en": null,
+    "movement_type": "hipDominant",
+    "target_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "auxiliary_muscles": [
+      "spinalErectors",
+      "abs"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Простое упражнение на ягодицы и заднюю поверхность бёдер, хорошо подходит для начала.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Лягте на спину, колени согнуты, стопы на ширине таза.",
+      "Оттолкнитесь пятками и поднимите таз до прямой линии от плеч до коленей.",
+      "Сожмите ягодицы в верхней точке и плавно опуститесь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "superman",
+    "name": "Супермен",
+    "name_en": null,
+    "movement_type": "hipDominant",
+    "target_muscles": [
+      "spinalErectors",
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "hamstrings",
+      "rearDelts",
+      "lowerTrapezius"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Разгибание корпуса лёжа на животе: укрепляет мышцы вдоль позвоночника и ягодицы.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Лягте на живот, руки вытянуты вперёд, ноги прямые.",
+      "Одновременно поднимите руки, грудь и ноги от пола, взгляд направлен вниз.",
+      "Задержитесь на секунду и плавно опуститесь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "single-leg-romanian-deadlift",
+    "name": "Румынская тяга на одной ноге",
+    "name_en": null,
+    "movement_type": "hipDominant",
+    "target_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "auxiliary_muscles": [
+      "spinalErectors",
+      "abs",
+      "calves"
+    ],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Наклон на одной ноге с отведением другой назад: нагрузка на заднюю поверхность бёдер и ягодицы и тренировка равновесия.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте на одну ногу, колено слегка согнуто.",
+      "Отводя вторую ногу назад, наклоняйте корпус вперёд, спина прямая.",
+      "Когда корпус и свободная нога выстроятся в одну линию, вернитесь вверх, напрягая ягодицу."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "calf-raise",
+    "name": "Подъёмы на носки",
+    "name_en": null,
+    "movement_type": "ankleExtension",
+    "target_muscles": [
+      "calves"
+    ],
+    "auxiliary_muscles": [],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Базовое упражнение на икры. Амплитуду можно увеличить, встав носками на ступеньку.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте прямо, стопы на ширине таза; можно стоять на ступеньке.",
+      "Поднимитесь на носки как можно выше.",
+      "Задержитесь в верхней точке и плавно опуститесь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  },
+  {
+    "id": "single-leg-calf-raise",
+    "name": "Подъёмы на носки на одной ноге",
+    "name_en": null,
+    "movement_type": "ankleExtension",
+    "target_muscles": [
+      "calves"
+    ],
+    "auxiliary_muscles": [],
+    "equipment": [
+      "Без оборудования"
+    ],
+    "description": "Усложнённый вариант подъёмов на носки: весь вес тела приходится на одну икру.",
+    "advantages": [],
+    "disadvantages": [],
+    "technique": [
+      "Встаньте на одну ногу, для равновесия придерживайтесь за опору.",
+      "Поднимитесь на носок как можно выше.",
+      "Задержитесь в верхней точке и медленно опуститесь."
+    ],
+    "features": [],
+    "suitable_for": [],
+    "photo_url": null,
+    "video_url": null
+  }
+]

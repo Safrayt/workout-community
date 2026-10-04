@@ -41,6 +41,10 @@ class RateLimiter:
     времени. Используется как FastAPI-зависимость:
 
         @router.post("/login", dependencies=[Depends(RateLimiter(10, 300))])
+
+    Методы ensure_allowed/record можно вызывать и напрямую, с любым
+    своим ключом (например, с nickname) — когда нужно считать только
+    неудачные попытки или ограничивать не по IP, а по аккаунту.
     """
 
     def __init__(self, max_requests: int, window_seconds: int):
@@ -48,12 +52,15 @@ class RateLimiter:
         self.window_seconds = window_seconds
         self._hits: Dict[str, List[float]] = defaultdict(list)
 
-    def __call__(self, request: Request) -> None:
-        key = _client_ip(request)
-        now = time.monotonic()
-        window_start = now - self.window_seconds
+    def _recent_hits(self, key: str) -> List[float]:
+        window_start = time.monotonic() - self.window_seconds
 
-        recent_hits = [t for t in self._hits[key] if t > window_start]
+        return [t for t in self._hits[key] if t > window_start]
+
+    def ensure_allowed(self, key: str) -> None:
+        """Бросает 429, если по этому ключу уже исчерпан лимит."""
+        recent_hits = self._recent_hits(key)
+        self._hits[key] = recent_hits
 
         if len(recent_hits) >= self.max_requests:
             raise HTTPException(
@@ -61,5 +68,12 @@ class RateLimiter:
                 detail="Слишком много попыток. Попробуйте позже.",
             )
 
-        recent_hits.append(now)
-        self._hits[key] = recent_hits
+    def record(self, key: str) -> None:
+        """Засчитывает одну попытку по этому ключу."""
+        self._hits[key] = self._recent_hits(key) + [time.monotonic()]
+
+    def __call__(self, request: Request) -> None:
+        key = _client_ip(request)
+
+        self.ensure_allowed(key)
+        self.record(key)

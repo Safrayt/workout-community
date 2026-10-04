@@ -1,0 +1,177 @@
+.exercise-details__top-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    margin-bottom: var(--space-3);
+}
+
+.exercise-details__back-row {
+    margin: 0;
+}
+
+.exercise-details__back {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.exercise-details__name-en {
+    margin: calc(var(--space-2) * -1) 0 var(--space-3);
+
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+}
+
+.exercise-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+@media (max-width: 800px) {
+    .exercise-details {
+        grid-template-columns: 1fr;
+    }
+
+    /* На телефоне видео и карта мышц идут над текстом: по ним сразу
+       видно, что за упражнение. */
+    .exercise-details__media {
+        order: -1;
+    }
+}
+
+/* ===== Основной текст ===== */
+
+/* Фото всегда в горизонтальной рамке 4:3, на всю ширину колонки. Фото
+   другой пропорции не растягивается, а обрезается по краям (cover) —
+   поэтому снимать лучше с запасом по бокам. */
+.exercise-details__photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3);
+}
+
+/* Тип движения и оборудование — обычным текстом, каждое с новой строки;
+   названия полей жирным. */
+.exercise-details__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    margin-bottom: var(--space-4);
+}
+
+.exercise-details__meta p {
+    margin: 0;
+}
+
+.exercise-details__meta strong {
+    font-weight: 700;
+}
+
+.exercise-details__block + .exercise-details__block {
+    margin-top: var(--space-5);
+}
+
+.exercise-details__block-title {
+    margin: 0 0 var(--space-2);
+}
+
+.exercise-details__block p {
+    margin: 0;
+}
+
+.exercise-details__list,
+.exercise-details__steps {
+    margin: 0;
+    padding-left: var(--space-5);
+}
+
+.exercise-details__list li + li,
+.exercise-details__steps li + li {
+    margin-top: var(--space-2);
+}
+
+/* ===== Медиа-панель: видео / карта мышц ===== */
+
+.exercise-details__media {
+    --movement-color: var(--color-primary);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.exercise-details__media .view-switch {
+    --switch-color: var(--movement-color);
+}
+
+.exercise-details__media p {
+    margin: 0;
+}
+
+/* На широком экране панель остаётся на виду, пока читается длинный текст
+   слева (шапка сайта закреплена, поэтому отступ сверху). */
+@media (min-width: 801px) {
+    .exercise-details__media {
+        position: sticky;
+        top: 88px;
+    }
+}
+
+.exercise-details__map {
+    width: 100%;
+}
+
+/* Видео вертикальное (9:16). Высоту ограничиваем, чтобы панель не
+   становилась выше экрана: ширина считается от высоты. */
+.exercise-details__video {
+    display: block;
+
+    height: min(70vh, 560px);
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: 9 / 16;
+    margin: 0 auto;
+
+    background: #000;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+}
+
+/* ===== Упражнение не найдено ===== */
+
+.exercise-details__not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+
+    padding: var(--space-7) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.exercise-details__not-found p {
+    margin: 0;
+}
+
+.exercise-details__not-found-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}

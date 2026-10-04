@@ -13,6 +13,7 @@ import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
 import EventSummary from "../../components/EventSummary/EventSummary";
 import SubscriptionsList from "../../components/SubscriptionsList/SubscriptionsList";
 import FavoritePlaygroundsSection from "../../components/FavoritePlaygroundsSection/FavoritePlaygroundsSection";
+import RecoveryKeyNotice from "../../components/RecoveryKeyNotice/RecoveryKeyNotice";
 
 import "../../styles/components/profile.css";
 
@@ -260,6 +261,8 @@ export default function Profile() {
 
     return (
         <Section title="Профиль">
+            {isOwnProfile && <RecoveryKeyNotice />}
+
             <ProfileHeader
                 userId={user.id}
                 username={user.nickname}

@@ -10,6 +10,7 @@ import { RegistrationProvider } from "../context/RegistrationContext";
 import { EventCommentProvider } from "../context/EventCommentContext";
 import { WorkoutDiaryProvider } from "../context/WorkoutDiaryContext";
 import { ComplexProvider } from "../context/ComplexContext";
+import { ExerciseProvider } from "../context/ExerciseContext";
 import { ComplexCommentProvider } from "../context/ComplexCommentContext";
 import { ProgramProvider } from "../context/ProgramContext";
 import { ProgramCommentProvider } from "../context/ProgramCommentContext";
@@ -88,13 +89,15 @@ export default function ProtectedLayout() {
                                                 <SubscriptionProvider>
                                                     <CommentProvider>
                                                         <ComplexProvider>
-                                                            <ComplexCommentProvider>
-                                                                <ProgramProvider>
-                                                                    <ProgramCommentProvider>
-                                                                        <Layout />
-                                                                    </ProgramCommentProvider>
-                                                                </ProgramProvider>
-                                                            </ComplexCommentProvider>
+                                                            <ExerciseProvider>
+                                                                <ComplexCommentProvider>
+                                                                    <ProgramProvider>
+                                                                        <ProgramCommentProvider>
+                                                                            <Layout />
+                                                                        </ProgramCommentProvider>
+                                                                    </ProgramProvider>
+                                                                </ComplexCommentProvider>
+                                                            </ExerciseProvider>
                                                         </ComplexProvider>
                                                     </CommentProvider>
                                                 </SubscriptionProvider>

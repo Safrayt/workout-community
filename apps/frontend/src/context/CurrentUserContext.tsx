@@ -12,6 +12,7 @@ import {
     fetchCurrentUser,
     login as apiLogin,
     logout as apiLogout,
+    recoverAccount as apiRecoverAccount,
     register as apiRegister,
     updateCurrentUser,
     type RegisterData,
@@ -42,7 +43,17 @@ type AuthContextValue = {
 
     login: (nickname: string, password: string) => Promise<void>;
 
-    register: (data: RegisterData) => Promise<void>;
+    /** Возвращает ключ восстановления — его нужно показать
+     * пользователю один раз (RecoveryKeyPanel). */
+    register: (data: RegisterData) => Promise<string>;
+
+    /** Сброс пароля по ключу восстановления. Возвращает НОВЫЙ ключ
+     * взамен использованного — его тоже нужно показать. */
+    recover: (
+        nickname: string,
+        recoveryKey: string,
+        newPassword: string
+    ) => Promise<string>;
 
     logout: () => void;
 };
@@ -91,8 +102,25 @@ export function CurrentUserProvider({
     }
 
     async function register(data: RegisterData) {
-        const registeredUser = await apiRegister(data);
+        const { user: registeredUser, recoveryKey } =
+            await apiRegister(data);
+
         setUser(registeredUser);
+
+        return recoveryKey;
+    }
+
+    async function recover(
+        nickname: string,
+        recoveryKey: string,
+        newPassword: string
+    ) {
+        const { user: recoveredUser, recoveryKey: newRecoveryKey } =
+            await apiRecoverAccount(nickname, recoveryKey, newPassword);
+
+        setUser(recoveredUser);
+
+        return newRecoveryKey;
     }
 
     function logout() {
@@ -108,6 +136,7 @@ export function CurrentUserProvider({
                 isLoading,
                 login,
                 register,
+                recover,
                 logout,
             }}
         >

@@ -31,6 +31,9 @@ export type ApiUser = {
     is_admin: boolean;
     is_feed_restricted: boolean;
     last_seen_at: string | null;
+    // Только в ответе /users/me (профиль самого пользователя); в
+    // чужих профилях поля нет.
+    has_recovery_key?: boolean;
 };
 
 function omitUndefined(
@@ -70,6 +73,7 @@ export function mapApiUserToUser(apiUser: ApiUser): User {
         isAdmin: apiUser.is_admin,
         isFeedRestricted: apiUser.is_feed_restricted,
         lastSeenAt: apiUser.last_seen_at ?? undefined,
+        hasRecoveryKey: apiUser.has_recovery_key,
     };
 }
 

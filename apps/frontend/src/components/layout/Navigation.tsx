@@ -5,6 +5,7 @@ import { useAuth } from "../../context/CurrentUserContext";
 import { useNotifications } from "../../context/NotificationContext";
 
 import Avatar from "../ui/Avatar/Avatar";
+import { KNOWLEDGE_LINKS } from "../../constants/knowledge";
 
 /**
  * Комплексы и программы — оба про структурированный тренировочный
@@ -58,9 +59,11 @@ export default function Navigation() {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isTrainingOpen, setIsTrainingOpen] = useState(false);
+    const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
 
     const trainingRef = useRef<HTMLDivElement>(null);
+    const knowledgeRef = useRef<HTMLDivElement>(null);
     const accountRef = useRef<HTMLDivElement>(null);
 
     // Закрыть всё сразу — вешаем на клик по каждой ссылке/пункту
@@ -69,6 +72,7 @@ export default function Navigation() {
     function closeAll() {
         setIsMenuOpen(false);
         setIsTrainingOpen(false);
+        setIsKnowledgeOpen(false);
         setIsAccountOpen(false);
     }
 
@@ -79,6 +83,10 @@ export default function Navigation() {
 
             if (trainingRef.current && !trainingRef.current.contains(target)) {
                 setIsTrainingOpen(false);
+            }
+
+            if (knowledgeRef.current && !knowledgeRef.current.contains(target)) {
+                setIsKnowledgeOpen(false);
             }
 
             if (accountRef.current && !accountRef.current.contains(target)) {
@@ -100,6 +108,7 @@ export default function Navigation() {
             if (event.key === "Escape") {
                 setIsMenuOpen(false);
                 setIsTrainingOpen(false);
+                setIsKnowledgeOpen(false);
                 setIsAccountOpen(false);
             }
         }
@@ -120,6 +129,8 @@ export default function Navigation() {
     const isTrainingActive = TRAINING_LINKS.some((link) =>
         location.pathname.startsWith(link.to)
     );
+
+    const isKnowledgeActive = location.pathname.startsWith("/knowledge");
 
     return (
         <nav className="app-nav">
@@ -168,6 +179,36 @@ export default function Navigation() {
                     {isTrainingOpen && (
                         <div className="app-nav__dropdown-panel">
                             {TRAINING_LINKS.map((link) => (
+                                <NavLink
+                                    key={link.to}
+                                    to={link.to}
+                                    className="app-nav__dropdown-item"
+                                    onClick={closeAll}
+                                >
+                                    {link.label}
+                                </NavLink>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="app-nav__dropdown" ref={knowledgeRef}>
+                    <button
+                        type="button"
+                        className={
+                            "app-nav__link app-nav__dropdown-trigger" +
+                            (isKnowledgeActive ? " active" : "")
+                        }
+                        aria-expanded={isKnowledgeOpen}
+                        onClick={() => setIsKnowledgeOpen((open) => !open)}
+                    >
+                        База знаний
+                        <IconChevron />
+                    </button>
+
+                    {isKnowledgeOpen && (
+                        <div className="app-nav__dropdown-panel">
+                            {KNOWLEDGE_LINKS.map((link) => (
                                 <NavLink
                                     key={link.to}
                                     to={link.to}
@@ -271,6 +312,8 @@ export default function Navigation() {
                         Дневник
                     </NavLink>
 
+                    <p className="app-nav__mobile-heading">Тренировки</p>
+
                     <NavLink to="/complexes" className="app-nav__mobile-link" onClick={closeAll}>
                         Комплексы
                     </NavLink>
@@ -278,6 +321,19 @@ export default function Navigation() {
                     <NavLink to="/programs" className="app-nav__mobile-link" onClick={closeAll}>
                         Программы
                     </NavLink>
+
+                    <p className="app-nav__mobile-heading">База знаний</p>
+
+                    {KNOWLEDGE_LINKS.map((link) => (
+                        <NavLink
+                            key={link.to}
+                            to={link.to}
+                            className="app-nav__mobile-link"
+                            onClick={closeAll}
+                        >
+                            {link.label}
+                        </NavLink>
+                    ))}
 
                     {user && (
                         <>

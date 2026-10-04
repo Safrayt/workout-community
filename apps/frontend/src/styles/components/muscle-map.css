@@ -1,0 +1,86 @@
+.muscle-map-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+
+    width: 100%;
+    height: 100%;
+}
+
+.muscle-map {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+}
+
+/* ===== Мышцы ===== */
+
+.muscle-map__muscle path {
+    fill: #dfe3e8;
+    stroke: #4a5568;
+    stroke-width: 0.6;
+    stroke-linejoin: round;
+
+    transition: fill var(--transition-fast);
+}
+
+.muscle-map--interactive .muscle-map__muscle {
+    cursor: pointer;
+}
+
+/* Наведение — раньше состояний, чтобы выбранная и подсвеченная по
+   упражнению мышца не меняла цвет под курсором. */
+.muscle-map--interactive .muscle-map__muscle:hover path {
+    fill: #c6f6d5;
+}
+
+/* Выбрана в фильтре. */
+.muscle-map__muscle--selected path {
+    fill: var(--color-primary);
+    stroke: var(--color-primary-dark);
+    stroke-width: 1.4;
+}
+
+/* Роль в упражнении. Заливка перекрывает заливку выбранной мышцы, а
+   зелёная обводка остаётся — видно и роль, и то, что мышца выбрана. */
+.muscle-map__muscle--auxiliary path {
+    fill: #f6ad55;
+}
+
+.muscle-map__muscle--target path {
+    fill: #e53e3e;
+}
+
+.muscle-map--interactive .muscle-map__muscle--selected:hover path {
+    fill: var(--color-primary-dark);
+}
+
+.muscle-map--interactive .muscle-map__muscle--auxiliary:hover path {
+    fill: #ed8936;
+}
+
+.muscle-map--interactive .muscle-map__muscle--target:hover path {
+    fill: #c53030;
+}
+
+/* ===== Подписи ===== */
+
+.muscle-map__view-label {
+    font-size: 9px;
+    font-weight: 600;
+    fill: var(--color-text-secondary);
+    pointer-events: none;
+}
+
+.muscle-map__caption {
+    margin: 0;
+    min-height: 1.4em;
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+}

@@ -1,0 +1,40 @@
+.muscle-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1) var(--space-4);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.muscle-map-legend__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.muscle-map-legend__swatch {
+    width: 14px;
+    height: 14px;
+
+    border: 1px solid #4a5568;
+    border-radius: 3px;
+}
+
+.muscle-map-legend__swatch--target {
+    background: #e53e3e;
+}
+
+.muscle-map-legend__swatch--auxiliary {
+    background: #f6ad55;
+}
+
+.muscle-map-legend__swatch--selected {
+    background: var(--color-primary);
+    border-color: var(--color-primary-dark);
+}

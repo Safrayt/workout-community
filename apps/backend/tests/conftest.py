@@ -56,8 +56,10 @@ def session_fixture():
         # приложения (см. database.create_db_and_tables) — так тесты
         # не расходятся с поведением прода.
         from app.models_complex import seed_complexes_if_empty
+        from app.models_exercise import seed_exercises_if_empty
 
         seed_complexes_if_empty(session)
+        seed_exercises_if_empty(session)
         session.commit()
 
     with Session(engine) as session:
@@ -93,10 +95,19 @@ def _reset_rate_limiters():
     падать с 429 просто потому, что все запросы в TestClient идут
     "с одного и того же IP", а не потому что где-то реальный баг.
     """
-    from app.routers.auth import _login_rate_limit, _register_rate_limit
+    from app.routers.auth import (
+        _login_rate_limit,
+        _recover_nickname_limit,
+        _recover_rate_limit,
+        _register_rate_limit,
+    )
+    from app.routers.users import _password_check_rate_limit
 
     _login_rate_limit._hits.clear()
     _register_rate_limit._hits.clear()
+    _recover_rate_limit._hits.clear()
+    _recover_nickname_limit._hits.clear()
+    _password_check_rate_limit._hits.clear()
 
     yield
 
@@ -108,7 +119,7 @@ def register_user(
 ) -> dict:
     """
     Регистрирует пользователя и возвращает {"nickname", "password",
-    "token"} — общий помощник, чтобы не дублировать один и тот же
+    "token", "recovery_key"} — общий помощник, чтобы не дублировать один и тот же
     запрос в каждом тесте, где просто нужен "какой-то залогиненный
     пользователь".
     """
@@ -122,6 +133,7 @@ def register_user(
         "nickname": nickname,
         "password": password,
         "token": response.json()["access_token"],
+        "recovery_key": response.json()["recovery_key"],
     }
 
 

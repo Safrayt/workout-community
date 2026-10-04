@@ -86,3 +86,22 @@ export async function compressImageFile(
         quality
     );
 }
+
+/**
+ * Превращает data-URL (например, результат compressImageFile) обратно в
+ * файл — для отправки на сервер обычной загрузкой (multipart), а не
+ * строкой внутри JSON.
+ */
+export function dataUrlToFile(dataUrl: string, filename: string): File {
+    const [header, base64] = dataUrl.split(",");
+    const mimeType = /data:([^;]+)/.exec(header)?.[1] ?? "image/jpeg";
+
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index++) {
+        bytes[index] = binary.charCodeAt(index);
+    }
+
+    return new File([bytes], filename, { type: mimeType });
+}

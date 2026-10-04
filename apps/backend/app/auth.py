@@ -41,14 +41,20 @@ def verify_password(password: str, password_hash: str) -> bool:
     )
 
 
-def create_access_token(user_id: int) -> str:
-    """Создаёт подписанный токен, привязанный к id пользователя."""
+def create_access_token(user_id: int, token_version: int = 0) -> str:
+    """
+    Создаёт подписанный токен, привязанный к id пользователя и к
+    текущей версии его сессий (User.token_version): после смены или
+    сброса пароля версия растёт, и токены со старой версией перестают
+    приниматься.
+    """
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
     payload = {
         "sub": str(user_id),  # "subject" — кому выдан токен
+        "ver": token_version,
         "exp": expire,
     }
 
@@ -110,6 +116,13 @@ def get_current_user(
     if user is None:
         raise credentials_error
 
+    # Токены, выпущенные до появления версий сессий, поля "ver" не
+    # содержат — считаем их версией 0, как и token_version у уже
+    # существующих пользователей, поэтому при обновлении никого не
+    # разлогинивает.
+    if payload.get("ver", 0) != user.token_version:
+        raise credentials_error
+
     _touch_last_seen(user, session)
 
     return user
@@ -148,8 +161,10 @@ def get_optional_current_user(
 
     user = session.get(User, int(user_id))
 
-    if user is not None:
-        _touch_last_seen(user, session)
+    if user is None or payload.get("ver", 0) != user.token_version:
+        return None
+
+    _touch_last_seen(user, session)
 
     return user
 

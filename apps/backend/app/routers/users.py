@@ -1,31 +1,145 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, select
 
-from app.auth import ensure_admin, get_current_user
+from app.auth import (
+    create_access_token,
+    ensure_admin,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from app.database import get_session
-from app.models import User, UserRead, UserUpdate
+from app.models import (
+    CurrentUserRead,
+    PasswordChange,
+    RecoveryKeyRegenerate,
+    User,
+    UserRead,
+    UserUpdate,
+)
+from app.rate_limit import RateLimiter
+from app.recovery import generate_recovery_key, hash_recovery_key
+from app.routers.auth import TokenResponse
 from app.user_deletion import UserHasOwnedContentError, delete_user_completely
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+# Эндпоинты ниже требуют текущий пароль — то есть дают возможность его
+# подбирать тому, у кого оказался чужой токен, поэтому лимит такой же
+# строгий, как у входа.
+_password_check_rate_limit = RateLimiter(max_requests=10, window_seconds=300)
 
-@router.get("/me", response_model=UserRead)
+
+def _to_current_user_read(user: User) -> CurrentUserRead:
+    return CurrentUserRead(
+        **UserRead.model_validate(user).model_dump(),
+        has_recovery_key=user.recovery_key_hash is not None,
+    )
+
+
+class RecoveryKeyResponse(BaseModel):
+    """Новый ключ восстановления — показывается пользователю один раз."""
+
+    recovery_key: str
+
+
+@router.get("/me", response_model=CurrentUserRead)
 def read_current_user(
     current_user: User = Depends(get_current_user),
-) -> User:
+) -> CurrentUserRead:
     """
     Возвращает профиль пользователя, которому принадлежит переданный
     токен. Это защищённый эндпоинт — без валидного токена ответит 401.
     """
-    return current_user
+    return _to_current_user_read(current_user)
 
 
-@router.put("/me", response_model=UserRead)
+@router.post(
+    "/me/password",
+    response_model=TokenResponse,
+    dependencies=[Depends(_password_check_rate_limit)],
+)
+def change_password(
+    data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> TokenResponse:
+    """
+    Смена пароля. Нужен текущий пароль — иначе любой, кто получил
+    доступ к открытой сессии, мог бы навсегда закрепить аккаунт за
+    собой. Все остальные сессии (токены) после смены перестают
+    работать; в ответе приходит новый токен для текущего устройства.
+
+    Ошибки — 400, а не 401: фронтенд на 401 считает, что сессия
+    истекла, и выкидывает на страницу входа.
+    """
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=400, detail="Неверный текущий пароль"
+        )
+
+    if data.current_password == data.new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="Новый пароль должен отличаться от текущего",
+        )
+
+    current_user.password_hash = hash_password(data.new_password)
+    current_user.token_version += 1
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
+    return TokenResponse(
+        access_token=create_access_token(
+            user_id=current_user.id,
+            token_version=current_user.token_version,
+        )
+    )
+
+
+@router.post(
+    "/me/recovery-key",
+    response_model=RecoveryKeyResponse,
+    dependencies=[Depends(_password_check_rate_limit)],
+)
+def regenerate_recovery_key(
+    data: RecoveryKeyRegenerate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> RecoveryKeyResponse:
+    """
+    Создаёт новый ключ восстановления (для аккаунтов без ключа — первый,
+    для остальных — взамен прежнего, который сразу перестаёт работать).
+    Нужен текущий пароль. Сам ключ нигде не хранится — только хеш — и
+    показывается пользователю один раз, в этом ответе.
+    """
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=400, detail="Неверный текущий пароль"
+        )
+
+    recovery_key = generate_recovery_key()
+
+    current_user.recovery_key_hash = hash_recovery_key(recovery_key)
+    current_user.recovery_key_created_at = datetime.now(timezone.utc)
+
+    session.add(current_user)
+    session.commit()
+
+    return RecoveryKeyResponse(recovery_key=recovery_key)
+
+
+@router.put("/me", response_model=CurrentUserRead)
 def update_current_user(
     data: UserUpdate,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> User:
+) -> CurrentUserRead:
     """
     Обновляет профиль текущего пользователя: имя, город, био, аватар,
     соцсети и настройки приватности (EditProfile и AccountSettings
@@ -41,7 +155,7 @@ def update_current_user(
     session.commit()
     session.refresh(current_user)
 
-    return current_user
+    return _to_current_user_read(current_user)
 
 
 @router.get("/", response_model=list[UserRead])
