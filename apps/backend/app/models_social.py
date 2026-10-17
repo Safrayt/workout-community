@@ -3,6 +3,8 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime
+
 
 class Subscription(SQLModel, table=True):
     """
@@ -25,7 +27,7 @@ class SubscriptionRead(SQLModel):
     id: int
     follower_id: int
     following_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 class PlaygroundFavorite(SQLModel, table=True):
@@ -42,4 +44,4 @@ class PlaygroundFavoriteRead(SQLModel):
     id: int
     user_id: int
     playground_id: int
-    created_at: datetime
+    created_at: UtcDatetime

@@ -1,0 +1,140 @@
+.article-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    max-width: 960px;
+}
+
+.article-form__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.article-form__hint {
+    margin: var(--space-1) 0 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.article-form__error,
+.article-form__submit-error {
+    display: block;
+    margin-top: var(--space-1);
+
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+}
+
+.article-form__submit-error {
+    margin: 0;
+    font-weight: 600;
+}
+
+.article-form__cover {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+
+    margin-bottom: var(--space-3);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.article-form__cover-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.article-form__file-button {
+    display: inline-flex;
+    align-items: center;
+
+    padding: var(--space-2) var(--space-4);
+
+    font-weight: 600;
+    color: var(--color-text);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    cursor: pointer;
+}
+
+.article-form__file-button:hover {
+    background: var(--color-background);
+}
+
+.article-form__file-button--busy {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.article-form__file-input {
+    display: none;
+}
+
+/* Три секции формы лежат в fieldset, чтобы заблокировать их разом, пока
+   не решено, что делать с найденной копией. Стандартные рамка и отступы
+   fieldset сбрасываются, а раскладка повторяет саму форму. */
+.article-form__sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+
+    border: none;
+}
+
+.article-form__sections:disabled {
+    opacity: 0.55;
+}
+
+.article-form__restore {
+    padding: var(--space-4);
+
+    background: color-mix(in srgb, var(--color-warning) 10%, white);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius-md);
+}
+
+.article-form__restore > * + * {
+    margin-top: var(--space-3);
+}
+
+.article-form__restore p {
+    margin: 0;
+}
+
+.article-form__restore-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.article-form__restore-warning {
+    font-weight: 600;
+    color: var(--color-danger);
+}
+
+.article-form__autosave {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.article-form__autosave--failed {
+    font-weight: 600;
+    color: var(--color-danger);
+}

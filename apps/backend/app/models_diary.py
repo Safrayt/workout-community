@@ -6,6 +6,8 @@ from typing import List, Optional
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.utc import UtcDatetime
+
 
 # --- Общее для дневника --------------------------------------------------
 
@@ -157,7 +159,7 @@ class WorkoutEntryRead(WorkoutEntryBase):
     program_version_id: Optional[int] = None
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
-    created_at: datetime
+    created_at: UtcDatetime
     photos: List[WorkoutEntryPhotoRead] = []
 
 
@@ -233,7 +235,7 @@ class DiaryNoteRead(DiaryNoteBase):
     user_id: int
     playground_id: Optional[int] = None
     date: date_type
-    created_at: datetime
+    created_at: UtcDatetime
     photos: List[DiaryNotePhotoRead] = []
 
 
@@ -263,7 +265,7 @@ class PersonalTagUpdate(SQLModel):
 class PersonalTagRead(PersonalTagBase):
     id: int
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 # --- Комментарии к записям дневника ----------------------------------------
@@ -293,7 +295,7 @@ class CommentRead(CommentBase):
     record_id: int
     record_type: DiaryRecordType
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 # --- Карта активности (полностью анонимная агрегация) ----------------------
@@ -311,4 +313,4 @@ class ActivityMapMarker(SQLModel):
     playground_id: int
     workout_count: int
     note_count: int
-    last_activity_at: datetime
+    last_activity_at: UtcDatetime

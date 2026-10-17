@@ -5,6 +5,8 @@ from typing import List, Optional
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.utc import UtcDatetime
+
 
 class PlaygroundSize(str, enum.Enum):
     small = "small"
@@ -101,7 +103,7 @@ class PlaygroundHistoryEntry(SQLModel, table=True):
 class PlaygroundHistoryEntryRead(SQLModel):
     id: int
     type: PlaygroundHistoryEntryType
-    date: datetime
+    date: UtcDatetime
     user_id: int
     username: str
     changed_fields: Optional[List[str]] = None
@@ -266,7 +268,7 @@ class PlaygroundRead(PlaygroundBase):
     id: int
     creator_id: int
     equipment: List[PlaygroundEquipment]
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
     photos: List[PlaygroundPhotoRead] = []
     history: List[PlaygroundHistoryEntryRead] = []

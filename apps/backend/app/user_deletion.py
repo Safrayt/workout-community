@@ -16,6 +16,7 @@ from typing import List
 from sqlmodel import Session, select
 
 from app.models import User
+from app.models_article import ArticleDB
 from app.models_complex import ComplexCompletion
 from app.models_diary import Comment, DiaryNote, PersonalTag, WorkoutEntry
 from app.models_event import Event, EventRegistration
@@ -128,6 +129,15 @@ def delete_user_completely(
     ).all()
     for subscription in [*following, *followers]:
         session.delete(subscription)
+
+    # Статьи — контент портала, а не личные данные автора: они
+    # остаются, просто без автора (иначе внешний ключ мешал бы
+    # удалить пользователя на PostgreSQL).
+    for article in session.exec(
+        select(ArticleDB).where(ArticleDB.author_id == target.id)
+    ).all():
+        article.author_id = None
+        session.add(article)
 
     # 5. И сам пользователь.
     session.delete(target)

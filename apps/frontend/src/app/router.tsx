@@ -48,6 +48,9 @@ import KnowledgeExerciseDetails from "../pages/KnowledgeExerciseDetails/Knowledg
 import KnowledgeExerciseCreate from "../pages/KnowledgeExerciseCreate/KnowledgeExerciseCreate";
 import KnowledgeExerciseEdit from "../pages/KnowledgeExerciseEdit/KnowledgeExerciseEdit";
 import KnowledgeArticles from "../pages/KnowledgeArticles/KnowledgeArticles";
+import KnowledgeArticleDetails from "../pages/KnowledgeArticleDetails/KnowledgeArticleDetails";
+import KnowledgeArticleCreate from "../pages/KnowledgeArticleCreate/KnowledgeArticleCreate";
+import KnowledgeArticleEdit from "../pages/KnowledgeArticleEdit/KnowledgeArticleEdit";
 import ProgramDetails from "../pages/ProgramDetails/ProgramDetails";
 import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
 import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
@@ -319,6 +322,28 @@ export const router = createBrowserRouter([
       {
           path: "knowledge/articles",
           element: <KnowledgeArticles />,
+      },
+      {
+          // Как и у упражнений: статичный "create" важнее :id, а на
+          // сервере слаг "create" зарезервирован.
+          path: "knowledge/articles/create",
+          element: (
+              <RequireAdmin redirectTo="/knowledge/articles">
+                  <KnowledgeArticleCreate />
+              </RequireAdmin>
+          ),
+      },
+      {
+          path: "knowledge/articles/:id",
+          element: <KnowledgeArticleDetails />,
+      },
+      {
+          path: "knowledge/articles/:id/edit",
+          element: (
+              <RequireAdmin redirectTo="/knowledge/articles">
+                  <KnowledgeArticleEdit />
+              </RequireAdmin>
+          ),
       },
       {
           // Любой не совпавший путь внутри защищённой части сайта —

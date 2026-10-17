@@ -4,6 +4,8 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime
+
 
 class NotificationType(str, enum.Enum):
     """
@@ -58,7 +60,7 @@ class NotificationRead(NotificationBase):
     id: int
     user_id: int
     actor_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 class UnreadNotificationCount(SQLModel):

@@ -5,6 +5,8 @@ from typing import List, Optional
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime
+
 # --- Раздел «Программы» --------------------------------------------------
 #
 # См. UX-документ «Раздел Программы». Главный принцип оттуда: система
@@ -183,8 +185,8 @@ class ProgramRead(ProgramBase):
     author_id: int
     is_published: bool
     current_version_id: Optional[int] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
 
     # Посчитанные на момент запроса, не хранятся в таблице (п.8: и
     # "тренировок по программе", и избранное — это просто счётчики
@@ -243,9 +245,9 @@ class ProgramVersionRead(ProgramVersionBase):
     status: ProgramVersionStatus
     version_number: Optional[str] = None
     changelog: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    published_at: Optional[datetime] = None
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
+    published_at: Optional[UtcDatetime] = None
 
 
 class ProgramVersionSummary(SQLModel):
@@ -258,7 +260,7 @@ class ProgramVersionSummary(SQLModel):
     id: int
     version_number: Optional[str] = None
     changelog: Optional[str] = None
-    published_at: Optional[datetime] = None
+    published_at: Optional[UtcDatetime] = None
 
 
 def bump_version_number(previous: Optional[str], *, major: bool = False) -> str:
@@ -310,7 +312,7 @@ class ProgramFavoriteRead(SQLModel):
     id: int
     user_id: int
     program_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 # --- Комментарии (п.19) -----------------------------------------------------
@@ -342,4 +344,4 @@ class ProgramCommentRead(ProgramCommentBase):
     id: int
     program_id: int
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime

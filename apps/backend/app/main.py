@@ -8,6 +8,7 @@ from app.database import create_db_and_tables
 from app.files import UPLOAD_ROOT, ensure_upload_dirs
 from app.routers import (
     achievements,
+    articles,
     auth,
     complexes,
     diary,
@@ -86,6 +87,7 @@ app.include_router(achievements.router)
 app.include_router(social.router)
 app.include_router(complexes.router)
 app.include_router(exercises.router)
+app.include_router(articles.router)
 app.include_router(programs.router)
 app.include_router(external.router)
 app.include_router(notifications.router)

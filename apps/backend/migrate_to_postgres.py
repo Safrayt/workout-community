@@ -27,32 +27,82 @@ PostgreSQL". Коротко:
     4. Проверить сайт.
 
 Безопасно запускать повторно ТОЛЬКО на пустых таблицах в Postgres —
-если что-то уже скопировано, повторный запуск упадёт на дубликатах
-первичных ключей (это специально: чтобы случайно не задвоить данные).
-Если нужно перезапустить с нуля — сначала очистите таблицы в Postgres
-(`docker compose down -v` удалит volume Postgres целиком, включая
-данные, если ещё ничего важного там нет).
+если в какой-то из них уже есть данные, скрипт остановится до начала
+копирования и скажет, в какой именно (это специально: чтобы случайно
+не задвоить данные). Если нужно перезапустить с нуля — сначала
+очистите таблицы в Postgres (`docker compose down -v` удалит volume
+Postgres целиком, включая данные, если ещё ничего важного там нет).
+
+Исключение — таблицы, которые бэкенд заполняет сам при первом старте
+(упражнения и комплексы, см. SEEDED_TABLES ниже): после шага 2 в них
+уже лежат стартовые данные. Данные из SQLite важнее — это и есть ваш
+сайт, со всеми правками, — поэтому стартовые строки заменяются ими.
 """
 
+import importlib
+import pkgutil
 import sys
+import warnings
 
 sys.path.insert(0, ".")
 
+from sqlalchemy import Integer, and_, exc as sa_exc, func, inspect, select  # noqa: E402
+from sqlalchemy.sql.ddl import sort_tables  # noqa: E402
 from sqlmodel import SQLModel, create_engine  # noqa: E402
 
-# Импортируем все модули с моделями (как это делает app/main.py через
-# импорт роутеров), чтобы SQLModel.metadata знала обо ВСЕХ таблицах —
-# иначе будут скопированы не все данные.
-from app import models  # noqa: E402,F401
-from app import models_complex  # noqa: E402,F401
-from app import models_diary  # noqa: E402,F401
-from app import models_event  # noqa: E402,F401
-from app import models_playground  # noqa: E402,F401
-from app import models_review  # noqa: E402,F401
-from app import models_social  # noqa: E402,F401
+import app as app_package  # noqa: E402
+
+# Импортируем ВСЕ модули с моделями (app/models*.py), чтобы
+# SQLModel.metadata знала обо всех таблицах: иначе часть данных не
+# скопируется, а таблицы, на которые ссылаются внешние ключи, "не
+# найдутся" и скрипт упадёт ещё до начала копирования. Модули ищем
+# сами, а не перечисляем вручную, — новый models_*.py не придётся
+# добавлять сюда не забыв.
+for _module in pkgutil.iter_modules(app_package.__path__):
+    if _module.name.startswith("models"):
+        importlib.import_module(f"app.{_module.name}")
+
 from app.database import DATABASE_URL, engine as pg_engine  # noqa: E402
 
 SQLITE_PATH = "/app/data/app.db"
+
+# Таблицы, которые бэкенд заполняет стартовыми данными при первом
+# запуске (см. create_db_and_tables в app/database.py): к моменту
+# запуска скрипта они в Postgres уже не пустые. Если добавится новый
+# seed_*_if_empty — добавьте его таблицу сюда.
+SEEDED_TABLES = ("complex", "exercise")
+
+# Круговые связи между таблицами: program.current_version_id ссылается
+# на programversion, а programversion.program_id — на program, так что
+# какую из двух таблиц ни копируй первой, внешний ключ нарушится. Выход:
+# при вставке оставляем эту колонку пустой, а после копирования всех
+# таблиц проставляем её значения. Формат: {таблица: [колонки]}.
+# Колонка должна допускать NULL.
+CIRCULAR_FOREIGN_KEYS = {
+    "program": ["current_version_id"],
+}
+
+
+def sorted_tables_for_copy():
+    """
+    Таблицы в порядке копирования: сначала те, на которые ссылаются
+    другие. Круговые связи из CIRCULAR_FOREIGN_KEYS при сортировке не
+    учитываются; если появится ещё один цикл, SQLAlchemy предупредит о
+    нём, и мы останавливаемся (иначе таблицы копировались бы в
+    случайном порядке и вставка падала бы на внешних ключах).
+    """
+
+    def skip_foreign_key(foreign_key) -> bool:
+        column = foreign_key.parent
+
+        return column.name in CIRCULAR_FOREIGN_KEYS.get(column.table.name, ())
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", sa_exc.SAWarning)
+
+        return sort_tables(
+            SQLModel.metadata.tables.values(), skip_fn=skip_foreign_key
+        )
 
 
 def main() -> None:
@@ -78,21 +128,67 @@ def main() -> None:
     # (например, скрипт запущен раньше первого старта приложения).
     SQLModel.metadata.create_all(pg_engine)
 
+    tables = sorted_tables_for_copy()
+    source_tables = set(inspect(sqlite_engine).get_table_names())
+
     with sqlite_engine.connect() as src, pg_engine.connect() as dst:
-        # sorted_tables — таблицы в порядке, учитывающем внешние
-        # ключи (сначала таблицы, на которые ссылаются другие, потом
-        # уже сами ссылающиеся) — важно, иначе можно попытаться
-        # вставить, например, отзыв на площадку, которой в Postgres
-        # ещё нет.
-        for table in SQLModel.metadata.sorted_tables:
-            rows = src.execute(table.select()).mappings().all()
+        # 1. Проверка до любых изменений: во всех таблицах, кроме
+        # заполняемых бэкендом самостоятельно, в Postgres должно быть
+        # пусто — иначе перенос задвоит или перемешает данные.
+        not_empty = [
+            table.name
+            for table in tables
+            if table.name not in SEEDED_TABLES
+            and dst.execute(
+                select(func.count()).select_from(table)
+            ).scalar_one()
+            > 0
+        ]
+
+        if not_empty:
+            print(
+                "В Postgres уже есть данные в таблицах: "
+                + ", ".join(not_empty)
+                + ".\nСкрипт переносит данные только в пустую базу — "
+                "иначе они бы задвоились. Очистите базу (см. описание "
+                "в начале файла) и запустите скрипт снова."
+            )
+            raise SystemExit(1)
+
+        deferred: list = []
+
+        for table in tables:
+            if table.name not in source_tables:
+                print(f"  {table.name}: нет в SQLite, пропускаю")
+                continue
+
+            rows = [
+                dict(row)
+                for row in src.execute(table.select()).mappings().all()
+            ]
 
             if not rows:
                 print(f"  {table.name}: пусто, пропускаю")
                 continue
 
-            dst.execute(table.insert(), [dict(row) for row in rows])
+            # Стартовые строки, которые бэкенд успел создать сам,
+            # заменяются данными с вашего сайта.
+            if table.name in SEEDED_TABLES:
+                dst.execute(table.delete())
+
+            late_columns = CIRCULAR_FOREIGN_KEYS.get(table.name, [])
+
+            dst.execute(
+                table.insert(),
+                [
+                    {**row, **{column: None for column in late_columns}}
+                    for row in rows
+                ],
+            )
             print(f"  {table.name}: перенесено строк — {len(rows)}")
+
+            if late_columns:
+                deferred.append((table, late_columns, rows))
 
             # Postgres сам генерирует id для новых строк через
             # последовательность (SERIAL), которая не знает про id,
@@ -102,13 +198,36 @@ def main() -> None:
             # могла бы получить id, который уже занят перенесённой
             # записью, и упасть с ошибкой. Поэтому после переноса
             # переставляем счётчик на "максимальный перенесённый id + 1".
-            if "id" in table.c:
-                dst.execute_driver_sql(
-                    f'SELECT setval('
-                    f"pg_get_serial_sequence('{table.name}', 'id'), "
+            # Только для числовых id: у упражнений и статей id — текст
+            # (слаг из адреса страницы), последовательности у них нет.
+            id_column = table.c.get("id")
+
+            if id_column is not None and isinstance(id_column.type, Integer):
+                dst.exec_driver_sql(
+                    f"SELECT setval("
+                    f"pg_get_serial_sequence('\"{table.name}\"', 'id'), "
                     f"COALESCE((SELECT MAX(id) FROM \"{table.name}\"), 1)"
                     f")"
                 )
+
+        # 2. Колонки, которые мы оставили пустыми из-за круговых связей:
+        # теперь все таблицы на месте, и ссылки можно проставить.
+        for table, columns, rows in deferred:
+            key = list(table.primary_key.columns)
+
+            for row in rows:
+                values = {
+                    column: row[column]
+                    for column in columns
+                    if row[column] is not None
+                }
+
+                if values:
+                    dst.execute(
+                        table.update()
+                        .where(and_(*[col == row[col.name] for col in key]))
+                        .values(**values)
+                    )
 
         dst.commit()
 

@@ -6,6 +6,8 @@ from typing import List, Optional
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Session, SQLModel, select
 
+from app.utc import UtcDatetime
+
 
 # --- Каталог комплексов --------------------------------------------------
 #
@@ -497,8 +499,8 @@ class ComplexCompletionRead(ComplexCompletionBase):
     user_id: int
     stars: int
     diary_entry_id: Optional[int] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
 
 
 # --- Комментарии к комплексу ------------------------------------------------
@@ -536,4 +538,4 @@ class ComplexCommentRead(ComplexCommentBase):
     id: int
     complex_id: str
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime

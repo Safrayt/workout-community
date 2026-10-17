@@ -1,0 +1,122 @@
+.article-card {
+    --category-color: var(--color-primary);
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    padding: 0;
+    overflow: hidden;
+
+    /* Цветная полоска направленности (как у карточки упражнения). */
+    border-top: 4px solid var(--category-color);
+}
+
+.article-card__media {
+    display: block;
+}
+
+.article-card__cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+/* Вместо обложки — подложка цвета направленности с её названием. */
+.article-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    aspect-ratio: 16 / 9;
+    padding: var(--space-3);
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--category-color);
+    text-align: center;
+
+    background: color-mix(in srgb, var(--category-color) 10%, white);
+}
+
+.article-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    padding: var(--space-4);
+}
+
+.article-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.article-card__category,
+.article-card__draft {
+    padding: 2px var(--space-2);
+
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+
+    border-radius: var(--radius-sm);
+}
+
+.article-card__category {
+    color: white;
+    background: var(--category-color);
+}
+
+.article-card__draft {
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 12%, white);
+    border: 1px solid var(--color-warning);
+}
+
+.article-card__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+    line-height: 1.3;
+}
+
+.article-card__title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.article-card__title a:hover {
+    text-decoration: underline;
+}
+
+.article-card__summary {
+    margin: 0;
+
+    color: var(--color-text);
+
+    /* Длинное описание не растягивает карточку: показываем не больше
+       четырёх строк. */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.article-card__meta {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* Хештеги прижаты к низу карточки: карточки в ряду одной высоты. */
+.article-card__tags {
+    margin-top: auto;
+    padding-top: var(--space-2);
+}

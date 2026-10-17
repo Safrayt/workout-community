@@ -3,6 +3,8 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime
+
 
 class PlaygroundReviewBase(SQLModel):
     text: str
@@ -31,4 +33,4 @@ class PlaygroundReviewRead(PlaygroundReviewBase):
     id: int
     playground_id: int
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime

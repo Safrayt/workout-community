@@ -1,0 +1,146 @@
+/* Страница "Статьи": панель администратора, фильтры, список. */
+
+.articles-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    margin-bottom: var(--space-4);
+}
+
+/* Переключатель "Опубликованные / Черновики" не растягивается на всю
+   ширину страницы. */
+.articles-toolbar__mode {
+    width: 100%;
+    max-width: 320px;
+}
+
+.articles-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    margin-bottom: var(--space-4);
+
+    /* Чтобы при прокрутке к фильтрам (smooth scroll) они не прилипали к
+       самому краю окна. */
+    scroll-margin-top: var(--space-4);
+}
+
+.articles-filters__categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.articles-chip {
+    --chip-color: var(--color-primary);
+
+    padding: var(--space-1) var(--space-3);
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+
+    cursor: pointer;
+
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.articles-chip:hover {
+    border-color: var(--chip-color);
+}
+
+.articles-chip--active {
+    color: white;
+
+    background: var(--chip-color);
+    border-color: var(--chip-color);
+}
+
+.articles-filters__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
+.articles-filters__tags .tag-list {
+    margin-top: 0;
+}
+
+.articles-filters__label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.articles-status {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.articles-count {
+    margin: 0 0 var(--space-3);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.articles-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-4);
+
+    transition: opacity var(--transition-fast);
+}
+
+.articles-list--refreshing {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+@media (max-width: 640px) {
+    .articles-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.articles-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+
+    padding: var(--space-7) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.articles-empty-state__title {
+    margin: 0;
+
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.articles-empty-state__description {
+    margin: 0;
+    max-width: 420px;
+
+    color: var(--color-text-secondary);
+}

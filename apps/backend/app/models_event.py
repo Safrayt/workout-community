@@ -4,13 +4,15 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime, WallClockDatetime
+
 
 # --- Мероприятие -------------------------------------------------------
 
 class EventBase(SQLModel):
     title: str
     description: str = ""
-    start_date: datetime
+    start_date: WallClockDatetime
     poster_url: Optional[str] = None
 
 
@@ -39,7 +41,7 @@ class EventUpdate(SQLModel):
 
     title: Optional[str] = None
     description: Optional[str] = None
-    start_date: Optional[datetime] = None
+    start_date: Optional[WallClockDatetime] = None
     poster_url: Optional[str] = None
 
 
@@ -49,7 +51,7 @@ class EventRead(EventBase):
     creator_id: int
     city: str
     location: str
-    created_at: datetime
+    created_at: UtcDatetime
 
     # Не хранится в базе, а вычисляется на лету по таблице регистраций —
     # см. _count_registered_participants в routers/events.py.
@@ -84,7 +86,7 @@ class EventRegistrationRead(EventRegistrationBase):
     id: int
     user_id: int
     event_id: int
-    registered_at: datetime
+    registered_at: UtcDatetime
 
 
 # --- Комментарии к мероприятию -------------------------------------------
@@ -116,4 +118,4 @@ class EventCommentRead(EventCommentBase):
     id: int
     event_id: int
     user_id: int
-    created_at: datetime
+    created_at: UtcDatetime

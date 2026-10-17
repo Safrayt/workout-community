@@ -1,0 +1,13 @@
+/* "Опасная зона" — в самом низу страницы редактирования, отдельно от
+   формы, чтобы удаление нельзя было нажать по соседству с "Сохранить". */
+.article-edit__danger {
+    max-width: 960px;
+    margin-top: var(--space-7);
+}
+
+.article-edit__hint {
+    margin: 0 0 var(--space-3);
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}

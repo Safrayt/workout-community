@@ -1,0 +1,116 @@
+.article-details__top-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    margin-bottom: var(--space-3);
+}
+
+.article-details__back-row {
+    margin: 0;
+}
+
+.article-details__back {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.article-details {
+    /* Длинные строки текста читать неудобно — колонка не шире 760px. */
+    max-width: 760px;
+}
+
+.article-details__draft-notice {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-2) var(--space-3);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-warning);
+
+    background: color-mix(in srgb, var(--color-warning) 10%, white);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+}
+
+.article-details__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+
+    margin-bottom: var(--space-4);
+}
+
+.article-details__category {
+    padding: 2px var(--space-3);
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: white;
+
+    border: none;
+    border-radius: 999px;
+
+    cursor: pointer;
+}
+
+.article-details__category:hover {
+    filter: brightness(0.92);
+}
+
+.article-details__meta-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.article-details__cover {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+
+    margin-bottom: var(--space-5);
+
+    border-radius: var(--radius-md);
+}
+
+.article-details__tags {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+
+    border-top: 1px solid var(--color-border);
+}
+
+.article-details__not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+
+    padding: var(--space-7) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.article-details__not-found p {
+    margin: 0;
+}
+
+.article-details__not-found-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.article-details__not-found-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+}

@@ -4,6 +4,8 @@ from typing import Optional
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
+from app.utc import UtcDatetime
+
 
 def validate_password_strength(value: str) -> str:
     """
@@ -217,13 +219,13 @@ class UserRead(UserBase):
 
     id: int
     experience: int
-    created_at: datetime
+    created_at: UtcDatetime
     # Можно отдавать клиенту (в отличие от записи через API) — так
     # фронтенд знает, показывать ли этому пользователю кнопки
     # модерации на чужом контенте (см. isAdmin в types/user.ts).
     is_admin: bool
     is_feed_restricted: bool
-    last_seen_at: Optional[datetime] = None
+    last_seen_at: Optional[UtcDatetime] = None
 
 
 class CurrentUserRead(UserRead):
