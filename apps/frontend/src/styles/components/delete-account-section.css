@@ -1,0 +1,117 @@
+/* "Опасная зона" внизу настроек аккаунта. Красная рамка отделяет её
+   от обычных настроек, чтобы необратимое действие не выглядело как
+   ещё один переключатель. */
+.delete-account {
+    margin-top: var(--space-6);
+    padding: var(--space-4);
+
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-md);
+}
+
+.delete-account__title {
+    margin: 0 0 var(--space-2);
+
+    color: var(--color-danger);
+    font-size: var(--font-size-base);
+    font-weight: 700;
+}
+
+.delete-account__text {
+    margin: 0 0 var(--space-3);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.delete-account__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* Компактные кнопки — как у соседних разделов настроек. Составной
+   селектор (.button.…) — чтобы размер гарантированно перебивал
+   базовый .button независимо от порядка подключения стилей. */
+.button.delete-account__open-button,
+.button.delete-account__button,
+.button.delete-account__export-button {
+    align-self: flex-start;
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+}
+
+/* Кнопка "Удалить аккаунт…" — только красная обводка и текст: сама
+   заливка красным остаётся за финальной кнопкой подтверждения. */
+.button.delete-account__open-button {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.delete-account__banner {
+    padding: var(--space-3);
+
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+
+    font-size: var(--font-size-sm);
+}
+
+.delete-account__banner p,
+.delete-account__banner ul {
+    margin: var(--space-2) 0 0;
+}
+
+.delete-account__banner ul {
+    padding-left: var(--space-5);
+}
+
+.delete-account__banner--danger {
+    border-color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+}
+
+.delete-account__banner--danger > strong {
+    color: var(--color-danger);
+}
+
+.delete-account__banner--info {
+    border-color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+}
+
+.delete-account__banner--info > strong {
+    color: var(--color-warning);
+}
+
+.delete-account__banner .delete-account__export-button {
+    margin-top: var(--space-3);
+}
+
+.delete-account__checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+
+    margin-top: var(--space-3);
+
+    cursor: pointer;
+}
+
+.delete-account__checkbox input {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.delete-account__error {
+    margin: 0;
+
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.delete-account__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import InfoSection from "../ui/InfoSection/InfoSection";
 import Textarea from "../ui/Textarea/Textarea";
@@ -13,6 +14,7 @@ import { validateComment } from "../../validation/comment";
 import { getFieldError } from "../../utils/validation";
 
 import { useEventComments } from "../../context/EventCommentContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 type EventCommentsProps = {
     eventId: string;
@@ -20,6 +22,8 @@ type EventCommentsProps = {
 
 export default function EventComments({ eventId }: EventCommentsProps) {
     const { comments, refreshComments, addComment } = useEventComments();
+    const { user } = useAuth();
+    const location = useLocation();
 
     useEffect(() => {
         refreshComments(eventId).catch((error: unknown) => {
@@ -97,27 +101,43 @@ export default function EventComments({ eventId }: EventCommentsProps) {
                 )
             }
 
-            <form
-                className="event-comments__form"
-                onSubmit={handleSubmit}
-            >
-                <Textarea
-                    id={textareaId}
-                    label="Оставить комментарий"
-                    placeholder="Вопрос организатору, план встречи, отметьте участников через @Ник…"
-                    value={text}
-                    onChange={(event) => {
-                        setText(event.target.value);
-                        setErrors([]);
-                    }}
-                    error={getFieldError(errors, "text")}
-                    rows={3}
-                />
+            {
+                user ? (
+                    <form
+                        className="event-comments__form"
+                        onSubmit={handleSubmit}
+                    >
+                        <Textarea
+                            id={textareaId}
+                            label="Оставить комментарий"
+                            placeholder="Вопрос организатору, план встречи, отметьте участников через @Ник…"
+                            value={text}
+                            onChange={(event) => {
+                                setText(event.target.value);
+                                setErrors([]);
+                            }}
+                            error={getFieldError(errors, "text")}
+                            rows={3}
+                        />
 
-                <Button type="submit">
-                    Отправить
-                </Button>
-            </form>
+                        <Button type="submit">
+                            Отправить
+                        </Button>
+                    </form>
+                ) : (
+                    <p className="event-comments__login-hint">
+                        <Link
+                            to="/login"
+                            state={{
+                                from: location.pathname + location.search,
+                            }}
+                        >
+                            Войдите
+                        </Link>
+                        , чтобы оставить комментарий.
+                    </p>
+                )
+            }
         </InfoSection>
     );
 }

@@ -14,7 +14,7 @@ import {
     updateProgramComment as apiUpdateProgramComment,
 } from "../api/programs";
 
-import { useCurrentUser } from "./CurrentUserContext";
+import { useAuth } from "./CurrentUserContext";
 
 type ProgramCommentContextType = {
     /** Накопительный кеш комментариев по всем программам, которые уже
@@ -45,7 +45,9 @@ export function ProgramCommentProvider({
 }) {
     const [comments, setComments] = useState<ProgramComment[]>([]);
 
-    const { currentUser } = useCurrentUser();
+    // Комментарии читают и гости — пользователя может не быть (тогда
+    // чужие и "свои" комментарии править/удалять нечем).
+    const { user: currentUser } = useAuth();
 
     async function refreshComments(programId: string) {
         const fetched = await listProgramComments(programId);
@@ -67,7 +69,11 @@ export function ProgramCommentProvider({
     async function updateComment(id: string, text: string) {
         const existingComment = comments.find((comment) => comment.id === id);
 
-        if (!existingComment || existingComment.userId !== currentUser.id) {
+        if (
+            !currentUser ||
+            !existingComment ||
+            existingComment.userId !== currentUser.id
+        ) {
             return undefined;
         }
 
@@ -85,7 +91,11 @@ export function ProgramCommentProvider({
     async function deleteComment(id: string) {
         const existingComment = comments.find((comment) => comment.id === id);
 
-        if (!existingComment || existingComment.userId !== currentUser.id) {
+        if (
+            !currentUser ||
+            !existingComment ||
+            existingComment.userId !== currentUser.id
+        ) {
             return;
         }
 

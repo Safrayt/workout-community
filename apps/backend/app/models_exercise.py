@@ -48,6 +48,7 @@ MuscleGroup = Literal[
     "spinalErectors",
     "abs",
     "obliques",
+    "iliacus",
     "glutes",
     "quads",
     "hamstrings",

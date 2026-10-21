@@ -18,6 +18,7 @@ export type MuscleGroupKey =
     | "spinalErectors"
     | "abs"
     | "obliques"
+    | "iliacus"
     | "glutes"
     | "quads"
     | "hamstrings"

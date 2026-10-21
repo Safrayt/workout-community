@@ -59,6 +59,7 @@ export type ApiPlayground = {
     updated_at: string;
     photos: ApiPlaygroundPhoto[];
     history: ApiPlaygroundHistoryEntry[];
+    favorites_count: number;
 };
 
 function mapApiPhoto(photo: ApiPlaygroundPhoto): PlaygroundPhoto {
@@ -121,6 +122,7 @@ export function mapApiPlaygroundToPlayground(
         createdAt: apiPlayground.created_at,
         updatedAt: apiPlayground.updated_at,
         history: apiPlayground.history.map(mapApiHistoryEntry),
+        favoritesCount: apiPlayground.favorites_count,
     };
 }
 

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import ProtectedLayout from "./ProtectedLayout";
+import type { RouteHandle } from "./guestAccess";
 
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
@@ -149,10 +150,12 @@ export const router = createBrowserRouter([
       {
         path: "events",
         element: <Events />,
+        handle: { guest: ["events"] } satisfies RouteHandle,
       },
       {
         path: "events/:id",
         element: <EventDetails />,
+        handle: { guest: ["events"] } satisfies RouteHandle,
       },
       {
         path: "events/:id/edit",
@@ -204,10 +207,12 @@ export const router = createBrowserRouter([
       {
         path: "playgrounds",
         element: <Playgrounds />,
+        handle: { guest: ["playgrounds"] } satisfies RouteHandle,
       },
       {
           path: "playgrounds/:id",
           element: <PlaygroundDetails />,
+          handle: { guest: ["playground"] } satisfies RouteHandle,
       },
       {
           path: "playgrounds/:id/edit",
@@ -236,6 +241,7 @@ export const router = createBrowserRouter([
       {
           path: "complexes",
           element: <Complexes />,
+          handle: { guest: ["complexes"] } satisfies RouteHandle,
       },
       {
           path: "complexes/create",
@@ -248,6 +254,7 @@ export const router = createBrowserRouter([
       {
           path: "complexes/:id",
           element: <ComplexDetails />,
+          handle: { guest: ["complex"] } satisfies RouteHandle,
       },
       {
           path: "complexes/:id/edit",
@@ -269,6 +276,7 @@ export const router = createBrowserRouter([
       {
           path: "programs",
           element: <Programs />,
+          handle: { guest: ["programs"] } satisfies RouteHandle,
       },
       {
           path: "programs/create",
@@ -277,6 +285,7 @@ export const router = createBrowserRouter([
       {
           path: "programs/:id",
           element: <ProgramDetails />,
+          handle: { guest: ["program"] } satisfies RouteHandle,
       },
       {
           path: "programs/:id/edit",
@@ -291,10 +300,12 @@ export const router = createBrowserRouter([
           // ведёт на первый подраздел.
           path: "knowledge",
           element: <Navigate to="/knowledge/exercises" replace />,
+          handle: { guest: [] } satisfies RouteHandle,
       },
       {
           path: "knowledge/exercises",
           element: <KnowledgeExercises />,
+          handle: { guest: ["exercises"] } satisfies RouteHandle,
       },
       {
           // Статичный сегмент "create" в React Router важнее :id, поэтому
@@ -310,6 +321,7 @@ export const router = createBrowserRouter([
       {
           path: "knowledge/exercises/:id",
           element: <KnowledgeExerciseDetails />,
+          handle: { guest: ["exercises"] } satisfies RouteHandle,
       },
       {
           path: "knowledge/exercises/:id/edit",
@@ -322,6 +334,7 @@ export const router = createBrowserRouter([
       {
           path: "knowledge/articles",
           element: <KnowledgeArticles />,
+          handle: { guest: [] } satisfies RouteHandle,
       },
       {
           // Как и у упражнений: статичный "create" важнее :id, а на
@@ -336,6 +349,7 @@ export const router = createBrowserRouter([
       {
           path: "knowledge/articles/:id",
           element: <KnowledgeArticleDetails />,
+          handle: { guest: [] } satisfies RouteHandle,
       },
       {
           path: "knowledge/articles/:id/edit",

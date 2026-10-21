@@ -12,7 +12,7 @@ import { getFieldError } from "../../utils/validation";
 import type { EventComment } from "../../types/eventComment";
 
 import { useEventComments } from "../../context/EventCommentContext";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 import { useUserDirectory } from "../../hooks/useUserDirectory";
 
@@ -29,13 +29,13 @@ type Props = {
 
 export default function EventCommentItem({ comment, onReply }: Props) {
     const { updateComment, deleteComment } = useEventComments();
-    const { currentUser } = useCurrentUser();
+    const { user } = useAuth();
 
     const { getUserById } = useUserDirectory();
 
     const author = getUserById(comment.userId);
 
-    const isOwnComment = comment.userId === currentUser.id;
+    const isOwnComment = user !== null && comment.userId === user.id;
 
     const [isEditing, setIsEditing] = useState(false);
 
@@ -159,7 +159,7 @@ export default function EventCommentItem({ comment, onReply }: Props) {
                                             Удалить
                                         </button>
                                     </div>
-                                ) : (
+                                ) : user ? (
                                     <div className="event-comments__owner-actions">
                                         <button
                                             type="button"
@@ -173,7 +173,7 @@ export default function EventCommentItem({ comment, onReply }: Props) {
                                             Ответить
                                         </button>
                                     </div>
-                                )
+                                ) : null
                             }
                         </>
                     )

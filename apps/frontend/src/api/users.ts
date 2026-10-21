@@ -44,3 +44,23 @@ export async function deleteUser(
         { method: "DELETE" }
     );
 }
+
+/**
+ * Удаление СОБСТВЕННОГО аккаунта (раздел "Опасная зона" в настройках
+ * профиля) — в отличие от deleteUser выше, доступно любому
+ * пользователю, но только по текущему паролю.
+ *
+ * Если у пользователя есть свои площадки/мероприятия/программы
+ * (общий контент сообщества), сервер без withOwnedContent ответит
+ * 409 с перечнем в message и ничего не удалит — вызывающий код
+ * должен показать этот список и повторить запрос уже с согласием.
+ */
+export async function deleteOwnAccount(
+    password: string,
+    withOwnedContent = false
+): Promise<void> {
+    await apiFetch("/users/me/delete", {
+        method: "POST",
+        body: { password, with_owned_content: withOwnedContent },
+    });
+}

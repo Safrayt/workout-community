@@ -17,30 +17,40 @@ from sqlmodel import Session, select
 
 from app.models import User
 from app.models_article import ArticleDB
-from app.models_complex import ComplexCompletion
+from app.files import delete_image
+from app.models_complex import ComplexCompletion, ComplexComment
 from app.models_diary import Comment, DiaryNote, PersonalTag, WorkoutEntry
-from app.models_event import Event, EventRegistration
-from app.models_playground import Playground
+from app.models_event import Event, EventComment, EventRegistration
+from app.models_notification import Notification
+from app.models_playground import Playground, PlaygroundHistoryEntry
+from app.models_program import ProgramComment, ProgramDB, ProgramFavorite
 from app.models_review import PlaygroundReview
 from app.models_social import PlaygroundFavorite, Subscription
 from app.routers.diary import delete_diary_note, delete_workout_entry
 from app.routers.events import delete_event
 from app.routers.playgrounds import delete_playground
+from app.routers.programs import delete_program
 
 
 class UserHasOwnedContentError(Exception):
     """
-    У пользователя есть свои площадки/мероприятия — это общий
-    контент сообщества, а не личные данные, поэтому решение, что с
-    ним делать, должно быть осознанным (см. with_owned_content у
-    delete_user_completely). Вызывающий код сам решает, как это
-    показать — консольным списком (delete_user.py) или 400-й ошибкой
-    с понятным detail (routers/users.py).
+    У пользователя есть свои площадки/мероприятия/программы — это
+    общий контент сообщества, а не личные данные, поэтому решение,
+    что с ним делать, должно быть осознанным (см. with_owned_content
+    у delete_user_completely). Вызывающий код сам решает, как это
+    показать — консольным списком (delete_user.py) или ошибкой с
+    понятным detail (routers/users.py).
     """
 
-    def __init__(self, playgrounds: List[Playground], events: List[Event]):
+    def __init__(
+        self,
+        playgrounds: List[Playground],
+        events: List[Event],
+        programs: List[ProgramDB] | None = None,
+    ):
         self.playgrounds = playgrounds
         self.events = events
+        self.programs = programs or []
         super().__init__("User has owned playgrounds/events")
 
 
@@ -52,8 +62,8 @@ def delete_user_completely(
     """
     Удаляет пользователя вместе со всеми его личными данными.
 
-    Если у пользователя есть СВОИ площадки или мероприятия и
-    with_owned_content=False — ничего не удаляет и поднимает
+    Если у пользователя есть СВОИ площадки, мероприятия или программы
+    и with_owned_content=False — ничего не удаляет и поднимает
     UserHasOwnedContentError, чтобы вызывающий код мог решить, что
     делать (см. класс выше). При with_owned_content=True удаляет
     вместе с пользователем и этот контент — необратимо.
@@ -71,9 +81,17 @@ def delete_user_completely(
         select(Event).where(Event.creator_id == target.id)
     ).all()
 
-    if (owned_playgrounds or owned_events) and not with_owned_content:
+    owned_programs = session.exec(
+        select(ProgramDB).where(ProgramDB.author_id == target.id)
+    ).all()
+
+    if (
+        owned_playgrounds or owned_events or owned_programs
+    ) and not with_owned_content:
         raise UserHasOwnedContentError(
-            list(owned_playgrounds), list(owned_events)
+            list(owned_playgrounds),
+            list(owned_events),
+            list(owned_programs),
         )
 
     # 1. Мероприятия, созданные пользователем — раньше площадок,
@@ -106,6 +124,12 @@ def delete_user_completely(
     for playground in owned_playgrounds:
         delete_playground(playground.id, current_user=target, session=session)
 
+    # 3а. Программы пользователя. delete_program сам отвязывает от них
+    #     записи дневников (в том числе чужих), удаляет версии,
+    #     комментарии и избранное других пользователей.
+    for program in owned_programs:
+        delete_program(program.id, current_user=target, session=session)
+
     # 4. Всё остальное — личные данные без сложных побочных
     #    эффектов (файлов на диске у них нет), поэтому просто
     #    удаляем строки напрямую.
@@ -119,7 +143,21 @@ def delete_user_completely(
     _delete_all(PlaygroundFavorite, PlaygroundFavorite.user_id)
     _delete_all(PlaygroundReview, PlaygroundReview.user_id)
     _delete_all(Comment, Comment.user_id)
+    _delete_all(ComplexComment, ComplexComment.user_id)
+    _delete_all(EventComment, EventComment.user_id)
+    _delete_all(ProgramComment, ProgramComment.user_id)
+    _delete_all(ProgramFavorite, ProgramFavorite.user_id)
     _delete_all(PersonalTag, PersonalTag.user_id)
+
+    # Записи в истории чужих площадок ("проверена", "изменена") —
+    # внешний ключ на пользователя не даст его удалить, а запись без
+    # автора в истории бессмысленна.
+    _delete_all(PlaygroundHistoryEntry, PlaygroundHistoryEntry.user_id)
+
+    # Уведомления: и те, что адресованы пользователю, и те, что
+    # вызвало его действие (actor_id) у других людей.
+    _delete_all(Notification, Notification.user_id)
+    _delete_all(Notification, Notification.actor_id)
 
     following = session.exec(
         select(Subscription).where(Subscription.follower_id == target.id)
@@ -139,6 +177,12 @@ def delete_user_completely(
         article.author_id = None
         session.add(article)
 
-    # 5. И сам пользователь.
+    # 5. И сам пользователь. Файл аватара удаляем с диска только
+    #    вместе с ним — после успешного коммита ниже, а не раньше, чтобы
+    #    не потерять его при откате.
+    avatar_url = target.avatar_url
+
     session.delete(target)
     session.commit()
+
+    delete_image(avatar_url)

@@ -2,7 +2,6 @@ import "../../styles/components/playground-activity.css";
 
 import type { Event } from "../../types/event";
 import type { WorkoutEntry } from "../../types/workoutEntry";
-import type { PlaygroundFavorite } from "../../types/favorite";
 
 import { getPlaygroundAllTimeActivityStats } from "../../utils/playgroundActivity";
 
@@ -15,7 +14,8 @@ type Props = {
 
     workoutEntries: WorkoutEntry[];
 
-    favorites: PlaygroundFavorite[];
+    /** Сколько пользователей добавили площадку в избранное. */
+    subscribersCount: number;
 };
 
 /**
@@ -29,7 +29,7 @@ export default function PlaygroundAllTimeActivity({
     playgroundId,
     events,
     workoutEntries,
-    favorites,
+    subscribersCount: subscribersTotal,
 }: Props) {
     const {
         workoutsCount,
@@ -40,7 +40,7 @@ export default function PlaygroundAllTimeActivity({
         playgroundId,
         events,
         workoutEntries,
-        favorites
+        subscribersTotal
     );
 
     return (

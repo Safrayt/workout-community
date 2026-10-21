@@ -165,6 +165,17 @@ export function useAuth(): AuthContextValue {
     return context;
 }
 
+/**
+ * Является ли текущий посетитель администратором. В отличие от
+ * useCurrentUser безопасна на публичных страницах, которые открыты и
+ * гостям: для гостя просто false (кнопки модерации ему не нужны).
+ */
+export function useIsAdmin(): boolean {
+    const { user } = useAuth();
+
+    return user?.isAdmin === true;
+}
+
 type CurrentUserContextValue = {
     currentUser: User;
     setCurrentUser: Dispatch<SetStateAction<User>>;

@@ -272,3 +272,10 @@ class PlaygroundRead(PlaygroundBase):
     updated_at: UtcDatetime
     photos: List[PlaygroundPhotoRead] = []
     history: List[PlaygroundHistoryEntryRead] = []
+
+    # Сколько пользователей добавили площадку в избранное ("подписчики"
+    # на странице площадки). Вычисляется при чтении — как и username в
+    # history: хранить его в таблице нельзя, он бы расходился с
+    # реальным числом строк PlaygroundFavorite. Только число: кто
+    # именно подписан, остальным не показывается.
+    favorites_count: int = 0

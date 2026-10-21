@@ -80,6 +80,18 @@
     margin-top: var(--space-2);
 }
 
+.program-comments__login-hint {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.program-comments__login-hint a {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
 .program-comments__form {
     display: flex;
     flex-direction: column;

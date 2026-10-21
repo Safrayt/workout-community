@@ -10,6 +10,8 @@ import "../../styles/components/complex-card.css";
 import type { Complex } from "../../types/complex";
 import type { ComplexCompletion } from "../../types/complexCompletion";
 
+import { useAuth } from "../../context/CurrentUserContext";
+
 import { complexTypeLabels, movementLabels } from "../../constants/complexTypes";
 import { findBestCompletion } from "../../utils/complexResult";
 
@@ -23,6 +25,7 @@ type ComplexCardProps = {
 };
 
 export default function ComplexCard({ complexDef, completions }: ComplexCardProps) {
+    const { user } = useAuth();
     const best = completions ? findBestCompletion(complexDef, completions) : undefined;
 
     const movementSummary = complexDef.movements
@@ -49,17 +52,24 @@ export default function ComplexCard({ complexDef, completions }: ComplexCardProp
 
             <p className="complex-card__exercise">{complexDef.exercise}</p>
 
-            <div className="complex-card__status">
-                {
-                    best ? (
-                        <span className="complex-card__result">
-                            Твой результат: <ComplexStars stars={best.stars} size="sm" />
-                        </span>
-                    ) : (
-                        <span className="complex-card__not-done">Не выполнял</span>
-                    )
-                }
-            </div>
+            {
+                // Личный статус показываем только вошедшему: гость ничего
+                // не выполнял, и "Не выполнял" на каждой карточке было бы
+                // утверждением о человеке, у которого нет аккаунта.
+                user && (
+                    <div className="complex-card__status">
+                        {
+                            best ? (
+                                <span className="complex-card__result">
+                                    Твой результат: <ComplexStars stars={best.stars} size="sm" />
+                                </span>
+                            ) : (
+                                <span className="complex-card__not-done">Не выполнял</span>
+                            )
+                        }
+                    </div>
+                )
+            }
 
             <Link to={`/complexes/${complexDef.id}`} className="complex-card__link">
                 <Button variant="outline">Подробнее</Button>

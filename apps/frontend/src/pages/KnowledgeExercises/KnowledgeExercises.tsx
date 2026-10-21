@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
 import Button from "../../components/ui/Button/Button";
+import Input from "../../components/ui/Input/Input";
 import MuscleMap from "../../components/MuscleMap/MuscleMap";
 import MuscleMapLegend, {
     type MuscleMapLegendItem,
@@ -14,10 +15,12 @@ import "../../styles/components/knowledge-exercises.css";
 
 import type { MuscleGroupKey } from "../../types/exercise";
 
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useExercises } from "../../context/ExerciseContext";
 
 import {
+    MAX_EXERCISE_QUERY_LENGTH,
+    countActiveExerciseFilters,
     emptyExerciseFilters,
     filterExercises,
     parseExerciseFilters,
@@ -29,25 +32,70 @@ import { pluralizeRu } from "../../utils/pluralize";
 
 /**
  * /knowledge/exercises — база упражнений с собственным весом: карта
- * мышечных групп, фильтры и список упражнений.
+ * мышечных групп, поиск по названию, фильтры и список упражнений.
  *
  * - Клик по мышце на карте (или кнопке мышцы в фильтрах) добавляет её
  *   в фильтр; несколько мышц объединяются по "И".
  * - Клик по карточке упражнения подсвечивает на карте его мышцы:
  *   целевые красным, вспомогательные оранжевым.
- * - Фильтры хранятся в адресе страницы (?movement=…&muscles=…): они
- *   переживают переход на страницу упражнения и возврат назад.
+ * - Поиск по названию — над списком; сочетается с фильтрами по "И".
+ * - Панель фильтров (типы движения и мышцы) можно скрыть кнопкой рядом
+ *   с поиском, чтобы список был ближе. Поиск виден всегда; сколько
+ *   фильтров выбрано, показывает сама кнопка.
+ * - Фильтры и поиск хранятся в адресе страницы
+ *   (?movement=…&muscles=…&q=…): они переживают переход на страницу
+ *   упражнения и возврат назад.
  */
 export default function KnowledgeExercises() {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const { currentUser } = useCurrentUser();
+    // Страница открыта и гостям — они просто не админы.
+    const isAdmin = useIsAdmin();
     const { exercises, isLoading, loadError, reload } = useExercises();
 
-    const filters = useMemo(
+    const urlFilters = useMemo(
         () => parseExerciseFilters(searchParams),
         [searchParams]
     );
+
+    // Строку поиска держим в собственном состоянии, а не читаем прямо из
+    // адреса: поле ввода должно отзываться на каждую букву мгновенно, а
+    // обновление адреса (через роутер) может запаздывать и "съедать"
+    // символы. Список фильтруется по этому состоянию; в адрес оно
+    // переносится с небольшой задержкой (см. эффект ниже).
+    const [searchText, setSearchText] = useState(urlFilters.query);
+
+    const filters = useMemo(
+        () => ({ ...urlFilters, query: searchText }),
+        [urlFilters, searchText]
+    );
+
+    const [areFiltersVisible, setAreFiltersVisible] = useState(true);
+
+    useEffect(() => {
+        if (searchText === urlFilters.query) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            // Функциональная форма: берём самый свежий адрес, а не тот,
+            // что был при вводе, — иначе поиск затёр бы тип движения или
+            // мышцы, выбранные за эти доли секунды.
+            setSearchParams(
+                (current) =>
+                    writeExerciseFilters(current, {
+                        ...parseExerciseFilters(current),
+                        query: searchText,
+                    }),
+                { replace: true }
+            );
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchText, urlFilters.query, setSearchParams]);
+
+    const hasQuery = searchText.trim() !== "";
+    const activeFiltersCount = countActiveExerciseFilters(filters);
 
     const [selectedExerciseId, setSelectedExerciseId] =
         useState<string | null>(null);
@@ -104,6 +152,12 @@ export default function KnowledgeExercises() {
         );
     }
 
+    function handleResetAll() {
+        setSelectedExerciseId(null);
+        setSearchText("");
+        updateFilters(emptyExerciseFilters);
+    }
+
     const legendItems: MuscleMapLegendItem[] = [];
 
     if (selectedExercise) {
@@ -120,7 +174,7 @@ export default function KnowledgeExercises() {
                 // Добавлять упражнения может только администратор; сервер
                 // проверяет это сам (ensure_admin), здесь кнопку просто не
                 // показываем остальным.
-                currentUser.isAdmin && (
+                isAdmin && (
                     <div className="exercises-toolbar">
                         <Link to="/knowledge/exercises/create">
                             <Button type="button" variant="primary">
@@ -171,12 +225,69 @@ export default function KnowledgeExercises() {
 
             <hr />
 
-            <h3>Фильтры</h3>
+            <h3>Поиск и фильтры</h3>
 
-            <ExerciseFilters
-                filters={filters}
-                onChange={handleFiltersChange}
-            />
+            <div className="exercises-search">
+                <div className="exercises-search__field">
+                    <Input
+                        id="exercise-search"
+                        type="search"
+                        aria-label="Поиск упражнения по названию"
+                        placeholder="Поиск по названию…"
+                        autoComplete="off"
+                        maxLength={MAX_EXERCISE_QUERY_LENGTH}
+                        className="exercises-search__input"
+                        value={searchText}
+                        onChange={(event) => setSearchText(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                                setSearchText("");
+                            }
+                        }}
+                    />
+
+                    {
+                        searchText !== "" && (
+                            <button
+                                type="button"
+                                className="exercises-search__clear"
+                                aria-label="Очистить поиск"
+                                onClick={() => setSearchText("")}
+                            >
+                                ×
+                            </button>
+                        )
+                    }
+                </div>
+
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="exercises-search__toggle"
+                    aria-expanded={areFiltersVisible}
+                    aria-controls="exercise-filters-panel"
+                    onClick={() => setAreFiltersVisible((visible) => !visible)}
+                >
+                    {
+                        areFiltersVisible
+                            ? "Скрыть фильтры"
+                            : `Показать фильтры${
+                                activeFiltersCount > 0
+                                    ? ` (${activeFiltersCount})`
+                                    : ""
+                            }`
+                    }
+                </Button>
+            </div>
+
+            {/* hidden, а не размонтирование: у панели нет своего
+                состояния, а id нужен для aria-controls у кнопки. */}
+            <div id="exercise-filters-panel" hidden={!areFiltersVisible}>
+                <ExerciseFilters
+                    filters={filters}
+                    onChange={handleFiltersChange}
+                />
+            </div>
 
             <hr />
 
@@ -200,19 +311,15 @@ export default function KnowledgeExercises() {
                         </p>
 
                         <p className="exercises-empty-state__description">
-                            Нет упражнений, которые подходят сразу под все
-                            выбранные параметры. Попробуйте убрать часть мышц
-                            или сменить тип движения.
+                            {
+                                hasQuery
+                                    ? "Нет упражнений с таким названием среди выбранных фильтров. Проверьте запрос или уберите часть фильтров."
+                                    : "Нет упражнений, которые подходят сразу под все выбранные параметры. Попробуйте убрать часть мышц или сменить тип движения."
+                            }
                         </p>
 
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setSelectedExerciseId(null);
-                                updateFilters(emptyExerciseFilters);
-                            }}
-                        >
-                            Сбросить фильтры
+                        <Button variant="outline" onClick={handleResetAll}>
+                            {hasQuery ? "Сбросить поиск и фильтры" : "Сбросить фильтры"}
                         </Button>
                     </div>
                 ) : (

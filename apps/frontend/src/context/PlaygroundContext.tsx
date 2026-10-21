@@ -12,6 +12,7 @@ import {
     confirmPlaygroundInspection as apiConfirmInspection,
     createPlayground as apiCreatePlayground,
     deletePlayground as apiDeletePlayground,
+    getPlayground,
     listPlaygrounds,
     updatePlayground as apiUpdatePlayground,
 } from "../api/playgrounds";
@@ -36,6 +37,16 @@ type PlaygroundContextType = {
     ) => Promise<void>;
 
     confirmPlaygroundInspection: (
+        id: string
+    ) => Promise<void>;
+
+    /**
+     * Перечитывает одну площадку с сервера — нужно, когда из-за
+     * действий пользователя меняются вычисляемые сервером поля
+     * (favoritesCount после "В избранное"). Ошибка не пробрасывается:
+     * это лишь обновление показа, основное действие уже выполнено.
+     */
+    refreshPlayground: (
         id: string
     ) => Promise<void>;
 };
@@ -108,6 +119,24 @@ export function PlaygroundProvider({
     }
 
 
+    async function refreshPlayground(
+        id: string
+    ): Promise<void> {
+        try {
+            const fresh = await getPlayground(id);
+
+            setPlaygrounds((current) =>
+                current.map((p) => (p.id === id ? fresh : p))
+            );
+        } catch (error: unknown) {
+            console.error(
+                "Не удалось обновить площадку:",
+                error
+            );
+        }
+    }
+
+
     async function deletePlayground(
         id: string
     ): Promise<void> {
@@ -128,6 +157,7 @@ export function PlaygroundProvider({
                 updatePlayground,
                 deletePlayground,
                 confirmPlaygroundInspection,
+                refreshPlayground,
             }}
         >
             {children}

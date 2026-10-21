@@ -1,7 +1,10 @@
+import logging
 import os
 
 from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
+
+logger = logging.getLogger(__name__)
 
 # Без Docker (обычная локальная разработка) переменная DATABASE_URL не
 # задана, и используется SQLite — просто файл на диске, не требует
@@ -62,6 +65,57 @@ def _add_column_if_missing(
             f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {column_ddl}'
         )
         connection.commit()
+
+
+# Типы движения упражнений, которые убрали из списка допустимых
+# (models_exercise.MovementType), и на какие заменять их в уже
+# существующих строках. Нужно потому, что ExerciseRead.movement_type
+# — обычная строка: сервер значение не проверяет, а интерфейс ищет
+# подпись и цвет типа в своём списке, и для неизвестного значения
+# страница упражнения падает. Так что "осиротевшее" значение в базе
+# надо перевести в существующее.
+#
+#   hipFlexion ("Сгибания бедра") → crunch ("Скручивания"): тип был
+#   добавлен и убран; подъёмы коленей в висе (единственные упражнения
+#   из сида, которые в него переводились) раньше были скручиваниями.
+REMOVED_MOVEMENT_TYPES = {
+    "hipFlexion": "crunch",
+}
+
+
+def _replace_removed_movement_types(connection) -> int:
+    """
+    Переводит упражнения с удалёнными типами движения (см.
+    REMOVED_MOVEMENT_TYPES) на их замену. Возвращает, сколько строк
+    изменено. Безопасно вызывать многократно: когда править нечего,
+    ничего не делает. Запрос с именованными параметрами и названиями в
+    кавычках — одинаково работает на SQLite и на PostgreSQL.
+    """
+    changed = 0
+
+    for removed, replacement in REMOVED_MOVEMENT_TYPES.items():
+        result = connection.execute(
+            text(
+                'UPDATE "exercise" SET "movement_type" = :replacement '
+                'WHERE "movement_type" = :removed'
+            ),
+            {"replacement": replacement, "removed": removed},
+        )
+        changed += result.rowcount or 0
+
+    if changed:
+        connection.commit()
+        logger.warning(
+            "Упражнений с удалённым типом движения переведено на замену: %s "
+            "(%s)",
+            changed,
+            ", ".join(
+                f"{removed} → {replacement}"
+                for removed, replacement in REMOVED_MOVEMENT_TYPES.items()
+            ),
+        )
+
+    return changed
 
 
 def _run_migrations() -> None:
@@ -130,6 +184,11 @@ def _run_migrations() -> None:
                 _add_column_if_missing(
                     connection, table_name, column_name, boolean_default_false
                 )
+
+        # Разовая правка данных (не схемы): упражнения с убранным типом
+        # движения — см. REMOVED_MOVEMENT_TYPES.
+        if "exercise" in existing_tables:
+            _replace_removed_movement_types(connection)
 
         # Связь записи тренировки с программой (см. UX-документ
         # «Раздел Программы», models_diary.WorkoutEntry) — добавлена

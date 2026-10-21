@@ -1,6 +1,5 @@
 import type { Event } from "../types/event";
 import type { WorkoutEntry } from "../types/workoutEntry";
-import type { PlaygroundFavorite } from "../types/favorite";
 
 import { isCompletedEvent } from "./eventStatus";
 import { isWithinLastDays } from "./date";
@@ -73,23 +72,21 @@ export function getPlaygroundActivityStats(
 /**
  * Статистика "Активность за всё время": те же три метрики без
  * ограничения по дате, плюс subscribersCount — сколько пользователей
- * добавили площадку в избранное.
+ * добавили площадку в избранное. Число приходит с сервера
+ * (Playground.favoritesCount): самим его не посчитать, у клиента есть
+ * только избранное текущего пользователя.
  */
 export function getPlaygroundAllTimeActivityStats(
     playgroundId: string,
     events: Event[],
     workoutEntries: WorkoutEntry[],
-    favorites: PlaygroundFavorite[]
+    subscribersCount: number
 ): PlaygroundAllTimeActivityStats {
     const allTimeStats = getPlaygroundActivityStats(
         playgroundId,
         events,
         workoutEntries
     );
-
-    const subscribersCount = favorites.filter(
-        (favorite) => favorite.playgroundId === playgroundId
-    ).length;
 
     return {
         ...allTimeStats,

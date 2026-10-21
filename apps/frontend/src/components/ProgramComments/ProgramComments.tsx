@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import InfoSection from "../ui/InfoSection/InfoSection";
 import Textarea from "../ui/Textarea/Textarea";
@@ -13,6 +14,7 @@ import { validateComment } from "../../validation/comment";
 import { getFieldError } from "../../utils/validation";
 
 import { useProgramComments } from "../../context/ProgramCommentContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 type ProgramCommentsProps = {
     programId: string;
@@ -22,9 +24,15 @@ type ProgramCommentsProps = {
  * Список + форма снизу — тот же паттерн, что и ComplexComments.
  * Обсуждение живёт отдельно от структуры версии (п.19 документа):
  * этот компонент ничего не знает про ProgramStructureEditor.
+ *
+ * Страницу программы видят и гости (см. handle.guest в
+ * app/router.tsx): им комментарии доступны для чтения, а вместо формы
+ * показывается "Войдите, чтобы оставить комментарий".
  */
 export default function ProgramComments({ programId }: ProgramCommentsProps) {
     const { comments, refreshComments, addComment } = useProgramComments();
+    const { user } = useAuth();
+    const location = useLocation();
 
     useEffect(() => {
         refreshComments(programId).catch((error: unknown) => {
@@ -102,27 +110,43 @@ export default function ProgramComments({ programId }: ProgramCommentsProps) {
                 )
             }
 
-            <form
-                className="program-comments__form"
-                onSubmit={handleSubmit}
-            >
-                <Textarea
-                    id={textareaId}
-                    label="Оставить комментарий"
-                    placeholder="Вопрос автору, предложение, замечание…"
-                    value={text}
-                    onChange={(event) => {
-                        setText(event.target.value);
-                        setErrors([]);
-                    }}
-                    error={getFieldError(errors, "text")}
-                    rows={3}
-                />
+            {
+                user ? (
+                    <form
+                        className="program-comments__form"
+                        onSubmit={handleSubmit}
+                    >
+                        <Textarea
+                            id={textareaId}
+                            label="Оставить комментарий"
+                            placeholder="Вопрос автору, предложение, замечание…"
+                            value={text}
+                            onChange={(event) => {
+                                setText(event.target.value);
+                                setErrors([]);
+                            }}
+                            error={getFieldError(errors, "text")}
+                            rows={3}
+                        />
 
-                <Button type="submit">
-                    Отправить
-                </Button>
-            </form>
+                        <Button type="submit">
+                            Отправить
+                        </Button>
+                    </form>
+                ) : (
+                    <p className="program-comments__login-hint">
+                        <Link
+                            to="/login"
+                            state={{
+                                from: location.pathname + location.search,
+                            }}
+                        >
+                            Войдите
+                        </Link>
+                        , чтобы оставить комментарий.
+                    </p>
+                )
+            }
         </InfoSection>
     );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import InfoSection from "../ui/InfoSection/InfoSection";
 import Textarea from "../ui/Textarea/Textarea";
@@ -13,6 +14,7 @@ import { validateComment } from "../../validation/comment";
 import { getFieldError } from "../../utils/validation.ts";
 
 import { useComplexComments } from "../../context/ComplexCommentContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 type ComplexCommentsProps = {
     complexId: string;
@@ -21,13 +23,14 @@ type ComplexCommentsProps = {
 /**
  * Комментарии под комплексом — тот же паттерн, что и в дневнике
  * (DiaryComments): список + форма снизу, без отдельной страницы.
- * Раздел "Комплексы" целиком под ProtectedLayout (см. app/router.tsx),
- * так что к моменту, когда этот компонент вообще монтируется,
- * пользователь уже точно авторизован — отдельный "войдите, чтобы
- * оставить комментарий" тут не нужен.
+ * Страницу комплекса видят и гости (см. handle.guest в
+ * app/router.tsx): им комментарии доступны для чтения, а вместо формы
+ * показывается "Войдите, чтобы оставить комментарий".
  */
 export default function ComplexComments({ complexId }: ComplexCommentsProps) {
     const { comments, refreshComments, addComment } = useComplexComments();
+    const { user } = useAuth();
+    const location = useLocation();
 
     useEffect(() => {
         refreshComments(complexId).catch((error: unknown) => {
@@ -105,27 +108,43 @@ export default function ComplexComments({ complexId }: ComplexCommentsProps) {
                 )
             }
 
-            <form
-                className="complex-comments__form"
-                onSubmit={handleSubmit}
-            >
-                <Textarea
-                    id={textareaId}
-                    label="Оставить комментарий"
-                    placeholder="Что думаешь об этой схеме?"
-                    value={text}
-                    onChange={(event) => {
-                        setText(event.target.value);
-                        setErrors([]);
-                    }}
-                    error={getFieldError(errors, "text")}
-                    rows={3}
-                />
+            {
+                user ? (
+                    <form
+                        className="complex-comments__form"
+                        onSubmit={handleSubmit}
+                    >
+                        <Textarea
+                            id={textareaId}
+                            label="Оставить комментарий"
+                            placeholder="Что думаешь об этой схеме?"
+                            value={text}
+                            onChange={(event) => {
+                                setText(event.target.value);
+                                setErrors([]);
+                            }}
+                            error={getFieldError(errors, "text")}
+                            rows={3}
+                        />
 
-                <Button type="submit">
-                    Отправить
-                </Button>
-            </form>
+                        <Button type="submit">
+                            Отправить
+                        </Button>
+                    </form>
+                ) : (
+                    <p className="complex-comments__login-hint">
+                        <Link
+                            to="/login"
+                            state={{
+                                from: location.pathname + location.search,
+                            }}
+                        >
+                            Войдите
+                        </Link>
+                        , чтобы оставить комментарий.
+                    </p>
+                )
+            }
         </InfoSection>
     );
 }

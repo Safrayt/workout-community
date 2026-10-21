@@ -17,8 +17,14 @@ import {
 } from "../api/social";
 
 import {
-    useCurrentUser,
+    useAuth,
 } from "./CurrentUserContext";
+
+import { useLoginRedirect } from "../hooks/useLoginRedirect";
+
+import {
+    usePlaygrounds,
+} from "./PlaygroundContext";
 
 import {
     isPlaygroundFavorited,
@@ -64,15 +70,32 @@ export function FavoriteProvider({
     ] = useState<PlaygroundFavorite[]>([]);
 
 
+    // Страницу площадки видят и гости, у которых избранного нет:
+    // сервер отдаёт его только вошедшему (GET /favorites), так что
+    // гостю не загружаем (иначе пустая 401-ошибка в консоли), а
+    // попытка добавить в избранное ведёт на вход.
     const {
-        currentUser,
-    } = useCurrentUser();
+        user,
+    } = useAuth();
+
+    const goToLogin = useLoginRedirect();
+
+    // Счётчик "подписчиков" площадки считает сервер (favoritesCount),
+    // поэтому после каждого добавления/удаления перечитываем площадку —
+    // иначе число на странице обновилось бы только после перезагрузки.
+    const {
+        refreshPlayground,
+    } = usePlaygrounds();
 
     const currentUserId =
-        currentUser.id;
+        user?.id;
 
 
     useEffect(() => {
+        if (currentUserId === undefined) {
+            return;
+        }
+
         listFavorites()
             .then(setFavorites)
             .catch((error: unknown) => {
@@ -81,12 +104,18 @@ export function FavoriteProvider({
                     error
                 );
             });
-    }, []);
+    }, [currentUserId]);
 
 
     async function addFavorite(
         playgroundId: string
     ) {
+        if (currentUserId === undefined) {
+            goToLogin();
+
+            return;
+        }
+
         if (
             isPlaygroundFavorited(
                 favorites,
@@ -106,6 +135,8 @@ export function FavoriteProvider({
                 newFavorite,
             ]
         );
+
+        await refreshPlayground(playgroundId);
     }
 
 
@@ -113,6 +144,10 @@ export function FavoriteProvider({
     async function removeFavorite(
         playgroundId: string
     ) {
+        if (currentUserId === undefined) {
+            return;
+        }
+
         await removeFavoritePlayground(playgroundId);
 
         setFavorites(
@@ -125,6 +160,8 @@ export function FavoriteProvider({
                         )
                 )
         );
+
+        await refreshPlayground(playgroundId);
     }
 
 
@@ -132,6 +169,12 @@ export function FavoriteProvider({
     async function toggleFavorite(
         playgroundId: string
     ) {
+        if (currentUserId === undefined) {
+            goToLogin();
+
+            return;
+        }
+
         if (
             isPlaygroundFavorited(
                 favorites,
@@ -152,6 +195,10 @@ export function FavoriteProvider({
     function checkFavorite(
         playgroundId: string
     ) {
+        if (currentUserId === undefined) {
+            return false;
+        }
+
         return isPlaygroundFavorited(
             favorites,
             currentUserId,

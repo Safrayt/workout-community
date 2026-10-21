@@ -1,4 +1,5 @@
-import { Navigate, useLocation } from "react-router-dom";
+import type { ComponentType, ReactNode } from "react";
+import { Navigate, useLocation, useMatches } from "react-router-dom";
 
 import Layout from "../components/layout/Layout";
 
@@ -22,6 +23,11 @@ import { SubscriptionProvider } from "../context/SubscriptionContext";
 import { CommentProvider } from "../context/CommentContext";
 import { UserDirectoryProvider } from "../context/UserDirectoryContext";
 
+import {
+    getGuestProviderGroups,
+    type GuestProviderGroup,
+} from "./guestAccess";
+
 /**
  * Всё содержимое приложения, кроме /login и /register, монтируется
  * только здесь — под гарантией, что currentUser не null. Именно
@@ -32,17 +38,84 @@ import { UserDirectoryProvider } from "../context/UserDirectoryContext";
  * пользователя ещё нет.
  */
 /**
- * Пути, доступные без входа в систему. Сейчас это только карта и
- * список площадок — единственная страница, для которой это явно
- * попросили; бэкенд для GET /playgrounds и без токена отдаёт данные
- * (см. routers/playgrounds.py). Всё остальное (детали площадки,
- * добавление, редактирование и т.д.) по-прежнему требует входа.
+ * Провайдеры, которые монтируются гостю на публичных страницах (см.
+ * handle.guest в router.tsx и guestAccess.ts). Порядок внутри группы —
+ * порядок вложенности: RegistrationProvider читает EventProvider, так
+ * что внутри него. Одинаковые провайдеры из разных групп монтируются
+ * один раз (см. GuestProviders).
+ *
+ * Публичные страницы — площадки, события, упражнения и статьи; бэкенд
+ * отдаёт их GET-запросы и без токена (см. test_public_access.py).
+ * Создание, редактирование, дневник, профили и т.д. по-прежнему
+ * требуют входа. Всё, что в этих группах зависит от пользователя
+ * (регистрация на событие, комментарии, кнопки админа), учитывает,
+ * что его может не быть.
  */
-const PUBLIC_PATHS = ["/playgrounds"];
+type GuestProvider = ComponentType<{ children: ReactNode }>;
+
+const GUEST_PROVIDERS: Record<GuestProviderGroup, GuestProvider[]> = {
+    playgrounds: [PlaygroundProvider],
+    // Страница конкретной площадки: события и регистрации (блок
+    // "Ближайшие мероприятия"), дневник (счётчики активности — общая
+    // лента, которую бэкенд и так фильтрует по приватности), избранное
+    // и отзывы. Избранное у гостя не загружается (см. FavoriteContext).
+    playground: [
+        UserDirectoryProvider,
+        PlaygroundProvider,
+        EventProvider,
+        RegistrationProvider,
+        FavoriteProvider,
+        WorkoutDiaryProvider,
+        ReviewProvider,
+    ],
+    exercises: [ExerciseProvider],
+    events: [
+        UserDirectoryProvider,
+        PlaygroundProvider,
+        EventProvider,
+        RegistrationProvider,
+        EventCommentProvider,
+    ],
+    // Комплексы и программы: каталог грузится публичным запросом.
+    // Страница одного комплекса/программы добавляет комментарии и
+    // каталог пользователей (имена авторов). Личное — история
+    // выполнений комплекса, избранное, черновики — гостю не
+    // загружается (см. ComplexDetails и ProgramDetails).
+    complexes: [ComplexProvider],
+    complex: [
+        UserDirectoryProvider,
+        ComplexProvider,
+        ComplexCommentProvider,
+    ],
+    programs: [ProgramProvider],
+    program: [
+        UserDirectoryProvider,
+        ProgramProvider,
+        ProgramCommentProvider,
+    ],
+};
+
+function GuestProviders({
+    groups,
+    children,
+}: {
+    groups: GuestProviderGroup[];
+    children: ReactNode;
+}) {
+    const providers = [
+        ...new Set(groups.flatMap((group) => GUEST_PROVIDERS[group])),
+    ];
+
+    return providers.reduceRight<ReactNode>(
+        (inner, Provider) => <Provider>{inner}</Provider>,
+        children
+    );
+}
 
 export default function ProtectedLayout() {
     const { user, isLoading } = useAuth();
     const location = useLocation();
+    const matches = useMatches();
 
     if (isLoading) {
         return (
@@ -53,16 +126,17 @@ export default function ProtectedLayout() {
     }
 
     if (!user) {
-        if (PUBLIC_PATHS.includes(location.pathname)) {
-            // Гостю показываем карту площадок в обычном макете
-            // (шапка/навигация не зависят от текущего пользователя),
-            // но без остальных провайдеров — они рассчитаны на
-            // вошедшего пользователя и здесь не нужны: сама
-            // страница Playgrounds использует только usePlaygrounds().
+        const guestGroups = getGuestProviderGroups(matches);
+
+        if (guestGroups) {
+            // Публичная страница: показываем её гостю в обычном
+            // макете (шапка/навигация от пользователя не зависят),
+            // но только с теми провайдерами, которые ей нужны, —
+            // остальные рассчитаны на вошедшего пользователя.
             return (
-                <PlaygroundProvider>
+                <GuestProviders groups={guestGroups}>
                     <Layout />
-                </PlaygroundProvider>
+                </GuestProviders>
             );
         }
 

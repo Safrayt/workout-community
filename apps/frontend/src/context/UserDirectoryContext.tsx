@@ -11,7 +11,7 @@ import type { User } from "../types/user";
 
 import { listUsers } from "../api/users";
 
-import { useCurrentUser } from "./CurrentUserContext";
+import { useAuth } from "./CurrentUserContext";
 
 type UserDirectoryContextType = {
     users: User[];
@@ -34,7 +34,9 @@ export function UserDirectoryProvider({
     const [fetchedUsers, setFetchedUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { currentUser } = useCurrentUser();
+    // Каталог нужен и гостям (имена авторов комментариев, организаторов
+    // событий), поэтому текущего пользователя может не быть.
+    const { user: currentUser } = useAuth();
 
     useEffect(() => {
         listUsers()
@@ -56,7 +58,9 @@ export function UserDirectoryProvider({
     const users = useMemo<User[]>(
         () =>
             fetchedUsers.map((user) =>
-                user.id === currentUser.id ? currentUser : user
+                currentUser && user.id === currentUser.id
+                    ? currentUser
+                    : user
             ),
         [fetchedUsers, currentUser]
     );

@@ -5,6 +5,9 @@ import "../../styles/components/playground-inspection.css";
 import type { Playground } from "../../types/playground";
 
 import { usePlaygrounds } from "../../context/PlaygroundContext";
+import { useAuth } from "../../context/CurrentUserContext";
+
+import { useLoginRedirect } from "../../hooks/useLoginRedirect";
 
 import { formatDate } from "../../utils/formatDate";
 import { getInspectionStatus } from "../../utils/playgroundInspection";
@@ -79,6 +82,8 @@ export default function PlaygroundInspectionPrompt({
     onEdit,
 }: Props) {
     const { confirmPlaygroundInspection } = usePlaygrounds();
+    const { user } = useAuth();
+    const goToLogin = useLoginRedirect();
 
     const status = getInspectionStatus(playground);
 
@@ -89,6 +94,14 @@ export default function PlaygroundInspectionPrompt({
     }
 
     function handleConfirm() {
+        // Подтверждать актуальность может только вошедший; гостю без
+        // этого кнопка молча ничего бы не делала (сервер ответит 401).
+        if (!user) {
+            goToLogin();
+
+            return;
+        }
+
         confirmPlaygroundInspection(playground.id).catch(
             (error: unknown) => {
                 console.error(

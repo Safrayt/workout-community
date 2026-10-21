@@ -17,8 +17,10 @@ import {
 } from "../api/events";
 
 import {
-    useCurrentUser,
+    useAuth,
 } from "./CurrentUserContext";
+
+import { useLoginRedirect } from "../hooks/useLoginRedirect";
 
 import {
     useEvents,
@@ -63,12 +65,17 @@ export function RegistrationProvider({
         setRegistrations,
     ] = useState<EventRegistration[]>([]);
 
+    // Гость тоже видит события и число участников, поэтому
+    // пользователя может не быть: тогда он ни на что не записан, а
+    // попытка записаться ведёт на вход (см. register ниже).
     const {
-        currentUser,
-    } = useCurrentUser();
+        user,
+    } = useAuth();
+
+    const goToLogin = useLoginRedirect();
 
     const currentUserId =
-        currentUser.id;
+        user?.id;
 
     // refreshEvents живёт в EventContext — после регистрации/отмены
     // expectedParticipants на мероприятии (он считается на бэкенде
@@ -92,6 +99,16 @@ export function RegistrationProvider({
     async function register(
         eventId: string
     ) {
+        // Гость нажал "Записаться": отправляем на вход и после него
+        // возвращаем на ту же страницу (Login читает state.from). Само
+        // действие не выполняем — человек сначала должен войти и
+        // осознанно нажать ещё раз.
+        if (currentUserId === undefined) {
+            goToLogin();
+
+            return;
+        }
+
         if (
             isUserRegistered(
                 registrations,
@@ -126,6 +143,10 @@ export function RegistrationProvider({
     async function cancel(
         eventId: string
     ) {
+        if (currentUserId === undefined) {
+            return;
+        }
+
         await cancelEventRegistration(eventId);
 
         // Бэкенд не удаляет регистрацию, а помечает её status:
@@ -151,6 +172,10 @@ export function RegistrationProvider({
     function checkRegistration(
         eventId: string
     ) {
+        if (currentUserId === undefined) {
+            return false;
+        }
+
         return isUserRegistered(
             registrations,
             currentUserId,

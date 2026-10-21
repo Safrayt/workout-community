@@ -136,4 +136,11 @@ export type Playground = {
     updatedAt: string;
 
     history: PlaygroundHistoryEntry[];
+
+    /**
+     * Сколько пользователей добавили площадку в избранное
+     * ("подписчики"). Считает сервер: из личного списка избранного
+     * (useFavorites) его не получить — там только свои площадки.
+     */
+    favoritesCount: number;
 };

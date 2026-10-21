@@ -6,6 +6,7 @@ import Switch from "../../components/ui/Switch/Switch";
 import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import SecuritySettings from "../../components/SecuritySettings/SecuritySettings";
+import DeleteAccountSection from "../../components/DeleteAccountSection/DeleteAccountSection";
 
 import "../../styles/components/account-settings.css";
 
@@ -19,8 +20,8 @@ import { downloadDiaryExport } from "../../api/diary";
 
 /**
  * /profile/settings — приватность отдельных разделов публичного
- * профиля, безопасность (пароль и ключ восстановления) и экспорт
- * данных. Каждый переключатель отвечает за то, видит
+ * профиля, безопасность (пароль и ключ восстановления), экспорт
+ * данных и удаление аккаунта ("Опасная зона" — в самом низу). Каждый переключатель отвечает за то, видит
  * ли посторонний пользователь этот раздел на /u/:username; сам
  * владелец свои разделы видит всегда, независимо от этих настроек.
  */
@@ -133,6 +134,11 @@ export default function AccountSettings() {
                 >
                     {isExporting ? "Готовим архив…" : "Скачать записи"}
                 </Button>
+
+                <DeleteAccountSection
+                    onExport={handleExport}
+                    isExporting={isExporting}
+                />
             </div>
 
             <ActionGroup>

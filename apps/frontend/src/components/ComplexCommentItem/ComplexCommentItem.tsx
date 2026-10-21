@@ -12,7 +12,7 @@ import { getFieldError } from "../../utils/validation.ts";
 import type { ComplexComment } from "../../types/complexComment";
 
 import { useComplexComments } from "../../context/ComplexCommentContext";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 import { useUserDirectory } from "../../hooks/useUserDirectory";
 
@@ -34,13 +34,13 @@ type Props = {
  */
 export default function ComplexCommentItem({ comment, onReply }: Props) {
     const { updateComment, deleteComment } = useComplexComments();
-    const { currentUser } = useCurrentUser();
+    const { user } = useAuth();
 
     const { getUserById } = useUserDirectory();
 
     const author = getUserById(comment.userId);
 
-    const isOwnComment = comment.userId === currentUser.id;
+    const isOwnComment = user !== null && comment.userId === user.id;
 
     const [isEditing, setIsEditing] = useState(false);
 
@@ -164,7 +164,7 @@ export default function ComplexCommentItem({ comment, onReply }: Props) {
                                             Удалить
                                         </button>
                                     </div>
-                                ) : (
+                                ) : user ? (
                                     <div className="complex-comments__owner-actions">
                                         <button
                                             type="button"
@@ -178,7 +178,7 @@ export default function ComplexCommentItem({ comment, onReply }: Props) {
                                             Ответить
                                         </button>
                                     </div>
-                                )
+                                ) : null
                             }
                         </>
                     )

@@ -124,7 +124,13 @@ export default function ExerciseFilters({
                             type="button"
                             variant="outline"
                             onClick={() =>
-                                onChange({ movementTypes: [], muscles: [] })
+                                // Строку поиска не трогаем: она вне
+                                // панели фильтров и сбрасывается сама.
+                                onChange({
+                                    ...filters,
+                                    movementTypes: [],
+                                    muscles: [],
+                                })
                             }
                         >
                             Сбросить фильтры

@@ -21,7 +21,7 @@ import {
 } from "../../context/PlaygroundContext";
 
 import {
-    useCurrentUser,
+    useAuth,
 } from "../../context/CurrentUserContext";
 
 import {
@@ -35,10 +35,6 @@ import {
 import {
     useWorkoutDiary,
 } from "../../context/WorkoutDiaryContext";
-
-import {
-    useFavorites,
-} from "../../context/FavoriteContext";
 
 import {
     getPlaygroundById,
@@ -59,9 +55,10 @@ export default function PlaygroundDetails() {
         deletePlayground,
     } = usePlaygrounds();
 
+    // Страницу площадки видят и гости — пользователя может не быть.
     const {
-        currentUser,
-    } = useCurrentUser();
+        user,
+    } = useAuth();
 
     const {
         events,
@@ -74,10 +71,6 @@ export default function PlaygroundDetails() {
     const {
         entries: workoutEntries,
     } = useWorkoutDiary();
-
-    const {
-        favorites,
-    } = useFavorites();
 
     const playground =
         id
@@ -108,7 +101,8 @@ export default function PlaygroundDetails() {
         );
 
     const isOwner =
-        playground.creatorId === currentUser.id || currentUser.isAdmin;
+        user !== null &&
+        (playground.creatorId === user.id || user.isAdmin);
 
     async function handleDelete() {
         if (!playground) {
@@ -228,7 +222,7 @@ export default function PlaygroundDetails() {
                 playgroundId={playground.id}
                 events={playgroundEvents}
                 workoutEntries={workoutEntries}
-                favorites={favorites}
+                subscribersCount={playground.favoritesCount}
             />
 
         </div>

@@ -10,7 +10,7 @@ import {
 } from "../../context/EventContext";
 
 import {
-    useCurrentUser,
+    useAuth,
 } from "../../context/CurrentUserContext";
 
 import { getPlaygroundById } from "../../utils/playgrounds";
@@ -56,9 +56,10 @@ export default function EventDetails() {
         deleteEvent,
     } = useEvents();
 
+    // Страницу событий видят и гости — пользователя может не быть.
     const {
-        currentUser,
-    } = useCurrentUser();
+        user,
+    } = useAuth();
 
     const {
         playgrounds,
@@ -83,7 +84,8 @@ export default function EventDetails() {
     }
 
     const isOwner =
-        event.creatorId === currentUser.id || currentUser.isAdmin;
+        user !== null &&
+        (event.creatorId === user.id || user.isAdmin);
 
     const isUpcoming =
         getEventStatus(event) === "upcoming";

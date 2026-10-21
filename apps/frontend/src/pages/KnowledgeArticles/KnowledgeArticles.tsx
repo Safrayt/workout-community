@@ -12,7 +12,7 @@ import "../../styles/components/article-list.css";
 
 import { listArticles, listArticleTags } from "../../api/articles";
 import { articleCategories } from "../../constants/articleCategories";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useAsyncResource } from "../../hooks/useAsyncResource";
 import {
     emptyArticleFilters,
@@ -46,7 +46,8 @@ const MODE_OPTIONS = [
  */
 export default function KnowledgeArticles() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { currentUser } = useCurrentUser();
+    // Страница открыта и гостям — они просто не админы.
+    const isAdmin = useIsAdmin();
 
     const topRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,7 @@ export default function KnowledgeArticles() {
 
     // Черновики видит только администратор; сервер проверяет это сам, а
     // здесь не даём обычному читателю "включить" их через адрес.
-    const showDrafts = currentUser.isAdmin && filters.drafts;
+    const showDrafts = isAdmin && filters.drafts;
 
     const list = useAsyncResource(
         JSON.stringify([
@@ -221,7 +222,7 @@ export default function KnowledgeArticles() {
                     </p>
 
                     <p className="articles-empty-state__description">
-                        {currentUser.isAdmin
+                        {isAdmin
                             ? showDrafts
                                 ? "Сохранённые черновики появятся здесь."
                                 : "Нажмите «Написать статью», чтобы добавить первую."
@@ -274,7 +275,7 @@ export default function KnowledgeArticles() {
 
     return (
         <Section title="Статьи">
-            {currentUser.isAdmin && (
+            {isAdmin && (
                 // Писать статьи может только администратор; сервер
                 // проверяет это сам (ensure_admin), здесь кнопки просто
                 // не показываем остальным.

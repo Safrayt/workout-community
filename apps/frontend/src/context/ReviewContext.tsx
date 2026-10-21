@@ -21,7 +21,7 @@ import {
 } from "../api/reviews";
 
 import {
-    useCurrentUser,
+    useAuth,
 } from "./CurrentUserContext";
 
 
@@ -69,9 +69,11 @@ export function ReviewProvider({
         setReviews,
     ] = useState<PlaygroundReview[]>([]);
 
+    // Отзывы читают и гости — пользователя может не быть (тогда
+    // править и удалять нечего).
     const {
-        currentUser,
-    } = useCurrentUser();
+        user: currentUser,
+    } = useAuth();
 
     async function refreshReviews(playgroundId: string) {
         const fetched = await listPlaygroundReviews(playgroundId);
@@ -110,6 +112,7 @@ export function ReviewProvider({
         );
 
         if (
+            !currentUser ||
             !existingReview ||
             existingReview.userId !== currentUser.id
         ) {
@@ -139,6 +142,7 @@ export function ReviewProvider({
         );
 
         if (
+            !currentUser ||
             !existingReview ||
             existingReview.userId !== currentUser.id
         ) {

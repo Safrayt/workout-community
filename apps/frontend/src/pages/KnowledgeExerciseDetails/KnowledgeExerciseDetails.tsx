@@ -9,7 +9,7 @@ import ViewSwitch from "../../components/ViewSwitch/ViewSwitch";
 
 import "../../styles/components/exercise-details.css";
 
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useExercises } from "../../context/ExerciseContext";
 import {
     movementTypeColors,
@@ -69,7 +69,8 @@ export default function KnowledgeExerciseDetails() {
     const { id } = useParams();
     const location = useLocation();
 
-    const { currentUser } = useCurrentUser();
+    // Страница открыта и гостям — они просто не админы.
+    const isAdmin = useIsAdmin();
     const { getExerciseById, isLoading } = useExercises();
 
     const exercise = id ? getExerciseById(id) : undefined;
@@ -155,7 +156,7 @@ export default function KnowledgeExerciseDetails() {
                 <p className="exercise-details__back-row">{backLink}</p>
 
                 {
-                    currentUser.isAdmin && (
+                    isAdmin && (
                         <Link to={`/knowledge/exercises/${exercise.id}/edit`}>
                             <Button type="button" variant="outline">
                                 Редактировать

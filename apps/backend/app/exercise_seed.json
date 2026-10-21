@@ -407,7 +407,8 @@
     "name_en": null,
     "movement_type": "crunch",
     "target_muscles": [
-      "abs"
+      "abs",
+      "iliacus"
     ],
     "auxiliary_muscles": [
       "forearms",
@@ -468,7 +469,8 @@
     ],
     "auxiliary_muscles": [
       "forearms",
-      "lats"
+      "lats",
+      "iliacus"
     ],
     "equipment": [
       "Турник"
@@ -560,6 +562,7 @@
       "hamstrings",
       "calves",
       "abs",
+      "iliacus",
       "spinalErectors"
     ],
     "equipment": [

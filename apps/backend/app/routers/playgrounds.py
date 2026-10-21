@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.auth import ensure_owner_or_admin, get_current_user
@@ -76,17 +77,54 @@ def _ensure_is_owner(playground: Playground, current_user: User) -> None:
     )
 
 
+def _count_favorites(
+    session: Session,
+    playground_ids: list[int],
+) -> dict[int, int]:
+    """
+    Сколько пользователей добавили в избранное каждую из площадок —
+    одним сгруппированным запросом (для списка площадок иначе вышел
+    бы лишний запрос на каждую). Считаем уникальных пользователей, а
+    не строки: если в таблице когда-нибудь окажется дубль, человек
+    всё равно один. Площадок без избранного в словаре нет.
+    """
+    if not playground_ids:
+        return {}
+
+    rows = session.exec(
+        select(
+            PlaygroundFavorite.playground_id,
+            func.count(func.distinct(PlaygroundFavorite.user_id)),
+        )
+        .where(PlaygroundFavorite.playground_id.in_(playground_ids))
+        .group_by(PlaygroundFavorite.playground_id)
+    ).all()
+
+    return {playground_id: count for playground_id, count in rows}
+
+
 def _to_playground_read(
     playground: Playground,
     session: Session,
+    favorites_count: Optional[int] = None,
 ) -> PlaygroundRead:
     """
     Собирает PlaygroundRead вручную (а не отдаёт ORM-объект как есть),
     потому что history требует username — а он не хранится в таблице
     PlaygroundHistoryEntry, только user_id (та же идея, что и с
     expected_participants в EventRead: подставляем вычисляемое поле
-    на чтении, а не храним дублирующиеся данные в базе).
+    на чтении, а не храним дублирующиеся данные в базе). То же самое
+    с favorites_count.
+
+    favorites_count можно передать готовым (список площадок считает
+    его для всех сразу, см. list_playgrounds); если не передан —
+    считается здесь, по одной площадке.
     """
+    if favorites_count is None:
+        favorites_count = _count_favorites(
+            session, [playground.id]
+        ).get(playground.id, 0)
+
     history_reads = []
 
     for entry in sorted(playground.history, key=lambda e: e.date):
@@ -106,6 +144,7 @@ def _to_playground_read(
         **playground.model_dump(),
         photos=playground.photos,
         history=history_reads,
+        favorites_count=favorites_count,
     )
 
 
@@ -228,7 +267,16 @@ def list_playgrounds(
     """Возвращает список всех площадок. Доступно без авторизации."""
     playgrounds = session.exec(select(Playground)).all()
 
-    return [_to_playground_read(pg, session) for pg in playgrounds]
+    favorites_counts = _count_favorites(
+        session, [pg.id for pg in playgrounds]
+    )
+
+    return [
+        _to_playground_read(
+            pg, session, favorites_count=favorites_counts.get(pg.id, 0)
+        )
+        for pg in playgrounds
+    ]
 
 
 @router.get("/{playground_id}", response_model=PlaygroundRead)

@@ -19,13 +19,17 @@ import {
 import type { Program, ProgramVersion, ProgramVersionSummary } from "../../types/program";
 
 import { usePrograms } from "../../context/ProgramContext";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useAuth } from "../../context/CurrentUserContext";
+
+import { useLoginRedirect } from "../../hooks/useLoginRedirect";
 
 import { programDifficultyLabels } from "../../constants/programTypes";
 
 export default function ProgramDetails() {
     const { id } = useParams();
-    const { currentUser } = useCurrentUser();
+    // Страницу программы видят и гости — пользователя может не быть.
+    const { user } = useAuth();
+    const goToLogin = useLoginRedirect();
     const { toggleFavorite } = usePrograms();
 
     const [program, setProgram] = useState<Program | undefined>(undefined);
@@ -87,6 +91,15 @@ export default function ProgramDetails() {
     async function handleToggleFavorite() {
         if (!program) return;
 
+        // Избранное — личное: гостя ведём на вход (и возвращаем сюда).
+        // Проверка здесь, а не в toggleFavorite: иначе после "успешного"
+        // вызова страница всё равно переключила бы кнопку.
+        if (!user) {
+            goToLogin();
+
+            return;
+        }
+
         try {
             await toggleFavorite(program);
 
@@ -115,8 +128,8 @@ export default function ProgramDetails() {
         );
     }
 
-    const isAuthor = program.authorId === currentUser.id;
-    const canManage = isAuthor || currentUser.isAdmin;
+    const isAuthor = user !== null && program.authorId === user.id;
+    const canManage = isAuthor || user?.isAdmin === true;
 
     return (
         <div className="program-details">

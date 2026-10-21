@@ -51,6 +51,72 @@
     font-size: var(--font-size-sm);
 }
 
+/* ===== Поиск и кнопка "Скрыть фильтры" ===== */
+
+.exercises-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+
+    margin: var(--space-3) 0;
+}
+
+.exercises-search__field {
+    position: relative;
+
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.exercises-search__field .input__field {
+    width: 100%;
+    box-sizing: border-box;
+
+    /* справа место под кнопку очистки */
+    padding-right: calc(var(--space-3) + 28px);
+}
+
+/* Свою кнопку "×" показываем всегда и везде одинаково, а встроенную
+   (есть только в Chrome/Safari) прячем, чтобы крестиков не стало два. */
+.exercises-search__field input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+}
+
+.exercises-search__clear {
+    position: absolute;
+    top: 50%;
+    right: var(--space-2);
+    transform: translateY(-50%);
+
+    width: 28px;
+    height: 28px;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.exercises-search__clear:hover {
+    background: var(--color-background);
+    color: var(--color-text);
+}
+
+.exercises-search__clear:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+.exercises-search__toggle {
+    flex: 0 0 auto;
+}
+
 /* ===== Список ===== */
 
 .exercises-list {

@@ -14,7 +14,7 @@ import {
     updateComplexComment as apiUpdateComplexComment,
 } from "../api/complexes";
 
-import { useCurrentUser } from "./CurrentUserContext";
+import { useAuth } from "./CurrentUserContext";
 
 type ComplexCommentContextType = {
     /**
@@ -52,7 +52,9 @@ export function ComplexCommentProvider({
 }) {
     const [comments, setComments] = useState<ComplexComment[]>([]);
 
-    const { currentUser } = useCurrentUser();
+    // Комментарии читают и гости — пользователя может не быть (тогда
+    // чужие и "свои" комментарии править/удалять нечем).
+    const { user: currentUser } = useAuth();
 
     async function refreshComments(complexId: string) {
         const fetched = await listComplexComments(complexId);
@@ -82,7 +84,11 @@ export function ComplexCommentProvider({
 
         // На бэкенде это и так под запретом (403) даже для админа —
         // здесь просто не даём отправить заведомо обречённый запрос.
-        if (!existingComment || existingComment.userId !== currentUser.id) {
+        if (
+            !currentUser ||
+            !existingComment ||
+            existingComment.userId !== currentUser.id
+        ) {
             return undefined;
         }
 
@@ -102,7 +108,11 @@ export function ComplexCommentProvider({
             (comment) => comment.id === id
         );
 
-        if (!existingComment || existingComment.userId !== currentUser.id) {
+        if (
+            !currentUser ||
+            !existingComment ||
+            existingComment.userId !== currentUser.id
+        ) {
             return;
         }
 

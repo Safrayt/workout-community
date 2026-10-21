@@ -9,7 +9,7 @@ import ComplexTypeFilter from "../../components/ComplexTypeFilter/ComplexTypeFil
 import "../../styles/components/complexes-page.css";
 
 import { useComplexes } from "../../context/ComplexContext";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useAuth } from "../../context/CurrentUserContext";
 
 import {
     movementFilterOptions,
@@ -28,7 +28,10 @@ export default function Complexes() {
         loadCompletions,
     } = useComplexes();
 
-    const { currentUser } = useCurrentUser();
+    // Страница открыта и гостям: они не админы, а личного статуса
+    // (история выполнений, фильтр "Личный статус") у них нет.
+    const { user } = useAuth();
+    const isAdmin = user?.isAdmin === true;
 
     const [typeFilters, setTypeFilters] = useState<ComplexType[]>([]);
     const [movementFilter, setMovementFilter] = useState<MovementType | "">("");
@@ -38,6 +41,13 @@ export default function Complexes() {
     // каждого комплекса каталога один раз, чтобы фильтр и карточки
     // сразу показывали актуальный результат.
     useEffect(() => {
+        // История выполнений личная (GET /complexes/{id}/completions
+        // только для вошедшего): гостю не запрашиваем — иначе по
+        // 401-ошибке на каждый комплекс каталога.
+        if (!user) {
+            return;
+        }
+
         complexes.forEach((complexDef) => {
             if (!completionsByComplex[complexDef.id]) {
                 loadCompletions(complexDef.id).catch((error: unknown) => {
@@ -49,7 +59,7 @@ export default function Complexes() {
             }
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [complexes]);
+    }, [complexes, user?.id]);
 
     const filteredComplexes = complexes.filter((complexDef) => {
         // Несколько выбранных тегов — по И: комплекс проходит, только
@@ -84,7 +94,7 @@ export default function Complexes() {
                 <h1 className="complexes-page__title">Комплексы</h1>
 
                 {
-                    currentUser.isAdmin && (
+                    isAdmin && (
                         <Link to="/complexes/create">
                             <Button type="button" variant="primary">
                                 Добавить комплекс
@@ -111,16 +121,20 @@ export default function Complexes() {
                     emptyOptionLabel="Все"
                 />
 
-                <Select
-                    id="complex-status-filter"
-                    label="Личный статус"
-                    value={statusFilter}
-                    onChange={(event) =>
-                        setStatusFilter(event.target.value as PersonalStatusFilter)
-                    }
-                    options={personalStatusFilterOptions}
-                    emptyOptionLabel="Все"
-                />
+                {
+                    user && (
+                        <Select
+                            id="complex-status-filter"
+                            label="Личный статус"
+                            value={statusFilter}
+                            onChange={(event) =>
+                                setStatusFilter(event.target.value as PersonalStatusFilter)
+                            }
+                            options={personalStatusFilterOptions}
+                            emptyOptionLabel="Все"
+                        />
+                    )
+                }
             </div>
 
             {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Section from "../../components/ui/Section/Section";
@@ -8,6 +8,7 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 
 import { useAuth } from "../../context/CurrentUserContext";
 import { ApiError } from "../../api/errors";
+import { clearAccountDeletedMark, wasAccountDeleted } from "../../api/token";
 
 import "../../styles/components/auth-form.css";
 
@@ -21,11 +22,27 @@ export default function Login() {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Приходим сюда сразу после удаления аккаунта (см.
+    // DeleteAccountSection) — подтверждаем, что всё получилось, иначе
+    // человек просто видит форму входа и не уверен, удалилось ли.
+    // Отметка одноразовая: читаем при первом рендере, стираем в
+    // эффекте (не в инициализаторе — тот в StrictMode вызывается
+    // дважды).
+    const [isAccountDeleted] = useState(wasAccountDeleted);
+
+    useEffect(() => {
+        clearAccountDeletedMark();
+    }, []);
+
     // Если ProtectedLayout перенаправил сюда с какой-то конкретной
     // страницы (см. state в <Navigate> там), после входа возвращаем
-    // человека именно туда, а не всегда на главную.
-    const redirectTo =
-        (location.state as { from?: string } | null)?.from ?? "/";
+    // человека именно туда, а не всегда на главную. Исключение — сразу
+    // после удаления аккаунта: старый "from" (настройки уже
+    // несуществующего аккаунта) не нужен, иначе вход под другим
+    // аккаунтом привёл бы человека в чужие настройки.
+    const redirectTo = isAccountDeleted
+        ? "/"
+        : ((location.state as { from?: string } | null)?.from ?? "/");
 
     async function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
@@ -55,6 +72,12 @@ export default function Login() {
     return (
         <div className="auth-page">
             <Section title="Вход">
+                {isAccountDeleted && (
+                    <p className="auth-form__success" role="status">
+                        Аккаунт удалён вместе со всеми данными.
+                    </p>
+                )}
+
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <Input
                         id="login-nickname"

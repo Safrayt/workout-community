@@ -171,6 +171,19 @@ class RecoveryKeyRegenerate(SQLModel):
     current_password: str
 
 
+class AccountDeletion(SQLModel):
+    """
+    Удаление собственного аккаунта: только по текущему паролю.
+    with_owned_content=True — согласие удалить заодно созданные
+    пользователем площадки, мероприятия и программы (общий контент
+    сообщества); без него при наличии такого контента сервер
+    ответит 409 и ничего не удалит.
+    """
+
+    password: str
+    with_owned_content: bool = False
+
+
 class AccountRecovery(SQLModel):
     """Сброс забытого пароля по ключу восстановления."""
 

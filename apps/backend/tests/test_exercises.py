@@ -12,6 +12,7 @@ from sqlmodel import select
 from conftest import auth_headers, register_user
 
 from app import files
+from app.database import _replace_removed_movement_types
 from app.models_exercise import (
     ExerciseDB,
     ExerciseWrite,
@@ -271,6 +272,140 @@ def test_text_fields_are_trimmed_and_cleaned(client, admin):
     assert created["target_muscles"] == ["lats"]
     assert created["equipment"] == ["Турник"]
     assert created["advantages"] == ["Первое", "Второе"]
+
+
+def test_every_movement_type_is_accepted(client, admin):
+    """Все типы движения из списка на странице упражнений создаются."""
+    movement_types = [
+        "pull",
+        "push",
+        "abduction",
+        "crunch",
+        "kneeDominant",
+        "hipDominant",
+        "ankleExtension",
+    ]
+
+    for index, movement_type in enumerate(movement_types):
+        response = client.post(
+            "/exercises/",
+            json={
+                **VALID_PAYLOAD,
+                "name": f"Упражнение {index}",
+                "movement_type": movement_type,
+            },
+            headers=admin,
+        )
+
+        assert response.status_code == 201, (movement_type, response.text)
+        assert response.json()["movement_type"] == movement_type
+
+
+def test_seed_classifies_knee_raises_as_crunches(client):
+    """Подъёмы коленей в висе в сиде — скручивания (тип "Сгибания бедра" убран)."""
+    by_id = {item["id"]: item for item in client.get("/exercises/").json()}
+
+    assert by_id["hanging-knee-raise"]["movement_type"] == "crunch"
+    assert by_id["hanging-knee-raise-twist"]["movement_type"] == "crunch"
+    assert by_id["crunches"]["movement_type"] == "crunch"
+
+
+def test_removed_movement_type_is_rejected(client, admin):
+    """Тип "Сгибания бедра" (hipFlexion) убран — новые упражнения с ним не создаются."""
+    response = client.post(
+        "/exercises/",
+        json={**VALID_PAYLOAD, "movement_type": "hipFlexion"},
+        headers=admin,
+    )
+
+    assert response.status_code == 422
+
+
+def test_startup_fix_moves_removed_movement_type_to_replacement(client, session):
+    """
+    В базах, где упражнению успели поставить убранный тип, на старте
+    он переводится на замену (database.REMOVED_MOVEMENT_TYPES) — иначе
+    интерфейс не находит подпись типа и страница упражнения падает.
+    """
+    session.connection().exec_driver_sql(
+        "UPDATE exercise SET movement_type = 'hipFlexion' "
+        "WHERE id = 'hanging-knee-raise'"
+    )
+    session.commit()
+
+    assert (
+        client.get("/exercises/hanging-knee-raise").json()["movement_type"]
+        == "hipFlexion"
+    )
+
+    # Как и при старте приложения (_run_migrations): отдельное
+    # соединение от движка, функция сама делает commit.
+    engine = session.get_bind()
+
+    with engine.connect() as connection:
+        changed = _replace_removed_movement_types(connection)
+
+    assert changed == 1
+    assert (
+        client.get("/exercises/hanging-knee-raise").json()["movement_type"]
+        == "crunch"
+    )
+
+    # Повторный запуск (а он происходит на каждом старте) ничего не меняет.
+    with engine.connect() as connection:
+        assert _replace_removed_movement_types(connection) == 0
+
+
+def test_iliacus_is_accepted_as_target_and_as_auxiliary_muscle(client, admin):
+    """Подвздошная мышца (iliacus) — полноценная мышечная группа."""
+    as_target = client.post(
+        "/exercises/",
+        json={
+            **VALID_PAYLOAD,
+            "name": "Сгибание бедра",
+            "target_muscles": ["abs", "iliacus"],
+            "auxiliary_muscles": ["forearms"],
+        },
+        headers=admin,
+    )
+    as_auxiliary = client.post(
+        "/exercises/",
+        json={
+            **VALID_PAYLOAD,
+            "name": "Удержание ноги",
+            "target_muscles": ["quads"],
+            "auxiliary_muscles": ["iliacus"],
+        },
+        headers=admin,
+    )
+
+    assert as_target.status_code == 201, as_target.text
+    assert as_target.json()["target_muscles"] == ["abs", "iliacus"]
+    assert as_auxiliary.status_code == 201, as_auxiliary.text
+    assert as_auxiliary.json()["auxiliary_muscles"] == ["iliacus"]
+
+
+def test_iliacus_cannot_be_both_target_and_auxiliary(client, admin):
+    response = client.post(
+        "/exercises/",
+        json={
+            **VALID_PAYLOAD,
+            "target_muscles": ["iliacus"],
+            "auxiliary_muscles": ["iliacus"],
+        },
+        headers=admin,
+    )
+
+    assert response.status_code == 422
+
+
+def test_seed_marks_iliacus_for_hip_flexion_exercises(client):
+    """Подъёмы коленей в висе — работа сгибателей бедра (см. exercise_seed.json)."""
+    by_id = {item["id"]: item for item in client.get("/exercises/").json()}
+
+    assert "iliacus" in by_id["hanging-knee-raise"]["target_muscles"]
+    assert "iliacus" in by_id["hanging-knee-raise-twist"]["auxiliary_muscles"]
+    assert "iliacus" in by_id["pistol-squat"]["auxiliary_muscles"]
 
 
 @pytest.mark.parametrize(

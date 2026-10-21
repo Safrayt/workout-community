@@ -13,7 +13,7 @@ import {
     articleCategoryColors,
     articleCategoryLabels,
 } from "../../constants/articleCategories";
-import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useAsyncResource } from "../../hooks/useAsyncResource";
 import { formatDate } from "../../utils/formatDate";
 
@@ -29,7 +29,8 @@ export default function KnowledgeArticleDetails() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const { currentUser } = useCurrentUser();
+    // Страница открыта и гостям — они просто не админы.
+    const isAdmin = useIsAdmin();
 
     const resource = useAsyncResource(`article:${id}`, () => getArticle(id));
 
@@ -117,7 +118,7 @@ export default function KnowledgeArticleDetails() {
             <div className="article-details__top-row">
                 <p className="article-details__back-row">{backLink}</p>
 
-                {currentUser.isAdmin && (
+                {isAdmin && (
                     <Link to={`/knowledge/articles/${article.id}/edit`}>
                         <Button type="button" variant="outline">
                             Редактировать

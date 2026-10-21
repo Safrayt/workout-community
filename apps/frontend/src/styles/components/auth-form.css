@@ -30,6 +30,12 @@
     margin: 0;
 }
 
+.auth-form__success {
+    color: var(--color-success);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--space-4);
+}
+
 .auth-form__checkbox {
     display: flex;
     align-items: flex-start;

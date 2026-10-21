@@ -13,6 +13,7 @@ from app.auth import (
 )
 from app.database import get_session
 from app.models import (
+    AccountDeletion,
     CurrentUserRead,
     PasswordChange,
     RecoveryKeyRegenerate,
@@ -158,6 +159,93 @@ def update_current_user(
     return _to_current_user_read(current_user)
 
 
+def _describe_owned_content(error: UserHasOwnedContentError) -> str:
+    """Человекочитаемый список: «площадки: A, B; мероприятия: C»."""
+    parts = []
+
+    if error.playgrounds:
+        parts.append(
+            "площадки: " + ", ".join(p.name for p in error.playgrounds)
+        )
+    if error.events:
+        parts.append(
+            "мероприятия: " + ", ".join(e.title for e in error.events)
+        )
+    if error.programs:
+        parts.append(
+            "программы: " + ", ".join(p.title for p in error.programs)
+        )
+
+    return "; ".join(parts)
+
+
+@router.post(
+    "/me/delete",
+    status_code=204,
+    dependencies=[Depends(_password_check_rate_limit)],
+)
+def delete_current_user(
+    data: AccountDeletion,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> None:
+    """
+    Удаление собственного аккаунта. Нужен текущий пароль — чтобы тот,
+    кто получил доступ к чужой открытой сессии, не мог уничтожить
+    аккаунт. Логика та же, что у админского удаления и консольного
+    delete_user.py (app/user_deletion.py): личные данные удаляются
+    всегда и необратимо.
+
+    Если у пользователя есть свои площадки/мероприятия/программы —
+    это общий контент сообщества, поэтому без with_owned_content=true
+    отвечаем 409 со списком и ничего не удаляем.
+
+    POST, а не DELETE: у DELETE-запросов тело нестандартно и часть
+    прокси/клиентов его отбрасывает, а пароль должен ехать именно в
+    теле, а не в адресной строке (попадёт в логи).
+    """
+    if not verify_password(data.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Неверный пароль")
+
+    # Последнего администратора не удаляем — иначе портал останется
+    # без модерации, а вернуть права можно будет только руками в БД.
+    if current_user.is_admin:
+        other_admin = session.exec(
+            select(User).where(
+                User.is_admin == True,  # noqa: E712
+                User.id != current_user.id,
+            )
+        ).first()
+
+        if other_admin is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Вы единственный администратор портала. Сначала "
+                    "назначьте другого администратора."
+                ),
+            )
+
+    try:
+        delete_user_completely(
+            current_user,
+            session,
+            with_owned_content=data.with_owned_content,
+        )
+    except UserHasOwnedContentError as error:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Вы создали контент, которым пользуются другие люди — "
+                f"{_describe_owned_content(error)}. Он будет удалён "
+                "вместе с аккаунтом."
+            ),
+        )
+    except HTTPException:
+        session.rollback()
+        raise
+
+
 @router.get("/", response_model=list[UserRead])
 def list_users(
     session: Session = Depends(get_session),
@@ -275,14 +363,12 @@ def admin_delete_user(
             target, session, with_owned_content=with_owned_content
         )
     except UserHasOwnedContentError as error:
-        playground_names = ", ".join(p.name for p in error.playgrounds)
-        event_names = ", ".join(e.title for e in error.events)
-        parts = [p for p in [playground_names, event_names] if p]
+        parts = [_describe_owned_content(error)]
 
         raise HTTPException(
             status_code=400,
             detail=(
-                "У пользователя есть свои площадки/мероприятия "
+                "У пользователя есть свои площадки/мероприятия/программы "
                 f"({'; '.join(parts)}) — это общий контент сообщества. "
                 "Повторите запрос с ?with_owned_content=true, чтобы "
                 "удалить их вместе с пользователем (необратимо), или "
