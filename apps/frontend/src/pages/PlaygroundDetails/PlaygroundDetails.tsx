@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import "../../styles/components/playground-header.css";
 
@@ -79,6 +81,18 @@ export default function PlaygroundDetails() {
                 id
             )
             : undefined;
+
+    // Заголовок вкладки и описание для поиска — по самой площадке.
+    usePageMeta(
+        playground?.name,
+        playground
+            ? makeDescription(
+                  `Площадка для воркаута${playground.locality ? `, ${playground.locality}` : ""}.`,
+                  playground.address,
+                  playground.description
+              )
+            : undefined
+    );
 
     if (!playground) {
 

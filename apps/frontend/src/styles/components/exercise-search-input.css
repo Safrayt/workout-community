@@ -1,0 +1,79 @@
+/* Поиск упражнения в базе упражнений с подсказками (форма комплекса). */
+.exercise-search {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.exercise-search__label {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.exercise-search__field {
+    position: relative;
+}
+
+.exercise-search__input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-3);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    font: inherit;
+}
+
+.exercise-search__input:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0;
+    border-color: var(--color-primary);
+}
+
+.exercise-search__suggestions {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
+    padding: var(--space-1);
+    list-style: none;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.exercise-search__option {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.exercise-search__option--active {
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+
+.exercise-search__option-meta {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.exercise-search__empty {
+    padding: var(--space-3);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}

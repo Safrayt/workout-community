@@ -1,0 +1,179 @@
+/* Схема комплекса: шаги с временем, итоги, пояснение (страница
+   комплекса и предпросмотр в форме). */
+.scheme-view {
+    padding: var(--space-4) var(--space-5);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+}
+
+.scheme-view__meta {
+    margin: 0;
+    padding-bottom: var(--space-4);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-view__block {
+    border-top: 1px solid var(--color-border);
+}
+
+.scheme-view__block + .scheme-view__block {
+    margin-top: 0;
+}
+
+.scheme-view__block-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+
+    padding: var(--space-4) 0 0;
+}
+
+.scheme-view__block-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 700;
+}
+
+.scheme-view__chip {
+    padding: 2px var(--space-3);
+
+    background: var(--color-background);
+    border-radius: 999px;
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scheme-view__block-rest {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-view__rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.scheme-view__item {
+    padding: var(--space-5) 0 0;
+}
+
+.scheme-view__item:last-child {
+    padding-bottom: var(--space-4);
+}
+
+/* Отдых между упражнениями — тонкая подпись между шагами. */
+.scheme-view__rest {
+    margin: 0 0 var(--space-3);
+    padding-left: calc(72px + var(--space-3));
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+}
+
+.scheme-view__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.scheme-view__number {
+    display: flex;
+    flex: 0 0 72px;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.scheme-view__number-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.scheme-view__range {
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.scheme-view__body {
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.scheme-view__name {
+    margin: 0;
+    font-weight: 700;
+}
+
+.scheme-view__link {
+    color: inherit;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+
+.scheme-view__link:hover,
+.scheme-view__link:focus-visible {
+    color: var(--color-primary);
+    text-decoration-style: solid;
+}
+
+.scheme-view__description {
+    margin: var(--space-1) 0 0;
+}
+
+.scheme-view__item-note {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-view__footer {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.scheme-view__total {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.scheme-view__timer-icon {
+    flex-shrink: 0;
+}
+
+.scheme-view__note {
+    margin: var(--space-3) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-view__total + .scheme-view__note {
+    margin-top: var(--space-3);
+}
+
+@media (max-width: 480px) {
+    .scheme-view {
+        padding: var(--space-3);
+    }
+
+    .scheme-view__number {
+        flex-basis: 56px;
+    }
+
+    .scheme-view__rest {
+        padding-left: calc(56px + var(--space-3));
+    }
+}

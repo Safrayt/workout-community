@@ -69,6 +69,8 @@ const GUEST_PROVIDERS: Record<GuestProviderGroup, GuestProvider[]> = {
         ReviewProvider,
     ],
     exercises: [ExerciseProvider],
+    // Страница упражнения показывает, в какие комплексы оно входит.
+    exercise: [ExerciseProvider, ComplexProvider],
     events: [
         UserDirectoryProvider,
         PlaygroundProvider,
@@ -82,8 +84,11 @@ const GUEST_PROVIDERS: Record<GuestProviderGroup, GuestProvider[]> = {
     // выполнений комплекса, избранное, черновики — гостю не
     // загружается (см. ComplexDetails и ProgramDetails).
     complexes: [ComplexProvider],
+    // Страница комплекса ссылается на его упражнения и складывает их
+    // мышцы, поэтому ей нужна и база упражнений.
     complex: [
         UserDirectoryProvider,
+        ExerciseProvider,
         ComplexProvider,
         ComplexCommentProvider,
     ],

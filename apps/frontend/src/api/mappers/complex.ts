@@ -3,12 +3,85 @@ import type {
     ComplexType,
     MetricType,
     MovementType,
-    StarCondition,
 } from "../../types/complex";
 import type { ComplexComment } from "../../types/complexComment";
 import type { ComplexCompletion } from "../../types/complexCompletion";
+import type { ComplexLeaderboard } from "../../types/complexLeaderboard";
+import type { SchemeBlock, SchemeItem } from "../../types/complexScheme";
 import type { NewComplex } from "../../types/newComplex";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
+
+// --- Схема ---------------------------------------------------------------
+
+export type ApiSchemeItem = {
+    exercise_id: string;
+    reps?: number | null;
+    max_effort?: boolean;
+    duration_seconds?: number | null;
+    reps_step?: number;
+    reps_limit?: number | null;
+    note?: string | null;
+};
+
+export type ApiSchemeBlock = {
+    title?: string | null;
+    rounds?: number | null;
+    rounds_kind?: "rounds" | "sets";
+    rest_between_items_seconds?: number | null;
+    rest_between_rounds_seconds?: number | null;
+    time_limit_seconds?: number | null;
+    items?: ApiSchemeItem[];
+};
+
+function mapApiSchemeItem(item: ApiSchemeItem): SchemeItem {
+    return {
+        exerciseId: item.exercise_id,
+        reps: item.reps ?? null,
+        maxEffort: item.max_effort ?? false,
+        durationSeconds: item.duration_seconds ?? null,
+        repsStep: item.reps_step ?? 0,
+        repsLimit: item.reps_limit ?? null,
+        note: item.note ?? null,
+    };
+}
+
+export function mapApiSchemeBlock(block: ApiSchemeBlock): SchemeBlock {
+    return {
+        title: block.title ?? null,
+        // null — осмысленное значение («сколько успеете»), поэтому
+        // подставляем 1 только когда поля нет вовсе.
+        rounds: block.rounds === undefined ? 1 : block.rounds,
+        roundsKind: block.rounds_kind ?? "rounds",
+        restBetweenItemsSeconds: block.rest_between_items_seconds ?? null,
+        restBetweenRoundsSeconds: block.rest_between_rounds_seconds ?? null,
+        timeLimitSeconds: block.time_limit_seconds ?? null,
+        items: (block.items ?? []).map(mapApiSchemeItem),
+    };
+}
+
+function mapSchemeItemToApi(item: SchemeItem): ApiSchemeItem {
+    return {
+        exercise_id: item.exerciseId,
+        reps: item.reps,
+        max_effort: item.maxEffort,
+        duration_seconds: item.durationSeconds,
+        reps_step: item.repsStep,
+        reps_limit: item.repsLimit,
+        note: item.note?.trim() || null,
+    };
+}
+
+function mapSchemeBlockToApi(block: SchemeBlock): ApiSchemeBlock {
+    return {
+        title: block.title?.trim() || null,
+        rounds: block.rounds,
+        rounds_kind: block.roundsKind,
+        rest_between_items_seconds: block.restBetweenItemsSeconds,
+        rest_between_rounds_seconds: block.restBetweenRoundsSeconds,
+        time_limit_seconds: block.timeLimitSeconds,
+        items: block.items.map(mapSchemeItemToApi),
+    };
+}
 
 // --- Каталог -------------------------------------------------------------
 
@@ -22,8 +95,10 @@ export type ApiComplex = {
     total_reps?: number | null;
     movements: MovementType[];
     exercise: string;
+    exercise_ids?: string[] | null;
+    scheme?: ApiSchemeBlock[] | null;
+    scheme_note?: string | null;
     result_metrics: MetricType[];
-    star_conditions: StarCondition[];
     instructions?: string | null;
     restrictions?: string | null;
 };
@@ -39,8 +114,10 @@ export function mapApiComplexToComplex(apiComplex: ApiComplex): Complex {
         totalReps: apiComplex.total_reps ?? undefined,
         movements: apiComplex.movements,
         exercise: apiComplex.exercise,
+        exerciseIds: apiComplex.exercise_ids ?? [],
+        scheme: (apiComplex.scheme ?? []).map(mapApiSchemeBlock),
+        schemeNote: apiComplex.scheme_note ?? undefined,
         resultMetrics: apiComplex.result_metrics,
-        starConditions: apiComplex.star_conditions,
         instructions: apiComplex.instructions ?? undefined,
         restrictions: apiComplex.restrictions ?? undefined,
     };
@@ -62,13 +139,14 @@ export function mapNewComplexToApi(
         name: complex.name,
         types: complex.types,
         description: complex.description,
-        scheme_display: complex.schemeDisplay,
-        scheme_steps: complex.schemeSteps,
-        total_reps: complex.totalReps,
-        movements: complex.movements,
-        exercise: complex.exercise,
+        // Тип движения (movements) не шлём: сервер выводит его из
+        // упражнений схемы. Схему шлём структурой. Список разных упражнений и текст
+        // "Упражнение(я)" не шлём: сервер выводит их из схемы сам.
+        // Устаревший текстовый вариант схемы (scheme_display и др.) не
+        // трогаем — он остаётся только у старых комплексов.
+        scheme: complex.scheme.map(mapSchemeBlockToApi),
+        scheme_note: complex.schemeNote.trim() || null,
         result_metrics: complex.resultMetrics,
-        star_conditions: complex.starConditions,
         instructions: complex.instructions.trim() || null,
         restrictions: complex.restrictions.trim() || null,
     };
@@ -86,7 +164,6 @@ export type ApiComplexCompletion = {
     result_rounds?: number | null;
     result_duration_seconds?: number | null;
     result_count?: number | null;
-    stars: number;
     diary_entry_id?: number | null;
     completed_date: string;
     created_at: string;
@@ -107,7 +184,6 @@ export function mapApiCompletionToCompletion(
         resultDurationSeconds:
             apiCompletion.result_duration_seconds ?? undefined,
         resultCount: apiCompletion.result_count ?? undefined,
-        stars: apiCompletion.stars,
         diaryEntryId:
             apiCompletion.diary_entry_id !== null &&
             apiCompletion.diary_entry_id !== undefined
@@ -181,6 +257,32 @@ export function mapCompletionUpdateToApi(
 }
 
 // --- Комментарии -------------------------------------------------------
+
+export type ApiComplexLeaderboard = {
+    total: number;
+    rows: {
+        rank: number;
+        user_id: number;
+        nickname: string;
+        value: number;
+        is_me: boolean;
+    }[];
+};
+
+export function mapApiLeaderboardToLeaderboard(
+    apiBoard: ApiComplexLeaderboard
+): ComplexLeaderboard {
+    return {
+        total: apiBoard.total,
+        rows: apiBoard.rows.map((row) => ({
+            rank: row.rank,
+            userId: String(row.user_id),
+            nickname: row.nickname,
+            value: row.value,
+            isMe: row.is_me,
+        })),
+    };
+}
 
 export type ApiComplexComment = {
     id: number;

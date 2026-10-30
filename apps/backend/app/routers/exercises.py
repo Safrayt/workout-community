@@ -9,6 +9,7 @@ from app.auth import ensure_admin, get_current_user
 from app.database import get_session
 from app.files import delete_upload, save_image, save_video
 from app.models import User
+from app.models_complex import ComplexDB
 from app.models_exercise import (
     ExerciseDB,
     ExerciseRead,
@@ -128,6 +129,28 @@ def delete_exercise(
     ensure_admin(current_user, "Удалять упражнения может только администратор")
 
     row = _get_exercise_db_or_404(exercise_id, session)
+
+    # Упражнение, которое входит в комплексы, удалять нельзя: у этих
+    # комплексов осталась бы ссылка в никуда, а мышечная группа и
+    # страница комплекса потеряли бы часть данных. Администратор
+    # сначала убирает упражнение из комплексов (или заменяет его).
+    used_in = [
+        name
+        for _complex_id, name, exercise_ids in session.exec(
+            select(ComplexDB.id, ComplexDB.name, ComplexDB.exercise_ids)
+        ).all()
+        if exercise_id in (exercise_ids or [])
+    ]
+
+    if used_in:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Нельзя удалить упражнение — оно входит в комплексы: "
+                + ", ".join(f"«{name}»" for name in used_in)
+                + ". Сначала уберите его из этих комплексов."
+            ),
+        )
 
     photo_url, video_url = row.photo_url, row.video_url
 

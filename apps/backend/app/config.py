@@ -79,3 +79,10 @@ ENABLE_DOCS = (
     os.environ.get("ENABLE_DOCS", "false" if IS_PRODUCTION else "true").lower()
     == "true"
 )
+
+# Основной адрес сайта для sitemap.xml и robots.txt: с https:// и без
+# слэша на конце, например SITE_URL=https://street-workout.online.
+# Поисковикам нужен ОДИН канонический адрес, поэтому на проде его лучше
+# задать явно (иначе берётся адрес, по которому пришёл запрос, а сайт
+# может открываться по нескольким доменам — см. DOMAIN в .env.example).
+SITE_URL = os.environ.get("SITE_URL", "").strip().rstrip("/")

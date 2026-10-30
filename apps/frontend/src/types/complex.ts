@@ -1,3 +1,13 @@
+import type { SchemeBlock } from "./complexScheme";
+import type { MovementType } from "./exercise";
+
+/**
+ * Тип движения комплекса — тот же, что у упражнений («Тяговые»,
+ * «Жимовые» и т.д., см. constants/movementTypes.ts). Для комплекса он
+ * не вводится вручную: сервер выводит его из упражнений схемы.
+ */
+export type { MovementType };
+
 export type ComplexType =
     | "ladder" // Лесенка
     | "circuit" // Круги
@@ -5,12 +15,8 @@ export type ComplexType =
     | "superset" // Суперсеты
     | "dropset" // Дропсеты
     | "emom" // Минутки (EMOM)
-    | "amrap"; // На время (AMRAP)
-
-export type MovementType =
-    | "pull" // Тяга
-    | "press" // Жим
-    | "legs"; // Ноги
+    | "amrap" // На время (AMRAP)
+    | "interval"; // Интервальный (каждое упражнение — на своё время)
 
 export type MetricType =
     | "time"
@@ -19,22 +25,6 @@ export type MetricType =
     | "rounds"
     | "duration"
     | "count";
-
-export type ComparisonOperator = "lte" | "gte" | "eq";
-
-export type StarCondition = {
-
-    stars: number;
-
-    metric: MetricType;
-
-    operator: ComparisonOperator;
-
-    value: number;
-
-    unit: string;
-
-};
 
 /**
  * Один комплекс из каталога — приходит с бэкенда через GET /complexes.
@@ -56,12 +46,31 @@ export type Complex = {
 
     description: string;
 
+    /**
+     * УСТАРЕВШИЙ текстовый вариант схемы — остаётся только у комплексов,
+     * заведённых до структурированной схемы (scheme ниже).
+     */
     schemeDisplay: string;
 
     schemeSteps?: number[];
 
     totalReps?: number;
 
+    /**
+     * Структурированная схема (см. types/complexScheme.ts). Когда она
+     * есть, страница комплекса показывает её; пустой список — у старых
+     * комплексов, там показывается текстовая схема выше.
+     */
+    scheme: SchemeBlock[];
+
+    /** Пояснение к схеме целиком — показывается внизу схемы. */
+    schemeNote?: string;
+
+    /**
+     * Типы движения упражнений схемы — в порядке первого появления,
+     * без повторов. Приходят с сервера готовыми (см.
+     * app.routers.complexes), в форме комплекса их нет.
+     */
     movements: MovementType[];
 
     /**
@@ -70,11 +79,19 @@ export type Complex = {
      */
     exercise: string;
 
+    /**
+     * РАЗНЫЕ упражнения комплекса из базы упражнений (Exercise.id) в
+     * порядке первого появления в схеме — производное от scheme (одно
+     * упражнение может стоять в схеме много раз, здесь оно один раз).
+     * На нём держатся ссылки между страницами и общая мышечная группа.
+     * У комплексов, заведённых до связи с базой, пусто — тогда есть
+     * только текст exercise выше. Сам exercise для связанного комплекса
+     * сервер собирает из актуальных названий упражнений схемы.
+     */
+    exerciseIds: string[];
+
     /** Какие показатели нужны для отметки выполнения этого комплекса. */
     resultMetrics: MetricType[];
-
-    /** Условия 2 и 3 звёзд. 1 звезда — сам факт фиксации выполнения. */
-    starConditions: StarCondition[];
 
     instructions?: string;
 

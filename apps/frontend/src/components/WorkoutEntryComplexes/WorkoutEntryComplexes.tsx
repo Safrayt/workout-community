@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import ComplexStars from "../ComplexStars/ComplexStars";
 
 import "../../styles/components/workout-entry-complexes.css";
 
@@ -77,8 +76,6 @@ export default function WorkoutEntryComplexes({ entryId }: WorkoutEntryComplexes
                                     </span>
 
                                     <span className="workout-entry-complexes__result">
-                                        <ComplexStars stars={completion.stars} size="sm" />
-                                        {" "}
                                         {formatCompletionResult(complexDef, completion)}
                                     </span>
                                 </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
 
 import ProgramStructureView from "../../components/ProgramStructureView/ProgramStructureView";
 
@@ -50,6 +51,8 @@ export default function ProgramVersionDetails() {
             cancelled = true;
         };
     }, [id, versionId]);
+
+    usePageMeta(program ? `Версия программы «${program.title}»` : undefined);
 
     if (isLoading) {
         return <p className="program-version-details__loading">Загрузка…</p>;

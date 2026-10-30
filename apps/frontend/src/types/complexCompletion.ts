@@ -1,6 +1,5 @@
 /**
  * Конкретный случай выполнения комплекса конкретным пользователем.
- * Звёзды считает сервер — на клиенте это поле всегда только читаем.
  */
 export type ComplexCompletion = {
 
@@ -21,8 +20,6 @@ export type ComplexCompletion = {
     resultDurationSeconds?: number;
 
     resultCount?: number;
-
-    stars: number;
 
     /**
      * Подтверждающая запись дневника. Отсутствует, если запись была

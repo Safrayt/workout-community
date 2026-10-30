@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
 
 import "../../styles/components/workout-entry-details.css";
 
@@ -95,6 +96,8 @@ export default function WorkoutEntryDetails() {
                 id
             )
             : undefined;
+
+    usePageMeta(entry ? entry.title.trim() || "Тренировка" : undefined);
 
     if (!entry) {
         return (

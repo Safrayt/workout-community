@@ -14,10 +14,8 @@ NEW_COMPLEX_PAYLOAD = {
     "types": ["sets"],
     "description": "Комплекс, созданный тестом.",
     "scheme_display": "3×10",
-    "movements": ["pull"],
     "exercise": "Подтягивания",
     "result_metrics": ["reps"],
-    "star_conditions": [],
 }
 
 

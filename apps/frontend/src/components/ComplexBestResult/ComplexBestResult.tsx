@@ -1,5 +1,4 @@
 import Button from "../ui/Button/Button";
-import ComplexStars from "../ComplexStars/ComplexStars";
 
 import "../../styles/components/complex-best-result.css";
 
@@ -42,8 +41,6 @@ export default function ComplexBestResult({
     return (
         <div className="complex-best-result">
             <p className="complex-best-result__label">Твой лучший результат</p>
-
-            <ComplexStars stars={best.stars} />
 
             <p className="complex-best-result__value">
                 {formatCompletionResult(complexDef, best)}

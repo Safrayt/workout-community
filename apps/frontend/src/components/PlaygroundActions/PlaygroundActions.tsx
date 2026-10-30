@@ -7,6 +7,7 @@ import type { Playground } from "../../types/playground";
 import Button from "../ui/Button/Button";
 
 import { useFavorites } from "../../context/FavoriteContext";
+import { SITE_NAME } from "../../constants/site";
 
 type Props = {
     playground: Playground;
@@ -53,7 +54,7 @@ export default function PlaygroundActions({
     async function handleShare() {
         const shareData = {
             title: playground.name,
-            text: `Площадка «${playground.name}» на Workout Community`,
+            text: `Площадка «${playground.name}» на ${SITE_NAME}`,
             url: window.location.href,
         };
 

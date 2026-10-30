@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 
 import Button from "../ui/Button/Button";
-import ComplexStars from "../ComplexStars/ComplexStars";
 
 import "../../styles/components/complex-completion-history.css";
 
@@ -57,8 +56,6 @@ export default function ComplexCompletionHistory({
                             <span className="complex-completion-history__date">
                                 {formatDate(completion.completedDate)}
                             </span>
-
-                            <ComplexStars stars={completion.stars} size="sm" />
 
                             <span className="complex-completion-history__result">
                                 {formatCompletionResult(complexDef, completion)}

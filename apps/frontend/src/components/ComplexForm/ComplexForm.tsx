@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import FormSection from "../ui/FormSection/FormSection";
 import Input from "../ui/Input/Input";
 import Textarea from "../ui/Textarea/Textarea";
-import Select from "../ui/Select/Select";
 import TagBadge from "../ui/TagBadge/TagBadge";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
+import SchemeBuilder from "../SchemeBuilder/SchemeBuilder";
+import ComplexSchemeView from "../ComplexSchemeView/ComplexSchemeView";
 
 import "../../styles/components/complex-form.css";
 
@@ -14,27 +15,15 @@ import type { ValidationError } from "../../validation";
 import { validateComplex } from "../../validation/complex";
 import { getFieldError } from "../../utils/validation.ts";
 
-import {
-    complexTypeFilterOptions,
-    metricLabels,
-    movementFilterOptions,
-} from "../../constants/complexTypes";
-import type {
-    ComparisonOperator,
-    MetricType,
-    StarCondition,
-} from "../../types/complex";
+import { complexTypeFilterOptions, metricLabels } from "../../constants/complexTypes";
+import { movementTypeLabels } from "../../constants/movementTypes";
+import { useExercises } from "../../context/ExerciseContext";
+import type { MetricType, MovementType } from "../../types/complex";
 import type { NewComplex } from "../../types/newComplex";
 
 const metricOptions = (Object.keys(metricLabels) as MetricType[]).map(
     (value) => ({ value, label: metricLabels[value] })
 );
-
-const operatorOptions: { value: ComparisonOperator; label: string }[] = [
-    { value: "lte", label: "не больше (≤)" },
-    { value: "gte", label: "не меньше (≥)" },
-    { value: "eq", label: "равно (=)" },
-];
 
 type ComplexFormProps = {
     initialValue: NewComplex;
@@ -47,6 +36,12 @@ type ComplexFormProps = {
     onSubmit: (complex: NewComplex) => void;
 
     onCancel: () => void;
+
+    /**
+     * Прежний текст схемы у комплекса, заведённого до структурированной
+     * схемы (при редактировании) — подсказка, что собрать из блоков.
+     */
+    legacySchemeText?: string;
 };
 
 /**
@@ -61,17 +56,31 @@ export default function ComplexForm({
     isEditing = false,
     onSubmit,
     onCancel,
+    legacySchemeText,
 }: ComplexFormProps) {
     const [errors, setErrors] = useState<ValidationError[]>([]);
     const [complex, setComplex] = useState<NewComplex>(initialValue);
 
-    // Текстовое поле для scheme_steps — вводится как "1, 2, 3, 4, 5"
-    // и парсится в NewComplex.schemeSteps (number[] | null) только
-    // при отправке; хранить в состоянии сразу как строку проще, чем
-    // разбирать на каждое нажатие клавиши, когда ввод ещё не завершён.
-    const [schemeStepsText, setSchemeStepsText] = useState(
-        initialValue.schemeSteps ? initialValue.schemeSteps.join(", ") : ""
-    );
+    const { getExerciseById } = useExercises();
+
+    // Типы движения комплекса — типы движения упражнений схемы (в
+    // порядке первого появления). Администратор их не выбирает: сервер
+    // выводит их сам, здесь они только показываются как подсказка.
+    const derivedMovements = useMemo(() => {
+        const result: MovementType[] = [];
+
+        for (const block of complex.scheme) {
+            for (const item of block.items) {
+                const movementType = getExerciseById(item.exerciseId)?.movementType;
+
+                if (movementType && !result.includes(movementType)) {
+                    result.push(movementType);
+                }
+            }
+        }
+
+        return result;
+    }, [complex.scheme, getExerciseById]);
 
     function updateField<K extends keyof NewComplex>(
         field: K,
@@ -81,13 +90,13 @@ export default function ComplexForm({
         setErrors((current) => current.filter((error) => error.field !== field));
     }
 
-    function toggleListValue<K extends "types" | "movements" | "resultMetrics">(
+    function toggleListValue<K extends "types" | "resultMetrics">(
         field: K,
         value: NewComplex[K][number]
     ) {
         setComplex((current) => {
             // Приведение к string[] — TypeScript не может сопоставить
-            // типы внутри тела дженерика, объединяющего три разных по
+            // типы внутри тела дженерика, объединяющего два разных по
             // элементам массива (типичное ограничение TS для union по
             // ключам); снаружи функция всё равно остаётся строго
             // типизированной за счёт сигнатуры выше.
@@ -103,63 +112,10 @@ export default function ComplexForm({
         });
     }
 
-    function parseSchemeSteps(text: string): number[] | null {
-        const trimmed = text.trim();
-
-        if (trimmed.length === 0) {
-            return null;
-        }
-
-        const values = trimmed
-            .split(",")
-            .map((part) => Number(part.trim()))
-            .filter((value) => Number.isFinite(value));
-
-        return values.length > 0 ? values : null;
-    }
-
-    function starConditionFor(stars: 2 | 3): StarCondition | undefined {
-        return complex.starConditions.find((c) => c.stars === stars);
-    }
-
-    function toggleStarCondition(stars: 2 | 3, enabled: boolean) {
-        if (!enabled) {
-            updateField(
-                "starConditions",
-                complex.starConditions.filter((c) => c.stars !== stars)
-            );
-            return;
-        }
-
-        const defaultMetric = complex.resultMetrics[0] ?? "reps";
-
-        updateField("starConditions", [
-            ...complex.starConditions,
-            { stars, metric: defaultMetric, operator: "gte", value: 0, unit: "" },
-        ]);
-    }
-
-    function updateStarCondition(
-        stars: 2 | 3,
-        patch: Partial<StarCondition>
-    ) {
-        updateField(
-            "starConditions",
-            complex.starConditions.map((c) =>
-                c.stars === stars ? { ...c, ...patch } : c
-            )
-        );
-    }
-
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
 
-        const finalComplex: NewComplex = {
-            ...complex,
-            schemeSteps: parseSchemeSteps(schemeStepsText),
-        };
-
-        const result = validateComplex(finalComplex, { isEditing });
+        const result = validateComplex(complex, { isEditing });
 
         if (!result.valid) {
             setErrors(result.errors);
@@ -167,7 +123,7 @@ export default function ComplexForm({
         }
 
         setErrors([]);
-        onSubmit(finalComplex);
+        onSubmit(complex);
     }
 
     return (
@@ -226,76 +182,65 @@ export default function ComplexForm({
                 }
             </FormSection>
 
-            <FormSection title="Движения (для фильтра каталога)">
-                <div className="complex-form__tag-row">
+            <FormSection title="Тип движения">
+                <p className="complex-form__hint">
+                    Определяется автоматически по упражнениям схемы — выбирать его
+                    не нужно. По нему комплекс находится в фильтре каталога.
+                </p>
+                <p className="complex-form__movements">
                     {
-                        movementFilterOptions.map((option) => (
-                            <TagBadge
-                                key={option.value}
-                                label={option.label}
-                                active={complex.movements.includes(option.value)}
-                                onClick={() =>
-                                    toggleListValue("movements", option.value)
-                                }
-                            />
-                        ))
+                        derivedMovements.length > 0
+                            ? derivedMovements
+                                .map((movement) => movementTypeLabels[movement])
+                                .join(" · ")
+                            : "Появится, когда в схему добавят упражнения."
                     }
-                </div>
-                {
-                    getFieldError(errors, "movements") && (
-                        <small className="complex-form__error">
-                            {getFieldError(errors, "movements")}
-                        </small>
-                    )
-                }
+                </p>
             </FormSection>
 
-            <FormSection title="Упражнение и схема">
+            <FormSection title="Схема комплекса">
+                {
+                    legacySchemeText && (
+                        <p className="complex-form__legacy">
+                            Раньше схема была записана текстом: <em>{legacySchemeText}</em>.
+                            Соберите её заново из блоков и упражнений базы.
+                        </p>
+                    )
+                }
+
+                <SchemeBuilder
+                    value={complex.scheme}
+                    onChange={(scheme) => updateField("scheme", scheme)}
+                    errors={errors
+                        .filter((error) => error.field === "scheme")
+                        .map((error) => error.message)}
+                />
+
                 <Textarea
-                    id="complex-exercise"
-                    label="Упражнение(я)"
-                    value={complex.exercise}
-                    onChange={(event) =>
-                        updateField("exercise", event.target.value)
-                    }
+                    id="complex-scheme-note"
+                    label="Пояснение к схеме (необязательно)"
+                    value={complex.schemeNote}
+                    onChange={(event) => updateField("schemeNote", event.target.value)}
+                    placeholder="Например: отдыхать внутри минуты можно, но время не останавливается."
                     rows={2}
-                    error={getFieldError(errors, "exercise")}
                 />
 
-                <Input
-                    id="complex-scheme-display"
-                    label="Схема выполнения (текст для карточки)"
-                    value={complex.schemeDisplay}
-                    onChange={(event) =>
-                        updateField("schemeDisplay", event.target.value)
-                    }
-                    placeholder="10+30+10+20 → 5+20+5+10"
-                    error={getFieldError(errors, "schemeDisplay")}
-                />
+                {
+                    complex.scheme.some((block) => block.items.length > 0) && (
+                        <div className="complex-form__preview">
+                            <h4 className="complex-form__preview-title">
+                                Так схема будет выглядеть на странице комплекса
+                            </h4>
 
-                <Input
-                    id="complex-scheme-steps"
-                    label="Числовая лесенка через запятую (необязательно)"
-                    value={schemeStepsText}
-                    onChange={(event) => setSchemeStepsText(event.target.value)}
-                    placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10"
-                />
-
-                <Input
-                    id="complex-total-reps"
-                    label="Всего повторений за один подход комплекса (необязательно)"
-                    type="number"
-                    min={0}
-                    value={complex.totalReps ?? ""}
-                    onChange={(event) =>
-                        updateField(
-                            "totalReps",
-                            event.target.value === ""
-                                ? null
-                                : Number(event.target.value)
-                        )
-                    }
-                />
+                            <ComplexSchemeView
+                                scheme={complex.scheme.filter((block) => block.items.length > 0)}
+                                note={complex.schemeNote}
+                                resultMetrics={complex.resultMetrics}
+                                linkExercises={false}
+                            />
+                        </div>
+                    )
+                }
             </FormSection>
 
             <FormSection title="Показатели результата">
@@ -322,135 +267,6 @@ export default function ComplexForm({
                     getFieldError(errors, "resultMetrics") && (
                         <small className="complex-form__error">
                             {getFieldError(errors, "resultMetrics")}
-                        </small>
-                    )
-                }
-            </FormSection>
-
-            <FormSection title="Условия 2 и 3 звёзд">
-                <p className="complex-form__hint">
-                    1 звезда присваивается автоматически за сам факт
-                    выполнения — отдельно её настраивать не нужно.
-                </p>
-
-                {
-                    ([2, 3] as const).map((stars) => {
-                        const condition = starConditionFor(stars);
-
-                        return (
-                            <div
-                                key={stars}
-                                className="complex-form__star-condition"
-                            >
-                                <label className="complex-form__star-toggle">
-                                    <input
-                                        type="checkbox"
-                                        checked={!!condition}
-                                        onChange={(event) =>
-                                            toggleStarCondition(
-                                                stars,
-                                                event.target.checked
-                                            )
-                                        }
-                                    />
-                                    {"⭐".repeat(stars)} — условие
-                                </label>
-
-                                {
-                                    condition && (
-                                        <div className="complex-form__star-fields">
-                                            <Select
-                                                id={`complex-star-${stars}-metric`}
-                                                label="Показатель"
-                                                value={condition.metric}
-                                                onChange={(event) =>
-                                                    updateStarCondition(
-                                                        stars,
-                                                        {
-                                                            metric: event.target
-                                                                .value as MetricType,
-                                                        }
-                                                    )
-                                                }
-                                                options={complex.resultMetrics.map(
-                                                    (metric) => ({
-                                                        value: metric,
-                                                        label: metricLabels[
-                                                            metric
-                                                        ],
-                                                    })
-                                                )}
-                                            />
-
-                                            <Select
-                                                id={`complex-star-${stars}-operator`}
-                                                label="Условие"
-                                                value={condition.operator}
-                                                onChange={(event) =>
-                                                    updateStarCondition(
-                                                        stars,
-                                                        {
-                                                            operator: event
-                                                                .target
-                                                                .value as ComparisonOperator,
-                                                        }
-                                                    )
-                                                }
-                                                options={operatorOptions}
-                                            />
-
-                                            <Input
-                                                id={`complex-star-${stars}-value`}
-                                                label={
-                                                    condition.metric ===
-                                                        "time" ||
-                                                    condition.metric ===
-                                                        "duration"
-                                                        ? "Значение (секунды)"
-                                                        : "Значение"
-                                                }
-                                                type="number"
-                                                value={condition.value}
-                                                onChange={(event) =>
-                                                    updateStarCondition(
-                                                        stars,
-                                                        {
-                                                            value: Number(
-                                                                event.target
-                                                                    .value
-                                                            ),
-                                                        }
-                                                    )
-                                                }
-                                            />
-
-                                            <Input
-                                                id={`complex-star-${stars}-unit`}
-                                                label="Единица измерения (необязательно)"
-                                                value={condition.unit}
-                                                onChange={(event) =>
-                                                    updateStarCondition(
-                                                        stars,
-                                                        {
-                                                            unit: event.target
-                                                                .value,
-                                                        }
-                                                    )
-                                                }
-                                                placeholder="кг, повторений…"
-                                            />
-                                        </div>
-                                    )
-                                }
-                            </div>
-                        );
-                    })
-                }
-
-                {
-                    getFieldError(errors, "starConditions") && (
-                        <small className="complex-form__error">
-                            {getFieldError(errors, "starConditions")}
                         </small>
                     )
                 }

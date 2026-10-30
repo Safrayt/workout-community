@@ -1,4 +1,4 @@
-import type { UIMatch } from "react-router-dom";
+import type { Params, UIMatch } from "react-router-dom";
 
 /**
  * Какие провайдеры нужны странице, когда её открыл гость.
@@ -13,6 +13,7 @@ export type GuestProviderGroup =
     | "playground"
     | "events"
     | "exercises"
+    | "exercise"
     | "complexes"
     | "complex"
     | "programs"
@@ -30,6 +31,18 @@ export type GuestProviderGroup =
  */
 export type RouteHandle = {
     guest?: GuestProviderGroup[];
+
+    /**
+     * Название страницы — заголовок вкладки и результата поиска (к нему
+     * добавляется название сайта). Функция — если название зависит от
+     * адреса, например от ника в /u/:username. У страниц, чей заголовок
+     * зависит от загруженных данных (упражнение, комплекс, статья…),
+     * title не задают: они ставят его сами через usePageMeta.
+     */
+    title?: string | ((params: Params<string>) => string);
+
+    /** Описание страницы для поисковой выдачи (<meta name="description">). */
+    description?: string;
 };
 
 /**

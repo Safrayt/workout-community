@@ -25,6 +25,29 @@
 	@www header_regexp www Host ^www\.(.+)$
 	redir @www https://{re.www.1}{uri} permanent
 
+	# Выдачу API (данные в формате JSON) поисковики индексировать не
+	# должны, но читать её им можно и нужно: страницы сайта рисуются в
+	# браузере из этих данных. Поэтому API не закрыт в robots.txt, а
+	# помечен заголовком noindex. Загруженные фото (/api/uploads/) не
+	# трогаем — их можно находить в поиске по картинкам.
+	@api_data {
+		path /api/*
+		not path /api/uploads/*
+	}
+	header @api_data X-Robots-Tag "noindex"
+
+	# robots.txt и sitemap.xml формирует бэкенд (карта сайта собирается
+	# из базы и всегда актуальна). Они обязательно должны быть выше
+	# "всего остального" ниже: иначе try_files отдал бы вместо них
+	# index.html. Путь пересылается как есть, без strip_prefix.
+	handle /robots.txt {
+		reverse_proxy backend:8000
+	}
+
+	handle /sitemap.xml {
+		reverse_proxy backend:8000
+	}
+
 	# Всё, что начинается с /api/ — это запросы к бэкенду.
 	# strip_prefix убирает "/api" перед тем как переслать запрос,
 	# поэтому бэкенду ничего не нужно знать про этот префикс:

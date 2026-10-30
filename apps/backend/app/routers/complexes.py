@@ -1,8 +1,8 @@
 from datetime import date, datetime, timezone
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlmodel import Session, delete, select
 
 from app.auth import (
     ensure_admin,
@@ -12,11 +12,13 @@ from app.auth import (
 )
 from app.database import get_session
 from app.models import User
+from app.models_notification import Notification
 from app.notifications import notify_mentions
 from app.models_complex import (
-    ComparisonOperator,
     Complex,
     ComplexComment,
+    ComplexLeaderboard,
+    ComplexLeaderboardRow,
     ComplexCommentCreate,
     ComplexCommentRead,
     ComplexCompletion,
@@ -27,12 +29,19 @@ from app.models_complex import (
     ComplexDB,
     ComplexUpdate,
     MetricType,
+    MovementType,
     TIME_LIKE_METRICS,
     apply_complex_update,
     complex_db_from_create,
     complex_from_db,
+    compose_exercise_text,
     is_time_based,
+    movements_from_exercises,
+    scheme_exercise_ids,
+    scheme_row_exercise_ids,
+    validate_scheme,
 )
+from app.models_exercise import ExerciseDB
 from app.models_diary import WorkoutEntry
 
 router = APIRouter(prefix="/complexes", tags=["complexes"])
@@ -45,11 +54,135 @@ router = APIRouter(prefix="/complexes", tags=["complexes"])
 # администратор (см. ensure_admin в app/auth.py).
 # =====================================================================
 
+def _exercise_info(
+    session: Session, ids: Iterable[str]
+) -> dict[str, tuple[str, str]]:
+    """
+    Название и тип движения упражнений по id (id → (название, тип)) —
+    одним запросом на любое число комплексов.
+    """
+    wanted = set(ids)
+
+    if not wanted:
+        return {}
+
+    rows = session.exec(
+        select(ExerciseDB.id, ExerciseDB.name, ExerciseDB.movement_type).where(
+            ExerciseDB.id.in_(wanted)
+        )
+    ).all()
+
+    return {
+        exercise_id: (name, movement_type)
+        for exercise_id, name, movement_type in rows
+    }
+
+
+def _exercise_names(session: Session, ids: Iterable[str]) -> dict[str, str]:
+    """Названия упражнений по id."""
+    return {
+        exercise_id: name
+        for exercise_id, (name, _) in _exercise_info(session, ids).items()
+    }
+
+
+def _ordered_exercise_ids(complex_def: Complex) -> List[str]:
+    """
+    Упражнения комплекса в порядке схемы, с повторами (одно упражнение
+    может стоять в ней несколько раз); у комплекса без схемы — по
+    списку exercise_ids.
+    """
+    return scheme_row_exercise_ids(complex_def.scheme) or complex_def.exercise_ids
+
+
+def _movements_for(
+    ordered_ids: List[str], info: dict[str, tuple[str, str]]
+) -> List[str]:
+    """Типы движения комплекса по упражнениям (см. movements_from_exercises)."""
+    return movements_from_exercises(
+        info[exercise_id][1] for exercise_id in ordered_ids if exercise_id in info
+    )
+
+
+def _to_complex(row: ComplexDB, info: dict[str, tuple[str, str]]) -> Complex:
+    """
+    Комплекс для ответа API. Если к нему привязаны упражнения из базы,
+    текст exercise собирается из их ТЕКУЩИХ названий, а типы движения
+    (movements) — из их ТЕКУЩИХ типов, а не берутся из сохранённого:
+    иначе после переименования упражнения или смены его типа в
+    карточке комплекса осталось бы старое. У комплекса без привязки
+    (заведённого по-старому) остаются сохранённые текст и типы.
+    """
+    complex_def = complex_from_db(row)
+
+    ordered_ids = _ordered_exercise_ids(complex_def)
+
+    linked_names = [
+        info[exercise_id][0] for exercise_id in ordered_ids if exercise_id in info
+    ]
+
+    if linked_names:
+        complex_def.exercise = compose_exercise_text(linked_names)
+        complex_def.movements = [
+            MovementType(movement) for movement in _movements_for(ordered_ids, info)
+        ]
+
+    return complex_def
+
+
+def _resolve_exercise_names(ids: List[str], session: Session) -> List[str]:
+    """
+    Проверяет, что все упражнения есть в базе упражнений, и возвращает
+    их названия в том же порядке и с теми же повторами: одно упражнение
+    может стоять в схеме комплекса несколько раз (даже подряд).
+    """
+    if not ids:
+        return []
+
+    names = _exercise_names(session, ids)
+    missing = list(
+        dict.fromkeys(exercise_id for exercise_id in ids if exercise_id not in names)
+    )
+
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Упражнения не найдены в базе упражнений: "
+                + ", ".join(missing)
+            ),
+        )
+
+    return [names[exercise_id] for exercise_id in ids]
+
+
+def _validate_scheme_or_422(scheme) -> None:
+    try:
+        validate_scheme(scheme)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+
+
+def _ensure_has_exercises(row: ComplexDB) -> None:
+    """У комплекса должны быть упражнения: из базы или (по-старому) текстом."""
+    if not row.exercise_ids and not (row.exercise or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Выберите хотя бы одно упражнение комплекса.",
+        )
+
+
 @router.get("/", response_model=List[Complex])
 def list_complexes(session: Session = Depends(get_session)) -> List[Complex]:
     """Полный каталог комплексов — одинаковый для всех пользователей."""
     rows = session.exec(select(ComplexDB)).all()
-    return [complex_from_db(row) for row in rows]
+
+    info = _exercise_info(
+        session,
+        (exercise_id for row in rows for exercise_id in (row.exercise_ids or [])),
+    )
+
+    return [_to_complex(row, info) for row in rows]
 
 
 def _get_complex_db_or_404(complex_id: str, session: Session) -> ComplexDB:
@@ -69,7 +202,9 @@ def _get_complex_or_404(complex_id: str, session: Session) -> Complex:
 def get_complex(
     complex_id: str, session: Session = Depends(get_session)
 ) -> Complex:
-    return _get_complex_or_404(complex_id, session)
+    row = _get_complex_db_or_404(complex_id, session)
+
+    return _to_complex(row, _exercise_info(session, row.exercise_ids or []))
 
 
 @router.post("/", response_model=Complex)
@@ -86,13 +221,35 @@ def create_complex(
             detail=f"Комплекс с id «{data.id}» уже существует.",
         )
 
+    _validate_scheme_or_422(data.scheme)
+
+    # Есть схема — упражнения берём из неё (с повторами, в её порядке);
+    # нет — прежний способ: список exercise_ids.
+    row_ids = scheme_row_exercise_ids(data.scheme) or data.exercise_ids
+    exercise_names = _resolve_exercise_names(row_ids, session)
+
     row = complex_db_from_create(data)
+
+    if data.scheme:
+        # Список разных упражнений — производная схемы, а не отдельный
+        # ввод: на нём держатся ссылки, мышцы и защита удаления упражнения.
+        row.exercise_ids = scheme_exercise_ids(data.scheme)
+
+    if exercise_names:
+        # Текст для комплекса с упражнениями из базы всегда собираем
+        # сами — присланный клиентом (если он есть) игнорируем.
+        row.exercise = compose_exercise_text(exercise_names)
+
+        # Тип движения комплекса — типы движения его упражнений.
+        row.movements = _movements_for(row_ids, _exercise_info(session, row_ids))
+
+    _ensure_has_exercises(row)
 
     session.add(row)
     session.commit()
     session.refresh(row)
 
-    return complex_from_db(row)
+    return _to_complex(row, _exercise_info(session, row.exercise_ids or []))
 
 
 @router.put("/{complex_id}", response_model=Complex)
@@ -106,17 +263,48 @@ def update_complex(
 
     row = _get_complex_db_or_404(complex_id, session)
 
+    if data.scheme is not None:
+        _validate_scheme_or_422(data.scheme)
+    elif data.exercise_ids is not None and row.scheme:
+        # Упражнения комплекса со схемой определяются схемой; отдельный
+        # список разошёлся бы с ней.
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "У комплекса есть схема — упражнения меняются в схеме "
+                "(поле scheme), а не отдельным списком."
+            ),
+        )
+
+    if data.scheme:
+        row_ids = scheme_row_exercise_ids(data.scheme)
+    else:
+        row_ids = data.exercise_ids
+
+    exercise_names = (
+        _resolve_exercise_names(row_ids, session) if row_ids is not None else None
+    )
+
     apply_complex_update(row, data)
+
+    if data.scheme:
+        row.exercise_ids = scheme_exercise_ids(data.scheme)
+
+    if exercise_names:
+        row.exercise = compose_exercise_text(exercise_names)
+        row.movements = _movements_for(row_ids, _exercise_info(session, row_ids))
+
+    _ensure_has_exercises(row)
 
     session.add(row)
     session.commit()
     session.refresh(row)
 
-    return complex_from_db(row)
+    return _to_complex(row, _exercise_info(session, row.exercise_ids or []))
 
 
 # =====================================================================
-# Расчёт звёзд и лучшего результата
+# Лучший результат
 # =====================================================================
 
 _METRIC_FIELDS = {
@@ -133,47 +321,11 @@ def _metric_value(data, metric: MetricType) -> Optional[float]:
     return getattr(data, _METRIC_FIELDS[metric])
 
 
-def _compare(value: float, operator: ComparisonOperator, target: float) -> bool:
-    if operator == ComparisonOperator.lte:
-        return value <= target
-    if operator == ComparisonOperator.gte:
-        return value >= target
-
-    return value == target
-
-
-def _calculate_stars(complex_def: Complex, data) -> int:
-    """
-    Сравнивает введённый пользователем результат с условиями
-    комплекса. 1 звезда присваивается уже за сам факт фиксации
-    выполнения (п.9 документа); 2 и 3 звёзды — если выполнено
-    соответствующее условие. Проверяем от старшего условия к
-    младшему и останавливаемся на первом выполненном.
-    """
-
-    stars = 1
-
-    for condition in sorted(
-        complex_def.star_conditions, key=lambda c: c.stars, reverse=True
-    ):
-        value = _metric_value(data, condition.metric)
-
-        if value is None:
-            continue
-
-        if _compare(value, condition.operator, condition.value):
-            stars = condition.stars
-            break
-
-    return stars
-
-
 def _best_completion_key(complex_def: Complex, completion: ComplexCompletion):
     """
     Ключ сортировки для определения лучшего результата (п.21
-    документа): сперва больше звёзд, затем — для временных
-    комплексов меньшее время, для объёмных большее значение
-    основного показателя.
+    документа): для временных комплексов — меньшее время, для
+    объёмных — большее значение основного показателя.
     """
 
     if is_time_based(complex_def):
@@ -189,7 +341,7 @@ def _best_completion_key(complex_def: Complex, completion: ComplexCompletion):
         value = _metric_value(completion, metric) if metric else None
         score = value if value is not None else float("-inf")
 
-    return (completion.stars, score)
+    return score
 
 
 # =====================================================================
@@ -253,13 +405,202 @@ def _ensure_completed_date_is_not_future(completed_date: date) -> None:
     """
     Комплекс нельзя "выполнить" в будущем — как и с датой тренировки
     в дневнике (см. аналогичную идею в diary.py), это либо опечатка,
-    либо попытка обойти условия звёзд задним/передним числом.
+    либо попытка записать результат задним/передним числом.
     """
     if completed_date > datetime.now(timezone.utc).date():
         raise HTTPException(
             status_code=400,
             detail="Дата выполнения не может быть в будущем.",
         )
+
+
+@router.delete("/{complex_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_complex(
+    complex_id: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> None:
+    """
+    Удаляет комплекс целиком. Необратимо: вместе с ним удаляются
+
+    - выполнения комплекса у всех пользователей (результат без
+      комплекса не показать и не пересчитать);
+    - комментарии к комплексу;
+    - уведомления об упоминаниях на его странице (они вели бы на
+      несуществующую страницу).
+
+    Записи дневника НЕ затрагиваются (п.26 документа): запись остаётся,
+    просто пропадает привязанное к ней выполнение комплекса.
+    """
+
+    ensure_admin(current_user, "Удалять комплексы может только администратор")
+
+    row = _get_complex_db_or_404(complex_id, session)
+
+    session.exec(
+        delete(ComplexCompletion).where(ComplexCompletion.complex_id == complex_id)
+    )
+    session.exec(
+        delete(ComplexComment).where(ComplexComment.complex_id == complex_id)
+    )
+    session.exec(
+        delete(Notification).where(Notification.target_url == f"/complexes/{complex_id}")
+    )
+
+    session.delete(row)
+    session.commit()
+
+
+# =====================================================================
+# Рейтинг комплекса
+# =====================================================================
+
+# Сколько первых мест показывает компактный рейтинг на странице комплекса.
+LEADERBOARD_TOP = 5
+
+
+def _leaderboard_metric(complex_def: Complex) -> tuple[Optional[MetricType], bool]:
+    """
+    Показатель, по которому сравнивают пользователей, и направление:
+    True — чем больше, тем лучше. У временного комплекса — время
+    (меньше лучше), у остальных — первый показатель результата.
+    """
+
+    if is_time_based(complex_def):
+        metric = (
+            MetricType.time
+            if MetricType.time in complex_def.result_metrics
+            else MetricType.duration
+        )
+
+        return metric, False
+
+    if complex_def.result_metrics:
+        return complex_def.result_metrics[0], True
+
+    return None, True
+
+
+def _ranked_leaderboard(
+    complex_def: Complex, session: Session, viewer: Optional[User]
+) -> List[ComplexLeaderboardRow]:
+    """
+    Все участники по убыванию мест: у каждого пользователя берётся его
+    лучшее выполнение. При равных очках выше тот, кто набрал их раньше
+    (по дате выполнения, затем по порядку записи), поэтому места не
+    делятся: 4, 5, 6, а не 4, 4, 6.
+    """
+
+    metric, higher_is_better = _leaderboard_metric(complex_def)
+
+    if metric is None:
+        return []
+
+    records = session.exec(
+        select(ComplexCompletion, User.nickname)
+        .join(User, User.id == ComplexCompletion.user_id)
+        .where(ComplexCompletion.complex_id == complex_def.id)
+    ).all()
+
+    best: dict[int, tuple[tuple, int, str]] = {}
+
+    for completion, nickname in records:
+        value = _metric_value(completion, metric)
+
+        if value is None:
+            continue
+
+        sort_key = (
+            -value if higher_is_better else value,
+            completion.completed_date,
+            completion.id,
+        )
+        current = best.get(completion.user_id)
+
+        if current is None or sort_key < current[0]:
+            best[completion.user_id] = (sort_key, int(value), nickname)
+
+    ordered = sorted(best.items(), key=lambda item: item[1][0])
+
+    return [
+        ComplexLeaderboardRow(
+            rank=position,
+            user_id=user_id,
+            nickname=nickname,
+            value=value,
+            is_me=viewer is not None and user_id == viewer.id,
+        )
+        for position, (user_id, (_key, value, nickname)) in enumerate(
+            ordered, start=1
+        )
+    ]
+
+
+def _compact_leaderboard(
+    ranked: List[ComplexLeaderboardRow],
+) -> List[ComplexLeaderboardRow]:
+    """
+    Рейтинг для страницы комплекса: первые пять мест, затем текущий
+    пользователь (если он не в пятёрке) и последнее место (если оно ещё
+    не показано). То есть 5–7 строк:
+
+    - обычный случай — 5 лучших, вы, последний (7);
+    - вы в пятёрке или вы последний — 6;
+    - участников не больше пяти — все они.
+    """
+
+    top = ranked[:LEADERBOARD_TOP]
+    rows = list(top)
+
+    me = next((row for row in ranked if row.is_me), None)
+
+    if me is not None and me.rank > LEADERBOARD_TOP:
+        rows.append(me)
+
+    last = ranked[-1] if ranked else None
+
+    if last is not None and last.rank > LEADERBOARD_TOP and not last.is_me:
+        rows.append(last)
+
+    return rows
+
+
+@router.get("/{complex_id}/leaderboard", response_model=ComplexLeaderboard)
+def get_leaderboard(
+    complex_id: str,
+    session: Session = Depends(get_session),
+    viewer: Optional[User] = Depends(get_optional_current_user),
+) -> ComplexLeaderboard:
+    """
+    Компактный рейтинг комплекса (см. _compact_leaderboard). Открыт
+    всем, включая гостей: показываются только ник и очки лучшего
+    выполнения, не история.
+    """
+
+    complex_def = _get_complex_or_404(complex_id, session)
+    ranked = _ranked_leaderboard(complex_def, session, viewer)
+
+    return ComplexLeaderboard(
+        total=len(ranked), rows=_compact_leaderboard(ranked)
+    )
+
+
+@router.get("/{complex_id}/leaderboard/all", response_model=ComplexLeaderboard)
+def get_full_leaderboard(
+    complex_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+    viewer: Optional[User] = Depends(get_optional_current_user),
+) -> ComplexLeaderboard:
+    """Рейтинг по всем пользователям, постранично (страница «Все результаты»)."""
+
+    complex_def = _get_complex_or_404(complex_id, session)
+    ranked = _ranked_leaderboard(complex_def, session, viewer)
+
+    return ComplexLeaderboard(
+        total=len(ranked), rows=ranked[offset : offset + limit]
+    )
 
 
 @router.post("/{complex_id}/completions", response_model=ComplexCompletionRead)
@@ -269,7 +610,8 @@ def create_completion(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ComplexCompletion:
-    complex_def = _get_complex_or_404(complex_id, session)
+    # Только проверка, что комплекс существует (иначе 404).
+    _get_complex_or_404(complex_id, session)
 
     _ensure_completed_date_is_not_future(data.completed_date)
 
@@ -293,7 +635,6 @@ def create_completion(
         **data.model_dump(),
         user_id=current_user.id,
     )
-    completion.stars = _calculate_stars(complex_def, completion)
 
     session.add(completion)
     session.commit()
@@ -380,7 +721,8 @@ def update_completion(
     completion = _get_completion_or_404(completion_id, session)
     _ensure_completion_owner(completion, current_user)
 
-    complex_def = _get_complex_or_404(completion.complex_id, session)
+    # Только проверка, что комплекс существует (иначе 404).
+    _get_complex_or_404(completion.complex_id, session)
 
     updates = data.model_dump(exclude_unset=True, exclude={"clear_diary_entry"})
 
@@ -413,9 +755,6 @@ def update_completion(
     for field_name, value in updates.items():
         setattr(completion, field_name, value)
 
-    # Результат мог измениться — пересчитываем звёзды (п.25 документа:
-    # «После изменения результата система пересчитывает звёзды»).
-    completion.stars = _calculate_stars(complex_def, completion)
     completion.updated_at = datetime.now(timezone.utc)
 
     session.add(completion)

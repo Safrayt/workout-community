@@ -3,17 +3,20 @@ import {
     mapApiCommentToComment,
     mapApiComplexToComplex,
     mapApiCompletionToCompletion,
+    mapApiLeaderboardToLeaderboard,
     mapCompletionUpdateToApi,
     mapNewCompletionToApi,
     mapNewComplexToApi,
     type ApiComplex,
     type ApiComplexComment,
     type ApiComplexCompletion,
+    type ApiComplexLeaderboard,
 } from "./mappers/complex";
 
 import type { Complex } from "../types/complex";
 import type { ComplexComment } from "../types/complexComment";
 import type { ComplexCompletion } from "../types/complexCompletion";
+import type { ComplexLeaderboard } from "../types/complexLeaderboard";
 import type { NewComplex } from "../types/newComplex";
 import type { NewComplexCompletion } from "../types/newComplexCompletion";
 
@@ -58,6 +61,47 @@ export async function updateComplex(
     });
 
     return mapApiComplexToComplex(apiComplex);
+}
+
+/**
+ * Только для администратора. Удаляет комплекс вместе с выполнениями,
+ * комментариями и уведомлениями об упоминаниях на его странице (записи
+ * дневника остаются) — см. delete_complex в app/routers/complexes.py.
+ */
+export async function deleteComplex(id: string): Promise<void> {
+    await apiFetch(`/complexes/${id}`, { method: "DELETE" });
+}
+
+// =====================================================================
+// Рейтинг комплекса — открыт всем, включая гостей
+// =====================================================================
+
+/**
+ * Компактный рейтинг для страницы комплекса: первые пять мест, затем
+ * текущий пользователь и последнее место (см. _compact_leaderboard в
+ * app/routers/complexes.py).
+ */
+export async function getComplexLeaderboard(
+    id: string
+): Promise<ComplexLeaderboard> {
+    const apiBoard = await apiFetch<ApiComplexLeaderboard>(
+        `/complexes/${id}/leaderboard`
+    );
+
+    return mapApiLeaderboardToLeaderboard(apiBoard);
+}
+
+/** Рейтинг по всем пользователям, постранично (страница «Все результаты»). */
+export async function getFullComplexLeaderboard(
+    id: string,
+    limit: number,
+    offset: number
+): Promise<ComplexLeaderboard> {
+    const apiBoard = await apiFetch<ApiComplexLeaderboard>(
+        `/complexes/${id}/leaderboard/all?limit=${limit}&offset=${offset}`
+    );
+
+    return mapApiLeaderboardToLeaderboard(apiBoard);
 }
 
 export async function getComplex(id: string): Promise<Complex> {

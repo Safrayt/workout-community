@@ -1,26 +1,36 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import ComplexScheme from "../../components/ComplexScheme/ComplexScheme";
-import ComplexStarConditionsList from "../../components/ComplexStarConditionsList/ComplexStarConditionsList";
+import ComplexSchemeView from "../../components/ComplexSchemeView/ComplexSchemeView";
+import ComplexLeaderboard from "../../components/ComplexLeaderboard/ComplexLeaderboard";
 import ComplexBestResult from "../../components/ComplexBestResult/ComplexBestResult";
 import ComplexCompletionHistory from "../../components/ComplexCompletionHistory/ComplexCompletionHistory";
 import ComplexCompletionForm from "../../components/ComplexCompletionForm/ComplexCompletionForm";
 import ComplexComments from "../../components/ComplexComments/ComplexComments";
+import MuscleMap from "../../components/MuscleMap/MuscleMap";
+import MuscleMapLegend from "../../components/MuscleMapLegend/MuscleMapLegend";
 import Badge from "../../components/ui/Badge/Badge";
 
 import "../../styles/components/complex-details.css";
 
 import type { Complex } from "../../types/complex";
+import type { Exercise } from "../../types/exercise";
 import type { ComplexCompletion } from "../../types/complexCompletion";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
 
 import { useComplexes } from "../../context/ComplexContext";
+import { useExercises } from "../../context/ExerciseContext";
 import { useWorkoutDiary } from "../../context/WorkoutDiaryContext";
 import { useAuth, useCurrentUser } from "../../context/CurrentUserContext";
 
-import { complexTypeLabels, movementLabels } from "../../constants/complexTypes";
+import { complexTypeLabels } from "../../constants/complexTypes";
+import { movementTypeColors, movementTypeLabels } from "../../constants/movementTypes";
+import { muscleGroupLabels } from "../../constants/muscleGroups";
 import { findBestCompletion } from "../../utils/complexResult";
+import { getComplexMuscles } from "../../utils/complexMuscles";
 
 type PanelState =
     | { mode: "closed" }
@@ -100,6 +110,8 @@ export default function ComplexDetails() {
         removeCompletion,
     } = useComplexes();
 
+    const { getExerciseById } = useExercises();
+
     // Страницу комплекса видят и гости: у них нет ни истории
     // выполнений, ни "лучшего результата" — это личное.
     const { user } = useAuth();
@@ -120,6 +132,15 @@ export default function ComplexDetails() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, user?.id]);
+
+    // Заголовок вкладки и описание для поиска — по самому комплексу.
+    usePageMeta(
+        complexDef?.name,
+        complexDef
+            ? makeDescription(complexDef.description) ||
+                  `Комплекс упражнений «${complexDef.name}» для уличной тренировки.`
+            : undefined
+    );
 
     if (isLoading) {
         return <p className="complex-details__loading">Загрузка…</p>;
@@ -163,6 +184,18 @@ export default function ComplexDetails() {
         }
     }
 
+    // Упражнения комплекса из базы упражнений. Ссылки и мышцы строим,
+    // только когда нашлись ВСЕ — пока список упражнений ещё грузится
+    // (или какого-то уже нет), показываем текст от сервера, чтобы не
+    // выводить комплекс "из половины упражнений" и общую мышечную
+    // группу по неполным данным.
+    const linkedExercises = complexDef.exerciseIds.map((id) => getExerciseById(id));
+    const exercisesAreLinked =
+        complexDef.exerciseIds.length > 0 &&
+        linkedExercises.every((exercise) => exercise !== undefined);
+    const exercisesList = exercisesAreLinked ? (linkedExercises as Exercise[]) : [];
+    const muscles = getComplexMuscles(exercisesList);
+
     return (
         <div className="complex-details">
             <Link to="/complexes" className="complex-details__back">
@@ -170,33 +203,84 @@ export default function ComplexDetails() {
             </Link>
 
             <div className="complex-details__header">
-                <h1 className="complex-details__name">{complexDef.name}</h1>
-                {
-                    complexDef.types.map((type) => (
-                        <Badge key={type} variant="primary">
-                            {complexTypeLabels[type]}
-                        </Badge>
-                    ))
-                }
+                <div className="complex-details__title-row">
+                    <h1 className="complex-details__name">{complexDef.name}</h1>
+
+                    {
+                        user?.isAdmin && (
+                            <Link
+                                to={`/complexes/${complexDef.id}/edit`}
+                                className="complex-details__edit-link"
+                            >
+                                Редактировать
+                            </Link>
+                        )
+                    }
+                </div>
 
                 {
-                    user?.isAdmin && (
-                        <Link
-                            to={`/complexes/${complexDef.id}/edit`}
-                            className="complex-details__edit-link"
-                        >
-                            Редактировать
-                        </Link>
+                    // Теги — отдельной строкой под названием, чтобы длинное
+                    // название и теги не толкали друг друга.
+                    (complexDef.types.length > 0 || complexDef.movements.length > 0) && (
+                        <div className="complex-details__tags">
+                            {
+                                complexDef.types.map((type) => (
+                                    <Badge key={type} variant="primary">
+                                        {complexTypeLabels[type]}
+                                    </Badge>
+                                ))
+                            }
+
+                            {
+                                complexDef.movements.map((movement) => (
+                                    <span
+                                        key={movement}
+                                        className="complex-details__movements-chip"
+                                        style={
+                                            {
+                                                "--chip-color": movementTypeColors[movement],
+                                            } as React.CSSProperties
+                                        }
+                                    >
+                                        <span
+                                            className="complex-details__movements-dot"
+                                            aria-hidden="true"
+                                        />
+
+                                        {movementTypeLabels[movement]}
+                                    </span>
+                                ))
+                            }
+                        </div>
                     )
                 }
             </div>
 
             {
                 complexDef.description && (
-                    <p className="complex-details__description">{complexDef.description}</p>
+                    <section className="complex-details__section">
+                        <h2 className="complex-details__section-title">Описание</h2>
+
+                        <p className="complex-details__panel complex-details__description">
+                            {complexDef.description}
+                        </p>
+                    </section>
                 )
             }
 
+            {
+                complexDef.scheme.length > 0 ? (
+                    <section className="complex-details__section">
+                        <h2 className="complex-details__section-title">Схема</h2>
+
+                        <ComplexSchemeView
+                            scheme={complexDef.scheme}
+                            note={complexDef.schemeNote}
+                            resultMetrics={complexDef.resultMetrics}
+                        />
+                    </section>
+                ) : (
+                    <>
             <section className="complex-details__section">
                 <h2 className="complex-details__section-title">Схема</h2>
                 <ComplexScheme complexDef={complexDef} />
@@ -205,35 +289,137 @@ export default function ComplexDetails() {
             <section className="complex-details__section">
                 <h2 className="complex-details__section-title">Движение</h2>
 
+                <div className="complex-details__panel">
                 <p className="complex-details__movement">
-                    {complexDef.movements.map((m) => movementLabels[m]).join(" · ")}
+                    {complexDef.movements.map((m) => movementTypeLabels[m]).join(" · ")}
                 </p>
 
-                <p className="complex-details__exercise">{complexDef.exercise}</p>
+                {
+                    exercisesAreLinked ? (
+                        <ol className="complex-details__exercises">
+                            {
+                                exercisesList.map((exercise) => (
+                                    <li key={exercise.id}>
+                                        <Link
+                                            to={`/knowledge/exercises/${exercise.id}`}
+                                            className="complex-details__exercise-link"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {exercise.name}
+                                        </Link>
+
+                                        <span className="complex-details__exercise-type">
+                                            {movementTypeLabels[exercise.movementType]}
+                                        </span>
+                                    </li>
+                                ))
+                            }
+                        </ol>
+                    ) : (
+                        <p className="complex-details__exercise">{complexDef.exercise}</p>
+                    )
+                }
+
+                {
+                    user?.isAdmin && (
+                        <p className="complex-details__login-hint">
+                            Схема записана текстом.{" "}
+                            <Link to={`/complexes/${complexDef.id}/edit`}>
+                                Соберите её из упражнений базы
+                            </Link>
+                            {" "}— тогда появятся ссылки на упражнения, время и
+                            общая мышечная группа.
+                        </p>
+                    )
+                }
+                </div>
             </section>
+                    </>
+                )
+            }
+
+            {
+                exercisesAreLinked && (
+                    <section className="complex-details__section">
+                        <h2 className="complex-details__section-title">
+                            Нагружаемые мышцы
+                        </h2>
+
+                        <div className="complex-details__panel complex-details__muscles">
+                            <div className="complex-details__map">
+                                <MuscleMap
+                                    targetMuscles={muscles.target}
+                                    auxiliaryMuscles={muscles.auxiliary}
+                                />
+                            </div>
+
+                            <div className="complex-details__muscles-text">
+                                <MuscleMapLegend
+                                    items={
+                                        muscles.auxiliary.length > 0
+                                            ? ["target", "auxiliary"]
+                                            : ["target"]
+                                    }
+                                />
+
+                                <p>
+                                    <strong>Целевые:</strong>{" "}
+                                    {muscles.target.map((key) => muscleGroupLabels[key]).join(", ") || "—"}
+                                </p>
+
+                                {
+                                    muscles.auxiliary.length > 0 && (
+                                        <p>
+                                            <strong>Вспомогательные:</strong>{" "}
+                                            {muscles.auxiliary.map((key) => muscleGroupLabels[key]).join(", ")}
+                                        </p>
+                                    )
+                                }
+
+                                <p className="complex-details__muscles-note">
+                                    Складывается из мышц всех упражнений комплекса.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                )
+            }
 
             <section className="complex-details__section">
-                <h2 className="complex-details__section-title">Условия результата</h2>
-                <ComplexStarConditionsList complexDef={complexDef} />
+                <h2 className="complex-details__section-title">Результаты</h2>
+
+                <div className="complex-details__panel">
+                    {
+                        // completions меняется при добавлении, правке и
+                        // удалении своего выполнения — рейтинг перезагрузится.
+                    }
+                    <ComplexLeaderboard
+                        complexDef={complexDef}
+                        refreshKey={completions}
+                    />
+                </div>
             </section>
 
             {
                 (complexDef.instructions || complexDef.restrictions) && (
                     <section className="complex-details__section">
-                        {
-                            complexDef.instructions && (
-                                <p className="complex-details__instructions">
-                                    {complexDef.instructions}
-                                </p>
-                            )
-                        }
-                        {
-                            complexDef.restrictions && (
-                                <p className="complex-details__restrictions">
-                                    {complexDef.restrictions}
-                                </p>
-                            )
-                        }
+                        <div className="complex-details__panel complex-details__notes">
+                            {
+                                complexDef.instructions && (
+                                    <p className="complex-details__instructions">
+                                        {complexDef.instructions}
+                                    </p>
+                                )
+                            }
+                            {
+                                complexDef.restrictions && (
+                                    <p className="complex-details__restrictions">
+                                        {complexDef.restrictions}
+                                    </p>
+                                )
+                            }
+                        </div>
                     </section>
                 )
             }

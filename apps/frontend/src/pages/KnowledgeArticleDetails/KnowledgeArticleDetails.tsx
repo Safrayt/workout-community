@@ -1,4 +1,6 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import Section from "../../components/ui/Section/Section";
 import Button from "../../components/ui/Button/Button";
@@ -19,7 +21,8 @@ import { formatDate } from "../../utils/formatDate";
 
 /**
  * /knowledge/articles/:id — страница статьи: название, направленность,
- * дата, время чтения, обложка, текст и хештеги. Направленность и
+ * дата, время чтения, текст и хештеги (обложка показывается только
+ * в карточке списка). Направленность и
  * хештеги ведут в список с этим фильтром. Администратору доступна
  * кнопка "Редактировать"; черновик других пользователей не открывается
  * вовсе (для них сервер отвечает "не найдено").
@@ -46,6 +49,12 @@ export default function KnowledgeArticleDetails() {
         >
             ← К списку статей
         </Link>
+    );
+
+    // Заголовок вкладки и описание для поиска — по самой статье.
+    usePageMeta(
+        resource.data?.title,
+        resource.data ? makeDescription(resource.data.summary) : undefined
     );
 
     if (resource.isLoading) {
@@ -154,14 +163,6 @@ export default function KnowledgeArticleDetails() {
                             {meta.join(" · ")}
                         </span>
                     </div>
-
-                    {article.coverUrl && (
-                        <img
-                            className="article-details__cover"
-                            src={article.coverUrl}
-                            alt=""
-                        />
-                    )}
 
                     <LazyMarkdownContent source={article.body} />
 

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import Card from "../ui/Card/Card";
 import Button from "../ui/Button/Button";
 import Badge from "../ui/Badge/Badge";
-import ComplexStars from "../ComplexStars/ComplexStars";
 
 import "../../styles/components/complex-card.css";
 
@@ -12,8 +11,10 @@ import type { ComplexCompletion } from "../../types/complexCompletion";
 
 import { useAuth } from "../../context/CurrentUserContext";
 
-import { complexTypeLabels, movementLabels } from "../../constants/complexTypes";
-import { findBestCompletion } from "../../utils/complexResult";
+import { complexTypeLabels } from "../../constants/complexTypes";
+import { movementTypeLabels } from "../../constants/movementTypes";
+import { findBestCompletion, formatCompletionResult } from "../../utils/complexResult";
+import { buildSchemeMeta } from "../../utils/complexScheme";
 
 type ComplexCardProps = {
 
@@ -28,8 +29,10 @@ export default function ComplexCard({ complexDef, completions }: ComplexCardProp
     const { user } = useAuth();
     const best = completions ? findBestCompletion(complexDef, completions) : undefined;
 
+    const description = complexDef.description.trim();
+
     const movementSummary = complexDef.movements
-        .map((movement) => movementLabels[movement])
+        .map((movement) => movementTypeLabels[movement])
         .join(" · ");
 
     return (
@@ -50,7 +53,29 @@ export default function ComplexCard({ complexDef, completions }: ComplexCardProp
 
             <p className="complex-card__movements">{movementSummary}</p>
 
-            <p className="complex-card__exercise">{complexDef.exercise}</p>
+            {
+                // На плашке — то же описание, что внутри комплекса, чтобы
+                // правка описания сразу была видна и в каталоге. Только
+                // если описания нет, показываем автоматическую сводку
+                // (итоги схемы и список упражнений), чтобы плашка не
+                // оставалась пустой.
+                description ? (
+                    <p className="complex-card__description">{description}</p>
+                ) : (
+                    <>
+                        {
+                            // Итоги схемы ("4 упражнения · 11 кругов · 580 повторений").
+                            complexDef.scheme.length > 0 && (
+                                <p className="complex-card__scheme-meta">
+                                    {buildSchemeMeta(complexDef.scheme, complexDef.resultMetrics).join(" · ")}
+                                </p>
+                            )
+                        }
+
+                        <p className="complex-card__exercise">{complexDef.exercise}</p>
+                    </>
+                )
+            }
 
             {
                 // Личный статус показываем только вошедшему: гость ничего
@@ -61,7 +86,7 @@ export default function ComplexCard({ complexDef, completions }: ComplexCardProp
                         {
                             best ? (
                                 <span className="complex-card__result">
-                                    Твой результат: <ComplexStars stars={best.stars} size="sm" />
+                                    Твой результат: {formatCompletionResult(complexDef, best)}
                                 </span>
                             ) : (
                                 <span className="complex-card__not-done">Не выполнял</span>

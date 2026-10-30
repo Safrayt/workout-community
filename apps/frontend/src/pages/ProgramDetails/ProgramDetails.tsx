@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
@@ -114,6 +116,15 @@ export default function ProgramDetails() {
             console.error("Не удалось изменить избранное:", error);
         }
     }
+
+    // Заголовок вкладки и описание для поиска — по самой программе.
+    usePageMeta(
+        program?.title,
+        program
+            ? makeDescription(program.description) ||
+                  `Программа тренировок «${program.title}».`
+            : undefined
+    );
 
     if (isLoading) {
         return <p className="program-details__loading">Загрузка…</p>;

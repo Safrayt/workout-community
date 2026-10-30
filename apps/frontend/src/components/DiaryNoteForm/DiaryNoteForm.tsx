@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import Section from "../ui/Section/Section";
 import Input from "../ui/Input/Input";
@@ -67,6 +67,12 @@ type DiaryNoteFormProps = {
 
     onSubmit: (note: NewDiaryNote) => void;
 
+    /**
+     * Вызывается при каждом изменении формы (но не при открытии).
+     * Страница создания по нему сохраняет черновик.
+     */
+    onChange?: (note: NewDiaryNote) => void;
+
     onCancel?: () => void;
 
     extraActions?: ReactNode;
@@ -85,6 +91,7 @@ export default function DiaryNoteForm({
     initialValue,
     submitLabel,
     onSubmit,
+    onChange,
     onCancel,
     extraActions,
 }: DiaryNoteFormProps) {
@@ -96,6 +103,26 @@ export default function DiaryNoteForm({
 
     const [note, setNote] =
         useState<NewDiaryNote>(initialValue);
+
+    // Сообщаем странице о каждом изменении формы — она сохраняет черновик.
+    // Актуальный onChange держим в ref, чтобы эффект срабатывал только
+    // от изменения данных, а не от новой функции на каждом рендере. Первый
+    // рендер пропускаем: начальное значение — не правка пользователя.
+    const onChangeRef = useRef(onChange);
+    const isFirstRenderRef = useRef(true);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    });
+
+    useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            return;
+        }
+
+        onChangeRef.current?.(note);
+    }, [note]);
 
     const {
         currentUser,

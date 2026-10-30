@@ -1,0 +1,200 @@
+/* Конструктор схемы комплекса (форма комплекса): блоки и строки. */
+.scheme-builder {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.scheme-builder__intro {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-builder__block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.scheme-builder__block-head,
+.scheme-builder__item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.scheme-builder__block-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+}
+
+.scheme-builder__actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.scheme-builder__icon {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.scheme-builder__icon:hover:not(:disabled) {
+    border-color: var(--color-primary);
+}
+
+.scheme-builder__icon:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.scheme-builder__icon--remove:hover:not(:disabled) {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.scheme-builder__icon:focus-visible,
+.scheme-builder__add-block:focus-visible,
+.scheme-builder__input:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+/* Поля в сетке: сами переносятся по ширине (телефон — в один столбец). */
+.scheme-builder__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: var(--space-3);
+}
+
+.scheme-builder__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scheme-builder__field--wide {
+    grid-column: 1 / -1;
+}
+
+.scheme-builder__input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-2) var(--space-3);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    font: inherit;
+    font-weight: 400;
+}
+
+.scheme-builder__hint {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+}
+
+.scheme-builder__more > summary {
+    cursor: pointer;
+    color: var(--color-primary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scheme-builder__more[open] > summary {
+    margin-bottom: var(--space-2);
+}
+
+.scheme-builder__empty {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-builder__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: scheme-item;
+}
+
+.scheme-builder__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    padding: var(--space-3);
+
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+    counter-increment: scheme-item;
+}
+
+.scheme-builder__item-name {
+    font-weight: 700;
+}
+
+.scheme-builder__item-name::before {
+    content: counter(scheme-item) ". ";
+    color: var(--color-primary);
+}
+
+.scheme-builder__item--missing .scheme-builder__item-name {
+    color: var(--color-danger);
+}
+
+.scheme-builder__add-block {
+    align-self: flex-start;
+    padding: var(--space-2) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px dashed var(--color-primary);
+    border-radius: var(--radius-md);
+
+    color: var(--color-primary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scheme-builder__add-block:hover {
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.scheme-builder__errors {
+    margin: 0;
+    padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+
+    background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-md);
+
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}

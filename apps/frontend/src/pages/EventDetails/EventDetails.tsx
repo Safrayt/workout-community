@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import "../../styles/components/event-details.css";
 
@@ -76,6 +78,15 @@ export default function EventDetails() {
             id
         )
         : undefined;
+
+    // Заголовок вкладки и описание для поиска — по самому событию.
+    usePageMeta(
+        event?.title,
+        event
+            ? makeDescription(event.description) ||
+                  `Событие «${event.title}» сообщества уличной тренировки.`
+            : undefined
+    );
 
     if (!event) {
         return (

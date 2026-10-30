@@ -1,8 +1,4 @@
-import type {
-    ComplexType,
-    MetricType,
-    MovementType,
-} from "../types/complex";
+import type { ComplexType, MetricType } from "../types/complex";
 
 export const complexTypeLabels: Record<ComplexType, string> = {
     ladder: "Лесенка",
@@ -12,6 +8,7 @@ export const complexTypeLabels: Record<ComplexType, string> = {
     dropset: "Дропсеты",
     emom: "Минутки (EMOM)",
     amrap: "На время (AMRAP)",
+    interval: "Интервальный",
 };
 
 export const complexTypeFilterOptions: { value: ComplexType; label: string }[] = [
@@ -22,18 +19,7 @@ export const complexTypeFilterOptions: { value: ComplexType; label: string }[] =
     { value: "dropset", label: complexTypeLabels.dropset },
     { value: "emom", label: complexTypeLabels.emom },
     { value: "amrap", label: complexTypeLabels.amrap },
-];
-
-export const movementLabels: Record<MovementType, string> = {
-    pull: "Тяга",
-    press: "Жим",
-    legs: "Ноги",
-};
-
-export const movementFilterOptions: { value: MovementType; label: string }[] = [
-    { value: "pull", label: movementLabels.pull },
-    { value: "press", label: movementLabels.press },
-    { value: "legs", label: movementLabels.legs },
+    { value: "interval", label: complexTypeLabels.interval },
 ];
 
 export const metricLabels: Record<MetricType, string> = {
@@ -45,11 +31,9 @@ export const metricLabels: Record<MetricType, string> = {
     count: "Значение",
 };
 
-export type PersonalStatusFilter = "" | "not-done" | "done" | "two-stars" | "three-stars";
+export type PersonalStatusFilter = "" | "not-done" | "done";
 
 export const personalStatusFilterOptions: { value: PersonalStatusFilter; label: string }[] = [
     { value: "not-done", label: "Не выполнял" },
     { value: "done", label: "Выполнял" },
-    { value: "two-stars", label: "⭐⭐" },
-    { value: "three-stars", label: "⭐⭐⭐" },
 ];

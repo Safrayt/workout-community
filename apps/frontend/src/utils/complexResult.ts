@@ -1,8 +1,6 @@
 import type {
     Complex,
-    ComparisonOperator,
     MetricType,
-    StarCondition,
 } from "../types/complex";
 import type { ComplexCompletion } from "../types/complexCompletion";
 import type { NewComplexCompletion } from "../types/newComplexCompletion";
@@ -13,6 +11,19 @@ export function isTimeBasedComplex(complexDef: Complex): boolean {
     return complexDef.resultMetrics.some((metric) =>
         TIME_LIKE_METRICS.includes(metric)
     );
+}
+
+/**
+ * Очки в рейтинге комплекса: у временного комплекса — время «04:52»,
+ * у остальных — число (повторений и т.д.), как в самом рейтинге.
+ */
+export function formatLeaderboardValue(
+    complexDef: Complex,
+    value: number
+): string {
+    return isTimeBasedComplex(complexDef)
+        ? formatSecondsAsClock(value)
+        : String(value);
 }
 
 /** "04:52" -> 292. Возвращает undefined, если строка не распознана. */
@@ -70,79 +81,6 @@ export function getMetricValue(
     return typeof value === "number" ? value : undefined;
 }
 
-/** Естественно-языковое описание условия — как в п.8 UX-документа. */
-export function formatStarCondition(condition: StarCondition): string {
-    const operatorSymbol: Record<ComparisonOperator, string> = {
-        lte: "≤",
-        gte: "≥",
-        eq: "=",
-    };
-
-    if (condition.metric === "time" || condition.metric === "duration") {
-        return `Время ${operatorSymbol[condition.operator]} ${formatSecondsAsClock(condition.value)}`;
-    }
-
-    const labels: Record<MetricType, string> = {
-        time: "Время",
-        duration: "Продолжительность",
-        reps: "Повторений",
-        sets: "Подходов",
-        rounds: "Кругов",
-        count: condition.unit || "Значение",
-    };
-
-    const valueDisplay = Number.isInteger(condition.value)
-        ? condition.value
-        : condition.value.toFixed(1);
-
-    const unitSuffix = condition.unit ? ` ${condition.unit}` : "";
-
-    return `${labels[condition.metric]} ${operatorSymbol[condition.operator]} ${valueDisplay}${unitSuffix}`;
-}
-
-function compare(
-    value: number,
-    operator: ComparisonOperator,
-    target: number
-): boolean {
-    if (operator === "lte") return value <= target;
-    if (operator === "gte") return value >= target;
-
-    return value === target;
-}
-
-/**
- * Предпросмотр звёзд по мере заполнения формы (п.18 UX-документа —
- * «система показывает предварительный результат»). Логика зеркалит
- * app/routers/complexes.py:_calculate_stars — авторитетный расчёт
- * всё равно делает сервер при сохранении.
- */
-export function calculatePreviewStars(
-    complexDef: Complex,
-    data: Partial<NewComplexCompletion>
-): number {
-    let stars = 1;
-
-    const sortedConditions = [...complexDef.starConditions].sort(
-        (a, b) => b.stars - a.stars
-    );
-
-    for (const condition of sortedConditions) {
-        const value = getMetricValue(data, condition.metric);
-
-        if (value === undefined) {
-            continue;
-        }
-
-        if (compare(value, condition.operator, condition.value)) {
-            stars = condition.stars;
-            break;
-        }
-    }
-
-    return stars;
-}
-
 /** Форматирует результат выполнения для отображения в истории/карточке. */
 export function formatCompletionResult(
     complexDef: Complex,
@@ -176,9 +114,9 @@ export function formatCompletionResult(
 }
 
 /**
- * Лучший результат пользователя по правилам п.21 документа: больше
- * звёзд лучше; при равенстве звёзд — меньшее время для временных
- * комплексов и большее значение основного показателя для объёмных.
+ * Лучший результат пользователя по правилам п.21 документа: меньшее
+ * время для временных комплексов и большее значение основного
+ * показателя для объёмных.
  */
 export function findBestCompletion(
     complexDef: Complex,
@@ -206,11 +144,7 @@ export function findBestCompletion(
         return value === undefined ? Number.NEGATIVE_INFINITY : value;
     }
 
-    return completions.reduce((best, current) => {
-        if (current.stars !== best.stars) {
-            return current.stars > best.stars ? current : best;
-        }
-
-        return score(current) > score(best) ? current : best;
-    });
+    return completions.reduce((best, current) =>
+        score(current) > score(best) ? current : best
+    );
 }

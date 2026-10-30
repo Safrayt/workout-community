@@ -1,4 +1,5 @@
 import type { NewComplex } from "../types/newComplex";
+import type { SchemeBlock } from "../types/complexScheme";
 
 import type { ValidationError, ValidationResult } from "./index";
 
@@ -6,6 +7,75 @@ import type { ValidationError, ValidationResult } from "./index";
 // только строчные латинские буквы, цифры и дефисы, без дефиса в начале/
 // конце и без двойных дефисов подряд.
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/**
+ * Проверка схемы: возвращает список понятных сообщений (пустой — всё в
+ * порядке). Зеркало серверной validate_scheme (app/models_complex.py):
+ * здесь — чтобы подсказать сразу, там — как последняя защита.
+ */
+export function validateScheme(scheme: SchemeBlock[]): string[] {
+    const messages: string[] = [];
+
+    if (scheme.length === 0 || scheme.every((block) => block.items.length === 0)) {
+        return ["Добавьте в схему хотя бы одно упражнение из базы упражнений."];
+    }
+
+    scheme.forEach((block, blockIndex) => {
+        const where = `Блок ${blockIndex + 1}`;
+
+        if (block.items.length === 0) {
+            messages.push(`${where}: добавьте хотя бы одно упражнение или удалите блок.`);
+        }
+
+        if (block.rounds === null) {
+            if (block.timeLimitSeconds === null || block.timeLimitSeconds < 1) {
+                messages.push(`${where}: для «максимум за время» укажите лимит времени.`);
+            }
+        } else if (!Number.isInteger(block.rounds) || block.rounds < 1 || block.rounds > 100) {
+            messages.push(`${where}: число кругов или подходов — от 1 до 100.`);
+        }
+
+        block.items.forEach((item, itemIndex) => {
+            const row = `${where}, упражнение ${itemIndex + 1}`;
+
+            const hasWorkload =
+                item.reps !== null || item.maxEffort || item.durationSeconds !== null;
+
+            if (!hasWorkload) {
+                messages.push(`${row}: укажите нагрузку — повторения, время или максимум.`);
+            }
+
+            if (item.reps !== null && (item.reps < 1 || item.reps > 1000)) {
+                messages.push(`${row}: повторений — от 1 до 1000.`);
+            }
+
+            if (item.durationSeconds !== null && item.durationSeconds < 1) {
+                messages.push(`${row}: время — не меньше 1 секунды.`);
+            }
+
+            if (item.repsStep !== 0 && item.repsLimit !== null && item.repsLimit < 1) {
+                messages.push(`${row}: граница прогрессии — не меньше 1.`);
+            }
+
+            // Убывающая прогрессия не должна уходить в ноль и ниже.
+            if (item.reps !== null && item.repsStep < 0 && block.rounds !== null) {
+                let last = item.reps + item.repsStep * (block.rounds - 1);
+
+                if (item.repsLimit !== null) {
+                    last = Math.max(last, item.repsLimit);
+                }
+
+                if (last < 1) {
+                    messages.push(
+                        `${row}: повторения опускаются ниже 1 — укажите границу («не ниже …») или уменьшите шаг.`
+                    );
+                }
+            }
+        });
+    });
+
+    return messages;
+}
 
 export function validateComplex(
     complex: NewComplex,
@@ -39,25 +109,8 @@ export function validateComplex(
         });
     }
 
-    if (complex.schemeDisplay.trim().length === 0) {
-        errors.push({
-            field: "schemeDisplay",
-            message: "Опишите схему выполнения.",
-        });
-    }
-
-    if (complex.movements.length === 0) {
-        errors.push({
-            field: "movements",
-            message: "Выберите хотя бы одно движение.",
-        });
-    }
-
-    if (complex.exercise.trim().length === 0) {
-        errors.push({
-            field: "exercise",
-            message: "Укажите упражнение(я), из которых состоит комплекс.",
-        });
+    for (const message of validateScheme(complex.scheme)) {
+        errors.push({ field: "scheme", message });
     }
 
     if (complex.resultMetrics.length === 0) {
@@ -65,27 +118,6 @@ export function validateComplex(
             field: "resultMetrics",
             message: "Выберите хотя бы один показатель результата.",
         });
-    }
-
-    for (const condition of complex.starConditions) {
-        if (!complex.resultMetrics.includes(condition.metric)) {
-            errors.push({
-                field: "starConditions",
-                message:
-                    `Условие для ${condition.stars} звёзд использует ` +
-                    "показатель, не выбранный в «Показатели результата» " +
-                    "выше.",
-            });
-            break;
-        }
-
-        if (!Number.isFinite(condition.value)) {
-            errors.push({
-                field: "starConditions",
-                message: "Заполните значение для всех условий звёзд.",
-            });
-            break;
-        }
     }
 
     return { valid: errors.length === 0, errors };

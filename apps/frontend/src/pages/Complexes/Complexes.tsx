@@ -5,6 +5,7 @@ import Select from "../../components/ui/Select/Select";
 import Button from "../../components/ui/Button/Button";
 import ComplexCard from "../../components/ComplexCard/ComplexCard";
 import ComplexTypeFilter from "../../components/ComplexTypeFilter/ComplexTypeFilter";
+import ComplexMovementFilter from "../../components/ComplexMovementFilter/ComplexMovementFilter";
 
 import "../../styles/components/complexes-page.css";
 
@@ -12,7 +13,6 @@ import { useComplexes } from "../../context/ComplexContext";
 import { useAuth } from "../../context/CurrentUserContext";
 
 import {
-    movementFilterOptions,
     personalStatusFilterOptions,
     type PersonalStatusFilter,
 } from "../../constants/complexTypes";
@@ -34,7 +34,7 @@ export default function Complexes() {
     const isAdmin = user?.isAdmin === true;
 
     const [typeFilters, setTypeFilters] = useState<ComplexType[]>([]);
-    const [movementFilter, setMovementFilter] = useState<MovementType | "">("");
+    const [movementFilters, setMovementFilters] = useState<MovementType[]>([]);
     const [statusFilter, setStatusFilter] = useState<PersonalStatusFilter>("");
 
     // Личный статус зависит от истории выполнений — подгружаем её для
@@ -71,7 +71,13 @@ export default function Complexes() {
             return false;
         }
 
-        if (movementFilter && !complexDef.movements.includes(movementFilter)) {
+        // Так же по И: у комплекса должен быть КАЖДЫЙ выбранный тип движения.
+        if (
+            movementFilters.length > 0 &&
+            !movementFilters.every((movement) =>
+                complexDef.movements.includes(movement)
+            )
+        ) {
             return false;
         }
 
@@ -81,8 +87,6 @@ export default function Complexes() {
 
             if (statusFilter === "not-done" && best) return false;
             if (statusFilter === "done" && !best) return false;
-            if (statusFilter === "two-stars" && best?.stars !== 2) return false;
-            if (statusFilter === "three-stars" && best?.stars !== 3) return false;
         }
 
         return true;
@@ -110,15 +114,9 @@ export default function Complexes() {
                     onChange={setTypeFilters}
                 />
 
-                <Select
-                    id="complex-movement-filter"
-                    label="Движение"
-                    value={movementFilter}
-                    onChange={(event) =>
-                        setMovementFilter(event.target.value as MovementType | "")
-                    }
-                    options={movementFilterOptions}
-                    emptyOptionLabel="Все"
+                <ComplexMovementFilter
+                    selectedTypes={movementFilters}
+                    onChange={setMovementFilters}
                 />
 
                 {

@@ -2,7 +2,7 @@ import logging
 import os
 
 from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, select, text, update
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +118,163 @@ def _replace_removed_movement_types(connection) -> int:
     return changed
 
 
+def _link_seed_complexes_to_exercises(connection) -> int:
+    """
+    Переносит в уже существующую базу структурированную схему и связь с
+    упражнениями у стартовых комплексов (SEED_COMPLEXES): комплексы,
+    заведённые до этого, хранят только текст (а затем — только список
+    упражнений без схемы). Возвращает, сколько комплексов обновлено.
+
+    Трогает комплекс, только если у него ещё нет схемы и администратор
+    не успел выбрать для него другие упражнения (иначе затёрли бы его
+    выбор), и если в базе упражнений есть ВСЕ нужные упражнения (иначе
+    получилась бы схема с дырой). Безопасно вызывать многократно.
+    Через Core-запросы с типом колонки JSON, а не сырой SQL: JSON
+    записывается по-разному на SQLite и PostgreSQL.
+    """
+    # Импорт внутри: модели импортируют этот модуль (get_session), и
+    # на верхнем уровне получился бы цикл.
+    from app.models_complex import SEED_COMPLEXES, ComplexDB, scheme_exercise_ids
+    from app.models_exercise import ExerciseDB
+
+    complexes = ComplexDB.__table__
+    exercises = ExerciseDB.__table__
+    linked = 0
+
+    for seed in SEED_COMPLEXES:
+        seed_ids = scheme_exercise_ids(seed.scheme) if seed.scheme else list(seed.exercise_ids)
+
+        if not seed_ids:
+            continue
+
+        current = connection.execute(
+            select(complexes.c.exercise_ids, complexes.c.scheme).where(
+                complexes.c.id == seed.id
+            )
+        ).first()
+
+        if current is None:
+            # Комплекса нет в базе (администратор его не заводил).
+            continue
+
+        current_ids, current_scheme = current[0] or [], current[1] or []
+
+        if current_scheme:
+            # Схема уже есть — не трогаем.
+            continue
+
+        if current_ids and list(current_ids) != seed_ids:
+            # Администратор выбрал для комплекса другие упражнения.
+            continue
+
+        existing = set(
+            connection.execute(
+                select(exercises.c.id).where(exercises.c.id.in_(seed_ids))
+            ).scalars()
+        )
+
+        if not set(seed_ids) <= existing:
+            continue
+
+        values = {"exercise_ids": seed_ids}
+
+        if seed.scheme:
+            values["scheme"] = [block.model_dump(mode="json") for block in seed.scheme]
+
+        connection.execute(
+            update(complexes).where(complexes.c.id == seed.id).values(**values)
+        )
+        linked += 1
+
+    if linked:
+        connection.commit()
+        logger.warning(
+            "Комплексов обновлено (схема и связь с базой упражнений): %s", linked
+        )
+
+    return linked
+
+
+def _refresh_complex_movements(connection) -> int:
+    """
+    Переводит типы движения комплексов на актуальную классификацию
+    («Тяговые», «Жимовые», «Отведения» и т.д. — те же, что у
+    упражнений). Раньше администратор выбирал для комплекса «Тяга /
+    Жим / Ноги» вручную; теперь тип комплекса — типы движения его
+    упражнений.
+
+    - у комплекса с упражнениями из базы типы пересчитываются по ним
+      (в порядке схемы);
+    - у комплекса без привязки к базе упражнений старые значения
+      переводятся: «press» → «push», «legs» отбрасывается (однозначно не
+      переводится, см. models_complex._LEGACY_MOVEMENT_VALUES).
+
+    Возвращает, сколько комплексов изменено. Безопасно вызывать
+    многократно: когда править нечего, ничего не делает.
+    """
+    from app.models_complex import (
+        ComplexDB,
+        movements_from_exercises,
+        normalize_stored_movements,
+    )
+    from app.models_exercise import ExerciseDB
+
+    complexes = ComplexDB.__table__
+    exercises = ExerciseDB.__table__
+    rows = connection.execute(
+        select(
+            complexes.c.id,
+            complexes.c.movements,
+            complexes.c.exercise_ids,
+            complexes.c.scheme,
+        )
+    ).all()
+
+    movement_by_exercise = dict(
+        connection.execute(
+            select(exercises.c.id, exercises.c.movement_type)
+        ).all()
+    )
+
+    changed = 0
+
+    for complex_id, stored, exercise_ids, scheme in rows:
+        # Упражнения в порядке схемы (с повторами); без схемы — по списку.
+        ordered_ids = [
+            item.get("exercise_id")
+            for block in (scheme or [])
+            for item in (block.get("items") or [])
+        ] or list(exercise_ids or [])
+
+        linked = [
+            movement_by_exercise[exercise_id]
+            for exercise_id in ordered_ids
+            if exercise_id in movement_by_exercise
+        ]
+
+        new_value = (
+            movements_from_exercises(linked)
+            if linked
+            else normalize_stored_movements(stored)
+        )
+
+        if new_value != list(stored or []):
+            connection.execute(
+                update(complexes)
+                .where(complexes.c.id == complex_id)
+                .values(movements=new_value)
+            )
+            changed += 1
+
+    if changed:
+        connection.commit()
+        logger.warning(
+            "Комплексов с обновлёнными типами движения: %s", changed
+        )
+
+    return changed
+
+
 def _run_migrations() -> None:
     """
     Лёгкие ручные миграции для полей, добавленных в модели уже после
@@ -189,6 +346,35 @@ def _run_migrations() -> None:
         # движения — см. REMOVED_MOVEMENT_TYPES.
         if "exercise" in existing_tables:
             _replace_removed_movement_types(connection)
+
+        # Связь комплекса с упражнениями из базы упражнений (см.
+        # Complex.exercise_ids): новая колонка и привязка стартовых
+        # комплексов к упражнениям.
+        if "complex" in existing_tables:
+            _add_column_if_missing(
+                connection,
+                "complex",
+                "exercise_ids",
+                "JSON DEFAULT '[]'" if IS_SQLITE else "JSON NOT NULL DEFAULT '[]'",
+            )
+
+            # Структурированная схема (см. Complex.scheme).
+            _add_column_if_missing(
+                connection,
+                "complex",
+                "scheme",
+                "JSON DEFAULT '[]'" if IS_SQLITE else "JSON NOT NULL DEFAULT '[]'",
+            )
+            _add_column_if_missing(connection, "complex", "scheme_note", "TEXT")
+
+            if "exercise" in existing_tables:
+                _link_seed_complexes_to_exercises(connection)
+
+            # Тип движения комплекса — типы движения его упражнений
+            # (см. _refresh_complex_movements). После привязки стартовых
+            # комплексов к упражнениям, чтобы учесть и её.
+            if "exercise" in existing_tables:
+                _refresh_complex_movements(connection)
 
         # Связь записи тренировки с программой (см. UX-документ
         # «Раздел Программы», models_diary.WorkoutEntry) — добавлена

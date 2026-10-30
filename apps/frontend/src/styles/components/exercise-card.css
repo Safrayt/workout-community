@@ -35,22 +35,37 @@
     position: relative;
 }
 
+/* Фото и схема мышц — квадрат на всю ширину карточки. Фото другой
+   пропорции не растягивается, а обрезается по краям (cover). */
 .exercise-card__photo {
     width: 100%;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
     display: block;
 }
 
 /* Вместо фото — схема мышц на подложке цвета типа движения. */
 .exercise-card__photo--placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: var(--space-2);
+    position: relative;
 
     background: color-mix(in srgb, var(--movement-color) 10%, white);
+}
+
+/* Схема вписывается в квадрат целиком, с полями по краям: рамка с
+   отступами задаёт размер явно, а силуэт (svg) занимает её всю и сам
+   вписывается по центру с сохранением пропорций. */
+.exercise-card__photo--placeholder .muscle-map-wrapper {
+    position: absolute;
+    inset: var(--space-2);
+
+    width: auto;
+    height: auto;
+}
+
+.exercise-card__photo--placeholder .muscle-map {
+    width: 100%;
+    height: 100%;
+    max-height: none;
 }
 
 /* Строка под изображением: переключатель "Фото / Мышцы" или, если фото

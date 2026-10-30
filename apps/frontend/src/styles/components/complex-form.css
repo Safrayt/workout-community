@@ -1,3 +1,19 @@
+.complex-form__legacy {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+
+    border-left: 3px solid var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+
+    font-size: var(--font-size-sm);
+}
+
+.complex-form__preview-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
 .complex-form {
     display: flex;
     flex-direction: column;
@@ -16,35 +32,13 @@
     font-size: var(--font-size-sm);
 }
 
+.complex-form__movements {
+    margin: 0;
+    font-weight: 500;
+}
+
 .complex-form__error {
     display: block;
     margin-top: var(--space-1);
     color: var(--color-danger, #c53030);
-}
-
-.complex-form__star-condition {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-
-    padding: var(--space-3);
-    margin-bottom: var(--space-3);
-
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-}
-
-.complex-form__star-toggle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.complex-form__star-fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-3);
 }

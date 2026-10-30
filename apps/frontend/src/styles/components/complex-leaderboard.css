@@ -1,0 +1,82 @@
+/* Рейтинг комплекса: раздел «Результаты» и страница «Все результаты». */
+
+.complex-leaderboard {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.complex-leaderboard__list {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+.complex-leaderboard__row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+
+    padding: var(--space-2) var(--space-3);
+
+    border-radius: var(--radius-md, 8px);
+}
+
+/* Места идут не подряд — между строками есть другие участники. */
+.complex-leaderboard__row--gap {
+    margin-top: var(--space-2);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-3);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.complex-leaderboard__row--me {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+    font-weight: 700;
+}
+
+.complex-leaderboard__rank {
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.complex-leaderboard__name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.complex-leaderboard__link {
+    overflow: hidden;
+
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.complex-leaderboard__link:hover {
+    text-decoration: underline;
+}
+
+.complex-leaderboard__value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.complex-leaderboard__message {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.complex-leaderboard__all {
+    text-decoration: none;
+}

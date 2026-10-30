@@ -1,8 +1,9 @@
 import enum
 from datetime import date as date_type
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 
+from pydantic import field_validator
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Session, SQLModel, select
 
@@ -35,19 +36,66 @@ class ComplexType(str, enum.Enum):
     dropset = "dropset"  # Дропсеты
     emom = "emom"  # Минутки (EMOM)
     amrap = "amrap"  # На время (AMRAP)
+    interval = "interval"  # Интервальный (каждое упражнение — на своё время)
 
 
 class MovementType(str, enum.Enum):
     """
-    Категория движения — используется как тег комплекса для фильтра
-    каталога. Конкретное упражнение внутри категории (например,
-    «Подтягивания» для pull) задаётся отдельным текстовым полем
-    exercise у самого комплекса, а не выбирается пользователем.
+    Тип движения комплекса — тот же список, что у упражнений (см.
+    models_exercise.MovementType и constants/movementTypes.ts на
+    фронтенде). Администратор его НЕ выбирает: тип комплекса — это
+    типы движения упражнений его схемы, они выводятся автоматически
+    (см. movements_from_exercises ниже и routers/complexes.py).
+    Используется как тег комплекса для фильтра каталога.
     """
 
-    pull = "pull"  # Тяга
-    press = "press"  # Жим
-    legs = "legs"  # Ноги
+    pull = "pull"  # Тяговые
+    push = "push"  # Жимовые
+    abduction = "abduction"  # Отведения
+    crunch = "crunch"  # Скручивания
+    kneeDominant = "kneeDominant"  # Колено-доминантные
+    hipDominant = "hipDominant"  # Тазо-доминантные
+    ankleExtension = "ankleExtension"  # Разгибание стопы
+
+
+# Значения старой классификации комплексов («Тяга / Жим / Ноги»),
+# которые ещё могут лежать в базе у комплексов без упражнений из базы
+# упражнений. «Тяга» и «Жим» переходят в одноимённые новые типы; «Ноги»
+# однозначно не переводится (колено-доминантные? тазо-доминантные?
+# разгибание стопы?), поэтому такое значение отбрасывается — тип
+# появится, как только к комплексу привяжут упражнения.
+_LEGACY_MOVEMENT_VALUES = {
+    "pull": "pull",
+    "press": "push",
+}
+
+
+def normalize_stored_movements(values) -> List[str]:
+    """
+    Приводит сохранённый список типов движения к актуальному: старые
+    значения («press») заменяет, неизвестные («legs») отбрасывает,
+    повторы убирает. Нужна, чтобы строка со старой классификацией не
+    роняла чтение каталога.
+    """
+    valid = {item.value for item in MovementType}
+    result: List[str] = []
+
+    for value in values or []:
+        value = _LEGACY_MOVEMENT_VALUES.get(value, value)
+
+        if value in valid and value not in result:
+            result.append(value)
+
+    return result
+
+
+def movements_from_exercises(movement_types) -> List[str]:
+    """
+    Типы движения комплекса по типам его упражнений — в порядке первого
+    появления в схеме, без повторов. Неизвестные значения (в базе
+    упражнений тип — обычная строка) пропускаются.
+    """
+    return normalize_stored_movements(movement_types)
 
 
 class MetricType(str, enum.Enum):
@@ -55,8 +103,7 @@ class MetricType(str, enum.Enum):
     Показатель, которым измеряется результат выполнения.
     Определяет, какие поля показывать в форме отметки выполнения
     (см. п.16 документа — «поля, которые не нужны для расчёта
-    результата, не отображаются») и какое значение сравнивать с
-    условиями звёзд.
+    результата, не отображаются»).
     """
 
     time = "time"
@@ -67,76 +114,159 @@ class MetricType(str, enum.Enum):
     count = "count"
 
 
-class ComparisonOperator(str, enum.Enum):
-    """Оператор сравнения результата с условием звезды."""
+# --- Структурированная схема комплекса ----------------------------------
+#
+# Схема — список БЛОКОВ. Блок — повторяющаяся группа упражнений:
+#   * интервалы («3 упражнения по минуте») — один блок, 1 раз;
+#   * круговая схема («4 упражнения, 11 кругов») — один блок, 11 кругов;
+#   * подходы — блок на упражнение, N подходов;
+#   * несколько суперсетов — по блоку на каждый суперсет.
+# В блоке — СТРОКИ: упражнение из базы упражнений и нагрузка. Одно и то
+# же упражнение можно ставить в схему сколько угодно раз (в том числе
+# подряд) — каждая строка независима.
 
-    lte = "lte"  # результат ≤ значения (для времени)
-    gte = "gte"  # результат ≥ значения (для объёма/повторов)
-    eq = "eq"
+
+class SchemeItem(SQLModel):
+    exercise_id: str
+
+    # Нагрузка. Сочетания (остальные недопустимы — см. validate_scheme):
+    #   reps                       — «10 повторений»;
+    #   max_effort                 — «максимум повторений»;
+    #   max_effort + duration      — «максимум повторений за 60 секунд»;
+    #   duration                   — «30 секунд» (удержание, работа по времени);
+    #   reps + duration            — «5 повторений за 40 секунд» (минутки).
+    reps: Optional[int] = None
+    max_effort: bool = False
+    duration_seconds: Optional[int] = None
+
+    # Прогрессия по кругам/подходам блока: на сколько меняются повторения
+    # на каждом следующем круге (например, −1) и до какой границы: нижней
+    # при убывании, верхней при росте («не ниже 5»).
+    reps_step: int = 0
+    reps_limit: Optional[int] = None
+
+    note: Optional[str] = None
 
 
-class StarCondition(SQLModel):
+class SchemeBlock(SQLModel):
+    title: Optional[str] = None
+
+    # Сколько раз повторить блок. None — «столько, сколько успеете за
+    # time_limit_seconds» (AMRAP): тогда лимит времени обязателен.
+    rounds: Optional[int] = 1
+    rounds_kind: Literal["rounds", "sets"] = "rounds"  # кругов / подходов
+
+    rest_between_items_seconds: Optional[int] = None
+    rest_between_rounds_seconds: Optional[int] = None
+    time_limit_seconds: Optional[int] = None
+
+    items: List[SchemeItem] = []
+
+
+MAX_SCHEME_BLOCKS = 20
+MAX_SCHEME_ITEMS_PER_BLOCK = 30
+MAX_SCHEME_ROUNDS = 100
+MAX_SCHEME_REPS = 1000
+MAX_SCHEME_SECONDS = 24 * 60 * 60
+
+
+def scheme_row_exercise_ids(scheme: List[SchemeBlock]) -> List[str]:
+    """Упражнения всех строк схемы по порядку — с повторами."""
+    return [item.exercise_id for block in scheme for item in block.items]
+
+
+def scheme_exercise_ids(scheme: List[SchemeBlock]) -> List[str]:
+    """Разные упражнения схемы в порядке первого появления (без повторов)."""
+    return list(dict.fromkeys(scheme_row_exercise_ids(scheme)))
+
+
+def validate_scheme(scheme: List[SchemeBlock]) -> None:
     """
-    Условие получения 2 или 3 звёзд (см. п.8–9 документа).
-    1 звезда всегда означает «выполнить комплекс полностью» и не
-    хранится здесь отдельным условием — она присваивается, как
-    только пользователь фиксирует любое выполнение.
-
-    metric/operator/value/unit достаточно, чтобы:
-    - сравнить введённый пользователем результат;
-    - естественным образом отобразить условие в интерфейсе
-      (это делает format_star_condition ниже).
+    Проверяет схему на внутреннюю согласованность (существование
+    упражнений в базе проверяет роутер). При нарушении бросает
+    ValueError с сообщением для администратора — роутер превращает его
+    в ответ 422.
     """
+    if len(scheme) > MAX_SCHEME_BLOCKS:
+        raise ValueError(f"В схеме не может быть больше {MAX_SCHEME_BLOCKS} блоков.")
 
-    stars: int
-    metric: MetricType
-    operator: ComparisonOperator
-    value: float
-    unit: str
+    for block_number, block in enumerate(scheme, start=1):
+        where = f"Блок {block_number}"
 
+        if not block.items:
+            raise ValueError(f"{where}: добавьте хотя бы одно упражнение.")
 
-def format_star_condition(condition: StarCondition) -> str:
-    """
-    Превращает структурированное условие в текст на естественном
-    языке для интерфейса — как того требует п.8 документа
-    («В интерфейсе они отображаются естественным языком»).
-    """
+        if len(block.items) > MAX_SCHEME_ITEMS_PER_BLOCK:
+            raise ValueError(
+                f"{where}: не больше {MAX_SCHEME_ITEMS_PER_BLOCK} упражнений в блоке."
+            )
 
-    operator_symbol = {
-        ComparisonOperator.lte: "≤",
-        ComparisonOperator.gte: "≥",
-        ComparisonOperator.eq: "=",
-    }[condition.operator]
+        if block.rounds is None:
+            if not block.time_limit_seconds:
+                raise ValueError(
+                    f"{where}: для «максимум за время» укажите лимит времени."
+                )
+        elif not 1 <= block.rounds <= MAX_SCHEME_ROUNDS:
+            raise ValueError(
+                f"{where}: число кругов/подходов — от 1 до {MAX_SCHEME_ROUNDS}."
+            )
 
-    if condition.metric == MetricType.time:
-        total_seconds = int(condition.value)
-        minutes, seconds = divmod(total_seconds, 60)
-        return f"Время {operator_symbol} {minutes:02d}:{seconds:02d}"
+        for label, seconds in (
+            ("отдых между упражнениями", block.rest_between_items_seconds),
+            ("отдых между кругами", block.rest_between_rounds_seconds),
+            ("лимит времени", block.time_limit_seconds),
+        ):
+            if seconds is not None and not 0 <= seconds <= MAX_SCHEME_SECONDS:
+                raise ValueError(f"{where}: {label} вне допустимых пределов.")
 
-    metric_labels = {
-        MetricType.reps: "Повторений",
-        MetricType.sets: "Подходов",
-        MetricType.rounds: "Кругов",
-        MetricType.duration: "Продолжительность",
-        MetricType.count: condition.unit.capitalize() if condition.unit else "Значение",
-    }
-    label = metric_labels[condition.metric]
+        for item_number, item in enumerate(block.items, start=1):
+            row = f"{where}, упражнение {item_number}"
 
-    value_display = (
-        int(condition.value)
-        if condition.value == int(condition.value)
-        else condition.value
-    )
-    unit_suffix = f" {condition.unit}" if condition.unit else ""
+            if item.reps is not None and item.max_effort:
+                raise ValueError(
+                    f"{row}: нельзя одновременно задать число повторений и «максимум»."
+                )
 
-    return f"{label} {operator_symbol} {value_display}{unit_suffix}"
+            if item.reps is not None and not 1 <= item.reps <= MAX_SCHEME_REPS:
+                raise ValueError(f"{row}: повторений — от 1 до {MAX_SCHEME_REPS}.")
+
+            if item.duration_seconds is not None and not (
+                1 <= item.duration_seconds <= MAX_SCHEME_SECONDS
+            ):
+                raise ValueError(f"{row}: время вне допустимых пределов.")
+
+            if item.reps_step != 0:
+                if item.reps is None:
+                    raise ValueError(
+                        f"{row}: изменение повторений по кругам возможно только "
+                        "при заданном числе повторений."
+                    )
+
+                if abs(item.reps_step) > 100:
+                    raise ValueError(f"{row}: слишком большой шаг прогрессии.")
+
+            if item.reps_limit is not None and not 1 <= item.reps_limit <= MAX_SCHEME_REPS:
+                raise ValueError(f"{row}: граница прогрессии — от 1 до {MAX_SCHEME_REPS}.")
+
+            # Убывающая прогрессия не должна уходить в ноль и ниже.
+            if item.reps is not None and item.reps_step < 0 and block.rounds is not None:
+                last = item.reps + item.reps_step * (block.rounds - 1)
+
+                if item.reps_limit is not None:
+                    last = max(last, item.reps_limit)
+
+                if last < 1:
+                    raise ValueError(
+                        f"{row}: повторения опускаются ниже 1 — укажите границу "
+                        "(«не ниже …») или уменьшите шаг."
+                    )
 
 
 class Complex(SQLModel):
     """
     Один комплекс из каталога — форма, в которой каталог отдаётся по
-    API и в которой с ним работает бизнес-логика этого файла (расчёт
-    звёзд и т.п., см. is_time_based ниже и routers/complexes.py).
+    API и в которой с ним работает бизнес-логика этого файла (см.
+    is_time_based ниже и routers/complexes.py).
     Хранится в БД в таблице complex в более "плоском" виде (см.
     ComplexDB) — friendlier для JSON-колонок; complex_from_db()
     ниже конвертирует строку БД в этот класс на выходе.
@@ -155,13 +285,27 @@ class Complex(SQLModel):
     # схему можно показать как числовую последовательность
     # (например, лесенку 1→2→...→10); для схем, которые так не
     # рисуются (суперсет, круговая), заполняется только scheme_display.
-    scheme_display: str
+    scheme_display: str = ""
     scheme_steps: Optional[List[int]] = None
     total_reps: Optional[int] = None
 
-    # Теги движений — только для каталога и фильтра. Конкретное
-    # упражнение задаётся отдельным текстовым полем exercise ниже.
-    movements: List[MovementType]
+    # Структурированная схема (см. SchemeBlock выше). Когда она есть,
+    # именно она показывается на странице комплекса, а scheme_display /
+    # scheme_steps / total_reps выше — устаревший текстовый вариант
+    # (остаётся только у комплексов, заведённых до структурированной
+    # схемы). Упражнения схемы — единственный источник exercise_ids.
+    scheme: List[SchemeBlock] = []
+
+    # Пояснение к схеме целиком («отдыхать можно, но время не
+    # останавливается…») — показывается внизу схемы.
+    scheme_note: Optional[str] = None
+
+    # Типы движения комплекса — для карточки и фильтра каталога. Это
+    # типы движения упражнений схемы (в порядке первого появления),
+    # администратор их не вводит: при записи и при выдаче API сервер
+    # выводит их сам (см. routers/complexes.py). Конкретное упражнение
+    # задаётся отдельным текстовым полем exercise ниже.
+    movements: List[MovementType] = []
 
     # Конкретное упражнение (или несколько — через exercise можно
     # описать целую схему из нескольких движений, см. «Схему
@@ -169,22 +313,40 @@ class Complex(SQLModel):
     # комплекса, не влияет на фильтрацию (для неё есть movements).
     exercise: str
 
+    # Упражнения комплекса из базы упражнений (Exercise.id) в порядке
+    # схемы — на них строятся ссылки со страницы комплекса на
+    # страницы упражнений и общая мышечная группа комплекса.
+    # У комплексов, заведённых до этой связи, список пуст — тогда
+    # показывается только текстовое exercise. Если список непустой,
+    # API отдаёт exercise собранным из актуальных названий упражнений
+    # (см. compose_exercise_text), так что переименование упражнения
+    # не оставляет в комплексе старое название.
+    exercise_ids: List[str] = []
+
     # Какие показатели нужны для расчёта результата этого конкретного
     # комплекса — определяет набор полей в форме отметки выполнения.
     result_metrics: List[MetricType]
 
-    # Условия 2 и 3 звёзд. Пустой список означает, что у комплекса
-    # есть только 1 звезда — «выполнить».
-    star_conditions: List[StarCondition] = []
-
     instructions: Optional[str] = None
     restrictions: Optional[str] = None
+
+    @field_validator("exercise_ids", "scheme", mode="before")
+    @classmethod
+    def _missing_list_is_empty_list(cls, value):
+        # У строк, созданных до появления колонок, там NULL.
+        return [] if value is None else value
+
+    @field_validator("movements", mode="before")
+    @classmethod
+    def _movements_in_current_classification(cls, value):
+        # У старых строк там «press»/«legs» (см. normalize_stored_movements).
+        return normalize_stored_movements(value)
 
 
 class ComplexDB(SQLModel, table=True):
     """
     Таблица каталога комплексов. Списки/enum'ы (types, movements,
-    result_metrics, star_conditions, scheme_steps) хранятся как
+    result_metrics, scheme_steps) хранятся как
     JSON-колонки: ни SQLAlchemy, ни Postgres не умеют нативно
     колонку вида "список enum-значений", а заводить отдельные
     таблицы-справочники ради 4 коротких списков, которые никогда не
@@ -204,13 +366,26 @@ class ComplexDB(SQLModel, table=True):
 
     description: str = ""
 
-    scheme_display: str
+    scheme_display: str = ""
     scheme_steps: Optional[List[int]] = Field(default=None, sa_column=Column(JSON))
     total_reps: Optional[int] = None
 
+    # См. Complex.scheme / Complex.scheme_note. Колонки добавлены позже
+    # таблицы — см. _run_migrations в database.py.
+    scheme: List[dict] = Field(default_factory=list, sa_column=Column(JSON))
+    scheme_note: Optional[str] = None
+
+    # Типы движения комплекса: производное от упражнений (см.
+    # movements_from_exercises). Хранится для комплексов без привязки к
+    # базе упражнений и как запасной вариант; у связанных комплексов API
+    # пересчитывает их при каждой выдаче по актуальным типам упражнений.
     movements: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     exercise: str
+
+    # См. Complex.exercise_ids. Колонка добавлена позже таблицы — см.
+    # _run_migrations в database.py.
+    exercise_ids: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     # УСТАРЕВШЕЕ ПОЛЕ, НЕ ИСПОЛЬЗУЕТСЯ. Раньше здесь хранился уровень
     # сложности комплекса — убрали по решению, что это слишком
@@ -227,7 +402,6 @@ class ComplexDB(SQLModel, table=True):
     difficulty: str
 
     result_metrics: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    star_conditions: List[dict] = Field(default_factory=list, sa_column=Column(JSON))
 
     instructions: Optional[str] = None
     restrictions: Optional[str] = None
@@ -253,13 +427,23 @@ class ComplexCreate(SQLModel):
     name: str
     types: List[ComplexType]
     description: str = ""
-    scheme_display: str
+    # Устаревший текстовый вариант схемы (см. Complex.scheme): новые
+    # комплексы описываются структурированной схемой, текст не нужен.
+    scheme_display: str = ""
     scheme_steps: Optional[List[int]] = None
     total_reps: Optional[int] = None
-    movements: List[MovementType]
-    exercise: str
+    scheme: List[SchemeBlock] = []
+    scheme_note: Optional[str] = None
+    # Тип движения комплекса (movements) клиент не присылает: сервер
+    # выводит его из упражнений схемы. Если клиент всё же пришлёт это
+    # поле, оно игнорируется.
+    # Упражнения выбираются из базы упражнений (exercise_ids). Текст
+    # exercise для них собирается на сервере из названий, поэтому его
+    # можно не передавать; он нужен только для комплекса без привязки
+    # к базе (старый способ) — хотя бы одно из двух должно быть.
+    exercise: str = ""
+    exercise_ids: List[str] = []
     result_metrics: List[MetricType]
-    star_conditions: List[StarCondition] = []
     instructions: Optional[str] = None
     restrictions: Optional[str] = None
 
@@ -279,10 +463,11 @@ class ComplexUpdate(SQLModel):
     scheme_display: Optional[str] = None
     scheme_steps: Optional[List[int]] = None
     total_reps: Optional[int] = None
-    movements: Optional[List[MovementType]] = None
+    scheme: Optional[List[SchemeBlock]] = None
+    scheme_note: Optional[str] = None
     exercise: Optional[str] = None
+    exercise_ids: Optional[List[str]] = None
     result_metrics: Optional[List[MetricType]] = None
-    star_conditions: Optional[List[StarCondition]] = None
     instructions: Optional[str] = None
     restrictions: Optional[str] = None
 
@@ -290,15 +475,27 @@ class ComplexUpdate(SQLModel):
 # Значение-заглушка для устаревшей NOT NULL колонки ComplexDB.difficulty
 # (см. комментарий там) — подставляется при создании любой новой
 # записи, никогда не читается обратно и не участвует ни в какой логике.
+def compose_exercise_text(names: List[str]) -> str:
+    """
+    Текст "Упражнение(я)" для карточки и страницы комплекса из названий
+    упражнений в порядке схемы: одно — просто название, несколько —
+    нумерованный список через "  •  " (как у «Схемы Ганнибала»).
+    """
+    if len(names) == 1:
+        return names[0]
+
+    return "  •  ".join(f"{number}. {name}" for number, name in enumerate(names, 1))
+
+
 _LEGACY_DIFFICULTY_VALUE = "removed"
 
 
 def complex_from_db(row: ComplexDB) -> Complex:
     """
     Строка БД хранит списки как "сырые" строки/словари (см. ComplexDB).
-    Complex.model_validate сама приводит их к настоящим enum'ам и
-    StarCondition благодаря объявленным типам полей — отдельно
-    перечислять и конвертировать каждое поле вручную не нужно. Поле
+    Complex.model_validate сама приводит их к настоящим enum'ам
+    благодаря объявленным типам полей — отдельно перечислять и
+    конвертировать каждое поле вручную не нужно. Поле
     difficulty в строке БД есть, а в Complex — уже нет; лишние ключи
     при валидации молча игнорируются, отдельно вырезать не нужно.
     """
@@ -307,7 +504,7 @@ def complex_from_db(row: ComplexDB) -> Complex:
 
 def complex_db_from_create(data: ComplexCreate) -> ComplexDB:
     """
-    mode="json" превращает enum'ы и вложенные StarCondition в обычные
+    mode="json" превращает enum'ы и вложенные модели в обычные
     строки/словари — то есть ровно в то, что ждут JSON-колонки
     ComplexDB (обратная операция по отношению к complex_from_db).
     difficulty добавляется отдельно — в ComplexCreate его больше нет
@@ -359,6 +556,20 @@ SEED_COMPLEXES: List[Complex] = [
         ),
         scheme_display="10+30+10+20 → 5+20+5+10 (−1 повторение за круг)",
         scheme_steps=None,
+        # Структурированная схема: 4 упражнения × 11 кругов, повторения
+        # каждый круг уменьшаются на 1; подтягивания (оба хвата) — не ниже 5.
+        scheme=[
+            SchemeBlock(
+                rounds=11,
+                rounds_kind="rounds",
+                items=[
+                    SchemeItem(exercise_id="pullups-wide", reps=10, reps_step=-1, reps_limit=5),
+                    SchemeItem(exercise_id="pushups", reps=30, reps_step=-1),
+                    SchemeItem(exercise_id="pullups-reverse", reps=10, reps_step=-1, reps_limit=5),
+                    SchemeItem(exercise_id="dips", reps=20, reps_step=-1),
+                ],
+            )
+        ],
         # Сумма всех повторений по всем 4 упражнениям за все 11 кругов:
         # подтягивания (оба хвата) 10→5 с шагом −1, затем держатся на 5:
         # (10+9+8+7+6+5)+(5×5) = 70 на каждый хват × 2 хвата = 140;
@@ -366,28 +577,17 @@ SEED_COMPLEXES: List[Complex] = [
         # отжимания на брусьях 20→10 по кругам: (20+10)×11/2 = 165.
         # Итого 140 + 275 + 165 = 580.
         total_reps=580,
-        movements=[MovementType.pull, MovementType.press],
+        movements=[MovementType.pull, MovementType.push],
         exercise=(
             "1. Подтягивания верхним хватом  •  2. Отжимания от пола  •  "
             "3. Подтягивания нижним хватом  •  4. Отжимания на брусьях"
         ),
+        # Ближайшие упражнения из базы упражнений (стартовый набор в
+        # exercise_seed.json): "верхний хват" — подтягивания широким
+        # хватом (прямой хват), "нижний хват" — подтягивания обратным
+        # хватом. Порядок — как в схеме.
+        exercise_ids=["pullups-wide", "pushups", "pullups-reverse", "dips"],
         result_metrics=[MetricType.time],
-        star_conditions=[
-            StarCondition(
-                stars=2,
-                metric=MetricType.time,
-                operator=ComparisonOperator.lte,
-                value=45 * 60,
-                unit="",
-            ),
-            StarCondition(
-                stars=3,
-                metric=MetricType.time,
-                operator=ComparisonOperator.lte,
-                value=30 * 60,
-                unit="",
-            ),
-        ],
         instructions=(
             "Порядок в круге не меняется: верхний хват → отжимания → "
             "нижний хват → брусья, затем сразу следующий круг без "
@@ -458,9 +658,13 @@ class ComplexCompletion(ComplexCompletionBase, table=True):
         default=None, foreign_key="workoutentry.id"
     )
 
-    # Считается сервером в момент создания/редактирования — никогда
-    # не приходит от клиента (см. п.9: «пользователь не выбирает
-    # количество звёзд самостоятельно»).
+    # УСТАРЕВШЕЕ ПОЛЕ, НЕ ИСПОЛЬЗУЕТСЯ. Раньше здесь хранилось число
+    # звёзд за выполнение — звёзды из комплексов убраны, оценка
+    # выполнения теперь идёт через очки. Колонка оставлена физически в
+    # БД (на уже существующей базе она NOT NULL без значения по
+    # умолчанию, а инструмента миграций для PostgreSQL в проекте нет —
+    # та же причина, что у ComplexDB.difficulty). Нигде не читается и
+    # не пишется; новые записи получают 0.
     stars: int = 0
 
     created_at: datetime = Field(
@@ -497,10 +701,38 @@ class ComplexCompletionUpdate(SQLModel):
 class ComplexCompletionRead(ComplexCompletionBase):
     id: int
     user_id: int
-    stars: int
     diary_entry_id: Optional[int] = None
     created_at: UtcDatetime
     updated_at: UtcDatetime
+
+
+# --- Рейтинг комплекса ------------------------------------------------------
+#
+# «Очки» пользователя в комплексе — значение основного показателя его
+# ЛУЧШЕГО выполнения (для объёмных комплексов — например, сумма
+# повторений, чем больше, тем лучше; для временных — время, чем меньше,
+# тем лучше). Видны всем (в том числе
+# гостям) только ник и это значение — сама история выполнений остаётся
+# личной (см. list_completions в routers/complexes.py).
+
+
+class ComplexLeaderboardRow(SQLModel):
+    rank: int
+    user_id: int
+    nickname: str
+
+    # Секунды для временных комплексов, иначе количество (повторений,
+    # кругов и т.д.).
+    value: int
+
+    # Строка текущего пользователя (у гостя всегда False).
+    is_me: bool = False
+
+
+class ComplexLeaderboard(SQLModel):
+    # Сколько всего участников в рейтинге (а не строк в ответе).
+    total: int
+    rows: List[ComplexLeaderboardRow]
 
 
 # --- Комментарии к комплексу ------------------------------------------------

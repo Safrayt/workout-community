@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../styles/components/workout-entry-create.css";
 
 import WorkoutEntryForm from "../../components/WorkoutEntryForm/WorkoutEntryForm";
+import DraftNotice from "../../components/DraftNotice/DraftNotice";
 
 import type {
     NewWorkoutEntry,
@@ -13,31 +14,24 @@ import {
     useWorkoutDiary,
 } from "../../context/WorkoutDiaryContext";
 
+import { useCurrentUser } from "../../context/CurrentUserContext";
+import { useFormDraft } from "../../hooks/useFormDraft";
 import {
-    getTodayDateString,
-} from "../../utils/today";
+    createEmptyWorkoutEntry,
+    getWorkoutDraftKey,
+    isWorkoutDraftEmpty,
+    normalizeWorkoutDraft,
+} from "../../utils/diaryDraft";
 
 import { ApiError } from "../../api/errors";
 
-function createEmptyEntry(): NewWorkoutEntry {
-    return {
-        // По умолчанию подставляем сегодняшнюю дату — так пользователю
-        // почти никогда не придётся трогать это поле (UX-DIARY-CREATE §7).
-        date: getTodayDateString(),
-        timeOfDay: "",
-        playgroundId: "",
-        programId: "",
-        programSection: "",
-        programScheme: "",
-        title: "",
-        description: "",
-        photos: [],
-        tags: [],
-        hideFromFeed: false,
-        isPrivate: false,
-    };
-}
-
+/**
+ * Новая запись о тренировке. Введённое автоматически сохраняется
+ * черновиком на этом устройстве (см. hooks/useFormDraft.ts): его можно
+ * продолжить после перехода на другую страницу или закрытия браузера.
+ * Черновик удаляется после успешного сохранения записи или по кнопке
+ * «Начать заново».
+ */
 export default function AddWorkoutEntry() {
     const {
         addEntry,
@@ -45,6 +39,15 @@ export default function AddWorkoutEntry() {
 
     const navigate =
         useNavigate();
+
+    const { currentUser } = useCurrentUser();
+
+    const draft = useFormDraft<NewWorkoutEntry>({
+        storageKey: getWorkoutDraftKey(currentUser.id),
+        createEmpty: createEmptyWorkoutEntry,
+        normalize: normalizeWorkoutDraft,
+        isEmpty: isWorkoutDraftEmpty,
+    });
 
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,6 +60,10 @@ export default function AddWorkoutEntry() {
 
         try {
             await addEntry(entry);
+
+            // Запись сохранена — черновик больше не нужен.
+            await draft.markSubmitted();
+
             navigate("/diary");
         } catch (err) {
             setError(
@@ -66,6 +73,20 @@ export default function AddWorkoutEntry() {
             );
             setIsSubmitting(false);
         }
+    }
+
+    async function handleDiscardDraft() {
+        const confirmed = window.confirm(
+            "Удалить черновик и начать заполнение заново? " +
+            "Введённые данные и загруженные фотографии будут потеряны."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setError(null);
+        await draft.discard();
     }
 
     return (
@@ -100,12 +121,28 @@ export default function AddWorkoutEntry() {
                 </p>
             )}
 
-            <WorkoutEntryForm
-                initialValue={createEmptyEntry()}
-                submitLabel={isSubmitting ? "Сохраняем…" : "Сохранить запись"}
-                onSubmit={handleSubmit}
-                onCancel={() => navigate("/diary/create")}
-            />
+            {
+                draft.initialValue === null ? (
+                    <p className="playground-draft-hint">Загружаем…</p>
+                ) : (
+                    <>
+                        <DraftNotice
+                            isRestored={draft.isRestored}
+                            onDiscard={handleDiscardDraft}
+                            disabled={isSubmitting}
+                        />
+
+                        <WorkoutEntryForm
+                            key={draft.formKey}
+                            initialValue={draft.initialValue}
+                            submitLabel={isSubmitting ? "Сохраняем…" : "Сохранить запись"}
+                            onSubmit={handleSubmit}
+                            onChange={draft.handleChange}
+                            onCancel={() => navigate("/diary/create")}
+                        />
+                    </>
+                )
+            }
 
         </div>
     );

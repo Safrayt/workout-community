@@ -10,3 +10,51 @@
 .complex-form-page__title {
     margin: 0;
 }
+
+/* «Опасная зона» — в самом низу страницы редактирования. */
+.complex-form-page__danger {
+    margin-top: var(--space-6);
+}
+
+/* Красная табличка: что именно будет удалено. */
+.complex-form-page__warning {
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-3);
+
+    background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-lg, 14px);
+}
+
+.complex-form-page__warning-title {
+    margin: 0 0 var(--space-2);
+
+    color: var(--color-danger);
+    font-weight: 700;
+}
+
+.complex-form-page__warning-text {
+    margin: 0 0 var(--space-1);
+
+    font-size: var(--font-size-sm);
+}
+
+.complex-form-page__warning-list {
+    margin: 0;
+    padding-left: var(--space-5);
+
+    font-size: var(--font-size-sm);
+}
+
+/* Нейтральная табличка: что останется. */
+.complex-form-page__notice {
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}

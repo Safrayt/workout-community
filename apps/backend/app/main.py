@@ -19,6 +19,7 @@ from app.routers import (
     playgrounds,
     programs,
     reviews,
+    seo,
     social,
     users,
 )
@@ -91,6 +92,7 @@ app.include_router(articles.router)
 app.include_router(programs.router)
 app.include_router(external.router)
 app.include_router(notifications.router)
+app.include_router(seo.router)
 
 
 @app.on_event("startup")

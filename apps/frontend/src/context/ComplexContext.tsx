@@ -13,6 +13,7 @@ import type { NewComplexCompletion } from "../types/newComplexCompletion";
 import {
     createCompletion as apiCreateCompletion,
     createComplex as apiCreateComplex,
+    deleteComplex as apiDeleteComplex,
     deleteCompletion as apiDeleteCompletion,
     listCompletions as apiListCompletions,
     listComplexes,
@@ -33,6 +34,12 @@ type ComplexContextType = {
 
     /** Только для администратора — см. ensure_admin на бэкенде. */
     editComplex: (id: string, data: NewComplex) => Promise<Complex>;
+
+    /**
+     * Только для администратора — см. ensure_admin на бэкенде. Удаляет
+     * комплекс вместе с выполнениями и комментариями пользователей.
+     */
+    removeComplex: (id: string) => Promise<void>;
 
     /** Кэш истории выполнений текущего пользователя по complexId. */
     completionsByComplex: Record<string, ComplexCompletion[]>;
@@ -102,6 +109,24 @@ export function ComplexProvider({ children }: { children: React.ReactNode }) {
         return updated;
     }
 
+    async function removeComplex(id: string): Promise<void> {
+        await apiDeleteComplex(id);
+
+        setComplexes((current) =>
+            current.filter((complexDef) => complexDef.id !== id)
+        );
+
+        // Выполнения удалённого комплекса на сервере тоже удалены —
+        // кэш их истории больше не нужен.
+        setCompletionsByComplex((current) => {
+            const rest = { ...current };
+
+            delete rest[id];
+
+            return rest;
+        });
+    }
+
     async function loadCompletions(
         complexId: string
     ): Promise<ComplexCompletion[]> {
@@ -169,6 +194,7 @@ export function ComplexProvider({ children }: { children: React.ReactNode }) {
                 getComplexById,
                 addComplex,
                 editComplex,
+                removeComplex,
                 completionsByComplex,
                 loadCompletions,
                 addCompletion,

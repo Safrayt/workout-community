@@ -5,7 +5,8 @@ import ActionGroup from "../ui/ActionGroup/ActionGroup";
 
 import "../../styles/components/recovery-key-panel.css";
 
-const SITE_NAME = "Street Workout Community";
+import { SITE_NAME } from "../../constants/site";
+
 
 type RecoveryKeyPanelProps = {
     recoveryKey: string;

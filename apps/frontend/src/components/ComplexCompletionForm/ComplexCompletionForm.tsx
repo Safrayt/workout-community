@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import Button from "../ui/Button/Button";
 import Input from "../ui/Input/Input";
 
-import ComplexStars from "../ComplexStars/ComplexStars";
 import DiaryEntryPicker from "../DiaryEntryPicker/DiaryEntryPicker";
 import DurationInput from "../DurationInput/DurationInput";
 
@@ -15,7 +14,6 @@ import type { WorkoutEntry } from "../../types/workoutEntry";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
 
 import { metricLabels } from "../../constants/complexTypes";
-import { calculatePreviewStars } from "../../utils/complexResult";
 import { formatDate } from "../../utils/formatDate";
 import { getTodayDateString } from "../../utils/today";
 
@@ -115,19 +113,6 @@ export default function ComplexCompletionForm({
             completedDate,
         };
     }
-
-    const previewData = useMemo(collectData, [
-        resultTimeSeconds,
-        resultDurationSeconds,
-        reps,
-        sets,
-        rounds,
-        count,
-        diaryEntryId,
-        completedDate,
-    ]);
-
-    const previewStars = calculatePreviewStars(complexDef, previewData);
 
     function validateResultStep(): string | undefined {
         if (usesMetric("time") && resultTimeSeconds === undefined) {
@@ -373,8 +358,6 @@ export default function ComplexCompletionForm({
                             <p className="complex-completion-form__summary-name">
                                 {complexDef.name}
                             </p>
-
-                            <ComplexStars stars={previewStars} />
 
                             {
                                 selectedDiaryEntry && (

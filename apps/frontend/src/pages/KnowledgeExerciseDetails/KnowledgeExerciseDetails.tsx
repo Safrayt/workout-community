@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
+import { makeDescription } from "../../utils/pageMeta";
 
 import Section from "../../components/ui/Section/Section";
 import Button from "../../components/ui/Button/Button";
@@ -10,6 +12,7 @@ import ViewSwitch from "../../components/ViewSwitch/ViewSwitch";
 import "../../styles/components/exercise-details.css";
 
 import { useIsAdmin } from "../../context/CurrentUserContext";
+import { useComplexes } from "../../context/ComplexContext";
 import { useExercises } from "../../context/ExerciseContext";
 import {
     movementTypeColors,
@@ -72,8 +75,24 @@ export default function KnowledgeExerciseDetails() {
     // Страница открыта и гостям — они просто не админы.
     const isAdmin = useIsAdmin();
     const { getExerciseById, isLoading } = useExercises();
+    const { complexes } = useComplexes();
 
     const exercise = id ? getExerciseById(id) : undefined;
+
+    // Заголовок вкладки и описание для поиска — по самому упражнению.
+    usePageMeta(
+        exercise?.name,
+        exercise
+            ? makeDescription(exercise.description) ||
+                  `Упражнение «${exercise.name}»: техника выполнения и целевые мышцы.`
+            : undefined
+    );
+
+    // В какие комплексы входит упражнение — ссылка в обратную сторону от
+    // страницы комплекса (там упражнения — ссылки сюда).
+    const usedInComplexes = exercise
+        ? complexes.filter((complex) => complex.exerciseIds.includes(exercise.id))
+        : [];
 
     // Что показано в медиа-панели. Видео по умолчанию, если оно есть:
     // по нему сразу понятно, как выполнять упражнение; карта мышц — одним
@@ -177,16 +196,6 @@ export default function KnowledgeExerciseDetails() {
 
                 <div className="exercise-details">
                     <div className="exercise-details__main">
-                        {
-                            photoUrl && (
-                                <img
-                                    src={photoUrl}
-                                    alt={`Выполнение упражнения: ${name}`}
-                                    className="exercise-details__photo"
-                                />
-                            )
-                        }
-
                         <div className="exercise-details__meta">
                             <p>
                                 <strong>Тип движения:</strong>{" "}
@@ -241,6 +250,24 @@ export default function KnowledgeExerciseDetails() {
                             suitableFor && suitableFor.length > 0 && (
                                 <DetailsBlock title="Для кого подходит">
                                     <BulletList items={suitableFor} />
+                                </DetailsBlock>
+                            )
+                        }
+
+                        {
+                            usedInComplexes.length > 0 && (
+                                <DetailsBlock title="Входит в комплексы">
+                                    <ul className="exercise-details__list">
+                                        {
+                                            usedInComplexes.map((complex) => (
+                                                <li key={complex.id}>
+                                                    <Link to={`/complexes/${complex.id}`}>
+                                                        {complex.name}
+                                                    </Link>
+                                                </li>
+                                            ))
+                                        }
+                                    </ul>
                                 </DetailsBlock>
                             )
                         }

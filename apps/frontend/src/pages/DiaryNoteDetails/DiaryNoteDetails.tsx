@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
+import { usePageMeta } from "../../hooks/usePageMeta";
 
 import "../../styles/components/workout-entry-details.css";
 import "../../styles/components/workout-entry-hero.css";
@@ -72,6 +73,8 @@ export default function DiaryNoteDetails() {
         id
             ? notes.find((item) => item.id === id)
             : undefined;
+
+    usePageMeta(note ? note.title?.trim() || "Заметка" : undefined);
 
     if (!note) {
         return (

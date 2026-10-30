@@ -1,9 +1,5 @@
-import type {
-    ComplexType,
-    MetricType,
-    MovementType,
-    StarCondition,
-} from "./complex";
+import type { ComplexType, MetricType } from "./complex";
+import { createEmptySchemeBlock, type SchemeBlock } from "./complexScheme";
 
 /**
  * Форма создания/редактирования комплекса (доступно только
@@ -14,13 +10,18 @@ export type NewComplex = {
     name: string;
     types: ComplexType[];
     description: string;
-    schemeDisplay: string;
-    schemeSteps: number[] | null;
-    totalReps: number | null;
-    movements: MovementType[];
-    exercise: string;
+
+    /**
+     * Схема: блоки с упражнениями из базы упражнений. Список разных
+     * упражнений комплекса (exerciseIds) и текст "Упражнение(я)" сервер
+     * выводит из неё сам.
+     */
+    scheme: SchemeBlock[];
+
+    /** Пояснение к схеме целиком (необязательно). */
+    schemeNote: string;
+
     resultMetrics: MetricType[];
-    starConditions: StarCondition[];
     instructions: string;
     restrictions: string;
 };
@@ -30,13 +31,10 @@ export const EMPTY_NEW_COMPLEX: NewComplex = {
     name: "",
     types: [],
     description: "",
-    schemeDisplay: "",
-    schemeSteps: null,
-    totalReps: null,
-    movements: [],
-    exercise: "",
+    // Один пустой блок, чтобы форма сразу была готова к вводу.
+    scheme: [createEmptySchemeBlock()],
+    schemeNote: "",
     resultMetrics: [],
-    starConditions: [],
     instructions: "",
     restrictions: "",
 };

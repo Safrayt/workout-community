@@ -9,7 +9,7 @@ import TagsField from "../TagsField/TagsField";
 
 import "../../styles/components/checkbox-grid.css";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
     ValidationError,
@@ -100,6 +100,12 @@ type WorkoutEntryFormProps = {
 
     onSubmit: (entry: NewWorkoutEntry) => void;
 
+    /**
+     * Вызывается при каждом изменении формы (но не при открытии).
+     * Страница создания по нему сохраняет черновик.
+     */
+    onChange?: (entry: NewWorkoutEntry) => void;
+
     /** Кнопка/действие "Отмена" (UX §24–25). */
     onCancel?: () => void;
 
@@ -120,6 +126,7 @@ export default function WorkoutEntryForm({
     initialValue,
     submitLabel,
     onSubmit,
+    onChange,
     onCancel,
     extraActions,
 }: WorkoutEntryFormProps) {
@@ -135,6 +142,26 @@ export default function WorkoutEntryForm({
     ] = useState<NewWorkoutEntry>(
         initialValue
     );
+
+    // Сообщаем странице о каждом изменении формы — она сохраняет черновик.
+    // Актуальный onChange держим в ref, чтобы эффект срабатывал только
+    // от изменения данных, а не от новой функции на каждом рендере. Первый
+    // рендер пропускаем: начальное значение — не правка пользователя.
+    const onChangeRef = useRef(onChange);
+    const isFirstRenderRef = useRef(true);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    });
+
+    useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            return;
+        }
+
+        onChangeRef.current?.(entry);
+    }, [entry]);
 
     const {
         currentUser,
