@@ -19,6 +19,10 @@ type WorkoutEntryProgramProps = {
  * именно та версия, что была зафиксирована при создании записи, а не
  * текущая версия программы (см. WorkoutEntry.programVersionId в
  * models_diary.py).
+ *
+ * Оформление такое же, как у WorkoutEntryComplexes: заголовок
+ * «Используемая программа» и белая плашка — название и версия, ниже
+ * (если указаны) раздел и схема, справа ссылка «Открыть программу».
  */
 export default function WorkoutEntryProgram({
     programId,
@@ -64,29 +68,40 @@ export default function WorkoutEntryProgram({
 
     return (
         <div className="workout-entry-program">
-            <h3 className="workout-entry-program__title">Программа</h3>
+            <h3 className="workout-entry-program__title">Используемая программа</h3>
 
-            <p className="workout-entry-program__name">
-                <Link to={`/programs/${programId}`}>{program.title}</Link>
+            <div className="workout-entry-program__item">
+                <div className="workout-entry-program__info">
+                    <span className="workout-entry-program__name">
+                        {program.title}
 
-                {
-                    version?.versionNumber && (
-                        <span className="workout-entry-program__version">
-                            {" "}— версия {version.versionNumber}
-                        </span>
-                    )
-                }
-            </p>
+                        {
+                            version?.versionNumber && (
+                                <span className="workout-entry-program__version">
+                                    {" "}— версия {version.versionNumber}
+                                </span>
+                            )
+                        }
+                    </span>
 
-            {
-                (programSection || programScheme) && (
-                    <p className="workout-entry-program__details">
-                        {programSection && <>Раздел: {programSection}</>}
-                        {programSection && programScheme && " · "}
-                        {programScheme && <>Схема: {programScheme}</>}
-                    </p>
-                )
-            }
+                    {
+                        (programSection || programScheme) && (
+                            <span className="workout-entry-program__details">
+                                {programSection && <>Раздел: {programSection}</>}
+                                {programSection && programScheme && " · "}
+                                {programScheme && <>Схема: {programScheme}</>}
+                            </span>
+                        )
+                    }
+                </div>
+
+                <Link
+                    to={`/programs/${programId}`}
+                    className="workout-entry-program__link"
+                >
+                    Открыть программу
+                </Link>
+            </div>
         </div>
     );
 }

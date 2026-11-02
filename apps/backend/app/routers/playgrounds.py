@@ -12,6 +12,7 @@ from app.models import User
 from app.models_diary import DiaryNote, WorkoutEntry
 from app.models_event import Event
 from app.models_playground import (
+    MANUFACTURER_URL_NEEDS_NAME_MESSAGE,
     Playground,
     PlaygroundCreate,
     PlaygroundHistoryEntry,
@@ -43,6 +44,9 @@ CHANGED_FIELD_LABELS = {
     "condition": "Состояние",
     "opening_hours": "Время работы",
     "description": "Описание",
+    # Название и ссылка — один пункт истории «Производитель».
+    "manufacturer_name": "Производитель",
+    "manufacturer_url": "Производитель",
 }
 
 # Эти поля на фронтенде объединены во вложенные объекты
@@ -190,7 +194,11 @@ def _compute_changed_field_labels(
         elif field_name in AMENITY_FIELDS:
             amenities_changed = True
         elif field_name in CHANGED_FIELD_LABELS:
-            labels.append(CHANGED_FIELD_LABELS[field_name])
+            label = CHANGED_FIELD_LABELS[field_name]
+
+            # У нескольких полей может быть одна подпись.
+            if label not in labels:
+                labels.append(label)
         elif field_name == "equipment":
             if set(old_value) != set(new_value):
                 labels.append("Оборудование")
@@ -228,6 +236,8 @@ def create_playground(
         condition=data.condition,
         opening_hours=data.opening_hours,
         description=data.description,
+        manufacturer_name=data.manufacturer_name,
+        manufacturer_url=data.manufacturer_url,
         lighting=data.lighting,
         covered=data.covered,
         changing_room=data.changing_room,
@@ -326,6 +336,15 @@ def update_playground(
     # exclude_unset=True — берём только те поля, которые реально были
     # переданы в запросе, остальные не трогаем.
     updates = data.model_dump(exclude_unset=True)
+
+    # Ссылка на сайт производителя без названия не допускается — смотрим
+    # на итоговые значения (в запросе мог прийти только один из пары).
+    if updates.get(
+        "manufacturer_url", playground.manufacturer_url
+    ) and not updates.get("manufacturer_name", playground.manufacturer_name):
+        raise HTTPException(
+            status_code=422, detail=MANUFACTURER_URL_NEEDS_NAME_MESSAGE
+        )
 
     # Считаем изменения ДО того, как перезаписали значения — иначе
     # сравнивать будет уже не с чем.

@@ -6,7 +6,9 @@ export type ArticleCategory =
     | "training"
     | "nutrition"
     | "recovery"
-    | "interview"
+    | "equipment"
+    | "playgrounds"
+    | "motivation"
     | "community";
 
 /** Статья в списке: без текста, чтобы список оставался лёгким. */

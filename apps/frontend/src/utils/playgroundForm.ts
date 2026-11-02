@@ -36,5 +36,9 @@ export function playgroundToFormValue(
         openingHours: playground.openingHours,
 
         description: playground.description,
+
+        manufacturerName: playground.manufacturerName ?? "",
+
+        manufacturerUrl: playground.manufacturerUrl ?? "",
     };
 }

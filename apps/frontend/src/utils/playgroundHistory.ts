@@ -119,6 +119,13 @@ export function getChangedFields(
         changes.push("Описание");
     }
 
+    if (
+        (existing.manufacturerName ?? "") !== updated.manufacturerName.trim() ||
+        (existing.manufacturerUrl ?? "") !== updated.manufacturerUrl.trim()
+    ) {
+        changes.push("Производитель");
+    }
+
     if (existing.photos.length !== updated.photos.length) {
         changes.push("Фотографии");
     }

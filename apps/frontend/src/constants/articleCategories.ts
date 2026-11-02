@@ -21,7 +21,9 @@ export const articleCategories: ArticleCategoryInfo[] = [
     { key: "training", label: "Тренировки", color: "#3182ce" },
     { key: "nutrition", label: "Питание", color: "#dd6b20" },
     { key: "recovery", label: "Восстановление", color: "#805ad5" },
-    { key: "interview", label: "Интервью", color: "#b83280" },
+    { key: "equipment", label: "Оборудование", color: "#4a5568" },
+    { key: "playgrounds", label: "Площадки", color: "#975a16" },
+    { key: "motivation", label: "Мотивация", color: "#b83280" },
     { key: "community", label: "Сообщество", color: "#2c7a7b" },
 ];
 

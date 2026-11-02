@@ -68,7 +68,9 @@ const GUEST_PROVIDERS: Record<GuestProviderGroup, GuestProvider[]> = {
         WorkoutDiaryProvider,
         ReviewProvider,
     ],
-    exercises: [ExerciseProvider],
+    // База упражнений фильтруется по площадке (карта площадок и список
+    // в фильтрах), поэтому ей нужны и площадки.
+    exercises: [ExerciseProvider, PlaygroundProvider],
     // Страница упражнения показывает, в какие комплексы оно входит.
     exercise: [ExerciseProvider, ComplexProvider],
     events: [

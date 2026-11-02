@@ -13,7 +13,9 @@ type Props = {
  *
  * На этом этапе теги чисто информационные — клика по тегу нет,
  * это станет частью отдельной UX-спецификации фильтрации
- * дневника. Если тегов нет, блок полностью скрывается.
+ * дневника. Если тегов нет, блок полностью скрывается. Видимого
+ * заголовка нет — и так понятно, что это теги; для программ экранного
+ * чтения у раздела есть aria-label.
  */
 export default function WorkoutEntryTags({
     tags,
@@ -25,11 +27,10 @@ export default function WorkoutEntryTags({
 
     return (
 
-        <section className="workout-entry-tags">
-
-            <h2 className="workout-entry-tags__title">
-                Теги
-            </h2>
+        <section
+            className="workout-entry-tags"
+            aria-label="Теги"
+        >
 
             <div className="tag-list">
                 {

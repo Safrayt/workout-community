@@ -269,6 +269,30 @@ export default function ComplexDetails() {
             }
 
             {
+                complexDef.instructions && (
+                    <section className="complex-details__section">
+                        <h2 className="complex-details__section-title">Инструкция</h2>
+
+                        <p className="complex-details__panel complex-details__description">
+                            {complexDef.instructions}
+                        </p>
+                    </section>
+                )
+            }
+
+            {
+                complexDef.restrictions && (
+                    <section className="complex-details__section">
+                        <h2 className="complex-details__section-title">Обратить внимание</h2>
+
+                        <p className="complex-details__panel complex-details__description">
+                            {complexDef.restrictions}
+                        </p>
+                    </section>
+                )
+            }
+
+            {
                 complexDef.scheme.length > 0 ? (
                     <section className="complex-details__section">
                         <h2 className="complex-details__section-title">Схема</h2>
@@ -400,29 +424,6 @@ export default function ComplexDetails() {
                     />
                 </div>
             </section>
-
-            {
-                (complexDef.instructions || complexDef.restrictions) && (
-                    <section className="complex-details__section">
-                        <div className="complex-details__panel complex-details__notes">
-                            {
-                                complexDef.instructions && (
-                                    <p className="complex-details__instructions">
-                                        {complexDef.instructions}
-                                    </p>
-                                )
-                            }
-                            {
-                                complexDef.restrictions && (
-                                    <p className="complex-details__restrictions">
-                                        {complexDef.restrictions}
-                                    </p>
-                                )
-                            }
-                        </div>
-                    </section>
-                )
-            }
 
             <section className="complex-details__section">
                 {

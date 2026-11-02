@@ -60,6 +60,13 @@ type PlaygroundsMapProps = {
     /** Текст кнопки-ссылки в popup — по умолчанию "Подробнее". */
     detailsLinkLabel?: string;
 
+    /**
+     * Открывать страницу по кнопке в popup в новой вкладке, а не в этой
+     * же. По умолчанию false. Нужно там, где на странице есть состояние,
+     * которое не хочется терять (например, фильтры в базе упражнений).
+     */
+    openDetailsInNewTab?: boolean;
+
     /** id маркера, подсвечиваемого при наведении на карточку в списке. */
     hoveredMarkerId?: string;
 
@@ -411,6 +418,7 @@ export default function PlaygroundsMap({
     onMarkerClick,
     showDetailsLink = true,
     detailsLinkLabel = "Подробнее",
+    openDetailsInNewTab = false,
     hoveredMarkerId,
     selectedMarkerId,
     focusMarkerId,
@@ -439,14 +447,23 @@ export default function PlaygroundsMap({
     // ref во время рендера — antipattern.
     const onMapClickRef = useRef(onMapClick);
     const onMarkerClickRef = useRef(onMarkerClick);
-    const navigateRef = useRef(navigate);
     const showDetailsLinkRef = useRef(showDetailsLink);
     const detailsLinkLabelRef = useRef(detailsLinkLabel);
+
+    function openDetails(url: string) {
+        if (openDetailsInNewTab) {
+            window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+            navigate(url);
+        }
+    }
+
+    const openDetailsRef = useRef(openDetails);
 
     useEffect(() => {
         onMapClickRef.current = onMapClick;
         onMarkerClickRef.current = onMarkerClick;
-        navigateRef.current = navigate;
+        openDetailsRef.current = openDetails;
         showDetailsLinkRef.current = showDetailsLink;
         detailsLinkLabelRef.current = detailsLinkLabel;
     });
@@ -632,7 +649,7 @@ export default function PlaygroundsMap({
                         showDetailsLink: showDetailsLinkRef.current,
                         detailsLinkLabel: detailsLinkLabelRef.current,
                         onDetailsClick: () =>
-                            navigateRef.current(markerData.url),
+                            openDetailsRef.current(markerData.url),
                     })
                 );
                 continue;
@@ -660,7 +677,7 @@ export default function PlaygroundsMap({
                     showDetailsLink: showDetailsLinkRef.current,
                     detailsLinkLabel: detailsLinkLabelRef.current,
                     onDetailsClick: () =>
-                        navigateRef.current(markerData.url),
+                        openDetailsRef.current(markerData.url),
                 })
             );
 

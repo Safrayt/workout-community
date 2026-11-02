@@ -10,6 +10,8 @@ import MuscleMapLegend, {
 } from "../../components/MuscleMapLegend/MuscleMapLegend";
 import ExerciseFilters from "../../components/ExerciseFilters/ExerciseFilters";
 import ExerciseCard from "../../components/ExerciseCard/ExerciseCard";
+import ExercisesPlaygroundMap from "../../components/ExercisesPlaygroundMap/ExercisesPlaygroundMap";
+import ViewSwitch from "../../components/ViewSwitch/ViewSwitch";
 
 import "../../styles/components/knowledge-exercises.css";
 
@@ -17,6 +19,7 @@ import type { MuscleGroupKey } from "../../types/exercise";
 
 import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useExercises } from "../../context/ExerciseContext";
+import { usePlaygrounds } from "../../context/PlaygroundContext";
 
 import {
     MAX_EXERCISE_QUERY_LENGTH,
@@ -42,9 +45,14 @@ import { pluralizeRu } from "../../utils/pluralize";
  * - Панель фильтров (типы движения и мышцы) можно скрыть кнопкой рядом
  *   с поиском, чтобы список был ближе. Поиск виден всегда; сколько
  *   фильтров выбрано, показывает сама кнопка.
+ * - Над картой переключатель «Карта мышц / Карта площадок». Клик по
+ *   метке площадки оставляет упражнения, которые можно выполнить на её
+ *   оборудовании (выбранная площадка и кнопка «Снять выбор» — в блоке
+ *   «Площадка» панели фильтров); страница площадки открывает эту
+ *   страницу ссылкой ?playground=<id>.
  * - Фильтры и поиск хранятся в адресе страницы
- *   (?movement=…&muscles=…&q=…): они переживают переход на страницу
- *   упражнения и возврат назад.
+ *   (?movement=…&muscles=…&playground=…&q=…): они переживают переход на
+ *   страницу упражнения и возврат назад.
  */
 export default function KnowledgeExercises() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -52,6 +60,7 @@ export default function KnowledgeExercises() {
     // Страница открыта и гостям — они просто не админы.
     const isAdmin = useIsAdmin();
     const { exercises, isLoading, loadError, reload } = useExercises();
+    const { playgrounds, isLoading: arePlaygroundsLoading } = usePlaygrounds();
 
     const urlFilters = useMemo(
         () => parseExerciseFilters(searchParams),
@@ -71,6 +80,12 @@ export default function KnowledgeExercises() {
     );
 
     const [areFiltersVisible, setAreFiltersVisible] = useState(true);
+
+    // Если страницу открыли ссылкой с выбранной площадкой, сразу
+    // показываем карту площадок: фильтр живёт на ней.
+    const [mapView, setMapView] = useState<"muscles" | "playgrounds">(
+        urlFilters.playgroundId !== "" ? "playgrounds" : "muscles"
+    );
 
     useEffect(() => {
         if (searchText === urlFilters.query) {
@@ -100,9 +115,30 @@ export default function KnowledgeExercises() {
     const [selectedExerciseId, setSelectedExerciseId] =
         useState<string | null>(null);
 
+    const selectedPlayground = useMemo(
+        () =>
+            playgrounds.find(
+                (playground) => playground.id === filters.playgroundId
+            ),
+        [playgrounds, filters.playgroundId]
+    );
+
+    // Площадка выбрана в адресе, но список площадок ещё грузится:
+    // пока неизвестно её оборудование, список упражнений не показываем,
+    // чтобы он не мигнул полным и не сузился.
+    const isPlaygroundPending =
+        filters.playgroundId !== "" && arePlaygroundsLoading;
+
+    // Площадка есть в адресе, но такой нет (удалена, опечатка в ссылке).
+    const isPlaygroundMissing =
+        filters.playgroundId !== "" &&
+        !arePlaygroundsLoading &&
+        !selectedPlayground;
+
     const filteredExercises = useMemo(
-        () => filterExercises(exercises, filters),
-        [exercises, filters]
+        () =>
+            filterExercises(exercises, filters, selectedPlayground?.equipment),
+        [exercises, filters, selectedPlayground]
     );
 
     // Выбранное упражнение учитываем только пока оно есть в списке: если
@@ -134,6 +170,22 @@ export default function KnowledgeExercises() {
         }
 
         updateFilters(next);
+    }
+
+    // Повторный клик по выбранной площадке снимает выбор. Выбранная
+    // площадка показана в панели фильтров, поэтому при выборе
+    // раскрываем панель, если она была скрыта.
+    function handleSelectPlayground(playgroundId: string) {
+        const isSelecting = playgroundId !== filters.playgroundId;
+
+        if (isSelecting) {
+            setAreFiltersVisible(true);
+        }
+
+        handleFiltersChange({
+            ...filters,
+            playgroundId: isSelecting ? playgroundId : "",
+        });
     }
 
     function handleToggleMuscle(muscle: MuscleGroupKey) {
@@ -185,40 +237,69 @@ export default function KnowledgeExercises() {
                 )
             }
 
-            <h3>Карта мышц</h3>
+            <h3>{mapView === "muscles" ? "Карта мышц" : "Карта площадок"}</h3>
+
+            <div className="exercises-map-switch">
+                <ViewSwitch
+                    ariaLabel="Какую карту показывать"
+                    options={[
+                        { value: "muscles", label: "Карта мышц" },
+                        { value: "playgrounds", label: "Карта площадок" },
+                    ]}
+                    value={mapView}
+                    onChange={setMapView}
+                />
+            </div>
 
             <p className="exercises-hint">
-                Нажмите на мышцу, чтобы найти упражнения, которые её нагружают.
-                Нажмите на упражнение в списке — на карте подсветятся его мышцы.
+                {
+                    mapView === "muscles"
+                        ? "Нажмите на мышцу, чтобы найти упражнения, которые её нагружают. Нажмите на упражнение в списке — на карте подсветятся его мышцы."
+                        : "Нажмите на площадку, чтобы увидеть упражнения, которые можно выполнить на её оборудовании. Повторный клик снимает выбор."
+                }
             </p>
 
             <div className="exercises-map">
-                <div className="exercises-map__figure">
-                    <MuscleMap
-                        selectedMuscles={filters.muscles}
-                        targetMuscles={selectedExercise?.targetMuscles}
-                        auxiliaryMuscles={selectedExercise?.auxiliaryMuscles}
-                        onToggleMuscle={handleToggleMuscle}
-                    />
-                </div>
-
-                <MuscleMapLegend items={legendItems} />
-
                 {
-                    selectedExercise && (
-                        <div className="exercises-map__selected" role="status">
-                            <span>
-                                Показаны мышцы упражнения{" "}
-                                <strong>{selectedExercise.name}</strong>
-                            </span>
+                    mapView === "muscles" ? (
+                        <>
+                            <div className="exercises-map__figure">
+                                <MuscleMap
+                                    selectedMuscles={filters.muscles}
+                                    targetMuscles={selectedExercise?.targetMuscles}
+                                    auxiliaryMuscles={selectedExercise?.auxiliaryMuscles}
+                                    onToggleMuscle={handleToggleMuscle}
+                                />
+                            </div>
 
-                            <Button
-                                variant="outline"
-                                onClick={() => setSelectedExerciseId(null)}
-                            >
-                                Снять выбор
-                            </Button>
-                        </div>
+                            <MuscleMapLegend items={legendItems} />
+
+                            {
+                                selectedExercise && (
+                                    <div className="exercises-map__selected" role="status">
+                                        <span>
+                                            Показаны мышцы упражнения{" "}
+                                            <strong>{selectedExercise.name}</strong>
+                                        </span>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setSelectedExerciseId(null)}
+                                        >
+                                            Снять выбор
+                                        </Button>
+                                    </div>
+                                )
+                            }
+                        </>
+                    ) : arePlaygroundsLoading ? (
+                        <p className="exercises-status">Загрузка площадок…</p>
+                    ) : (
+                        <ExercisesPlaygroundMap
+                            playgrounds={playgrounds}
+                            selectedPlaygroundId={filters.playgroundId}
+                            onSelectPlayground={handleSelectPlayground}
+                        />
                     )
                 }
             </div>
@@ -286,13 +367,15 @@ export default function KnowledgeExercises() {
                 <ExerciseFilters
                     filters={filters}
                     onChange={handleFiltersChange}
+                    selectedPlayground={selectedPlayground}
+                    isPlaygroundMissing={isPlaygroundMissing}
                 />
             </div>
 
             <hr />
 
             {
-                isLoading ? (
+                isLoading || isPlaygroundPending ? (
                     <p className="exercises-status">Загрузка упражнений…</p>
                 ) : loadError ? (
                     <div className="exercises-empty-state">
@@ -314,7 +397,9 @@ export default function KnowledgeExercises() {
                             {
                                 hasQuery
                                     ? "Нет упражнений с таким названием среди выбранных фильтров. Проверьте запрос или уберите часть фильтров."
-                                    : "Нет упражнений, которые подходят сразу под все выбранные параметры. Попробуйте убрать часть мышц или сменить тип движения."
+                                    : selectedPlayground
+                                        ? "Нет упражнений, которые подходят сразу под все выбранные параметры и оборудование этой площадки. Попробуйте убрать часть мышц, сменить тип движения или выбрать другую площадку."
+                                        : "Нет упражнений, которые подходят сразу под все выбранные параметры. Попробуйте убрать часть мышц или сменить тип движения."
                             }
                         </p>
 

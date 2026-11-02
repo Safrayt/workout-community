@@ -6,12 +6,6 @@
     margin: 0 0 var(--space-5);
 }
 
-.workout-entry-gallery__title {
-    margin: 0;
-
-    font-size: var(--font-size-lg);
-}
-
 .workout-entry-gallery__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

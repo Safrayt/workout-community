@@ -201,8 +201,9 @@ def test_exercise_text_follows_renaming_of_exercise(client, admin):
 def _exercise_update_payload(exercise: dict) -> dict:
     keys = (
         "name", "name_en", "movement_type", "target_muscles",
-        "auxiliary_muscles", "equipment", "description", "advantages",
-        "disadvantages", "technique", "features", "suitable_for",
+        "auxiliary_muscles", "equipment", "no_equipment", "description",
+        "advantages", "disadvantages", "technique", "features",
+        "suitable_for",
     )
     return {k: exercise[k] for k in keys if k in exercise}
 

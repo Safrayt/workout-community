@@ -19,6 +19,7 @@ import {
     movementTypeLabels,
 } from "../../constants/movementTypes";
 import { muscleGroupLabels } from "../../constants/muscleGroups";
+import { describeExerciseEquipment } from "../../utils/exerciseEquipment";
 
 type MediaView = "video" | "muscles";
 
@@ -150,7 +151,6 @@ export default function KnowledgeExerciseDetails() {
         movementType,
         targetMuscles,
         auxiliaryMuscles,
-        equipment,
         description,
         advantages,
         disadvantages,
@@ -204,7 +204,7 @@ export default function KnowledgeExerciseDetails() {
 
                             <p>
                                 <strong>Оборудование:</strong>{" "}
-                                {equipment.join(", ")}
+                                {describeExerciseEquipment(exercise)}
                             </p>
                         </div>
 

@@ -118,6 +118,79 @@ def _replace_removed_movement_types(connection) -> int:
     return changed
 
 
+def _reset_exercise_equipment(connection, boolean_default_false: str) -> int:
+    """
+    Разовая правка при переходе оборудования упражнений со свободного
+    текста («Турник», «Без оборудования») на ключи из справочника
+    (models_exercise.ExerciseEquipment) и отметку no_equipment.
+
+    Старые текстовые значения не переводятся автоматически: у каждого
+    упражнения оборудование расставляется заново при редактировании.
+    До тех пор у упражнения пустой список и no_equipment=False —
+    «оборудование не указано» (на страницах площадок такое упражнение
+    не предлагается).
+
+    Колонка no_equipment служит маркером: если её ещё нет — это первый
+    запуск после обновления, и мы её добавляем, очищая старые значения.
+    Если она уже есть — ничего не делаем, так что оборудование, которое
+    администратор расставил потом, затираться при перезапусках не
+    будет. На новой пустой базе колонка создаётся сразу через
+    create_all(), и очищать нечего. Возвращает число очищенных строк.
+    """
+    columns = {
+        column["name"] for column in inspect(connection).get_columns("exercise")
+    }
+
+    if "no_equipment" in columns:
+        return 0
+
+    _add_column_if_missing(
+        connection, "exercise", "no_equipment", boolean_default_false
+    )
+
+    result = connection.execute(
+        text('UPDATE "exercise" SET "equipment" = \'[]\'')
+    )
+    connection.commit()
+
+    cleared = result.rowcount or 0
+
+    logger.warning(
+        "Оборудование упражнений сброшено (новый формат): строк %s. "
+        "Расставьте оборудование заново при редактировании упражнений.",
+        cleared,
+    )
+
+    return cleared
+
+
+def _move_interview_articles_to_community(connection) -> int:
+    """
+    Рубрику статей «Интервью» убрали (такие материалы теперь выходят в
+    «Сообщество»). Без этого у уже опубликованных статей с рубрикой
+    interview на сайте пропали бы название и цвет бейджа, а в форме
+    редактирования нельзя было бы выбрать рубрику. Повторный запуск
+    безопасен: подходящих строк больше нет. Возвращает число статей.
+    """
+    result = connection.execute(
+        text(
+            "UPDATE article SET category = 'community' "
+            "WHERE category = 'interview'"
+        )
+    )
+    connection.commit()
+
+    moved = result.rowcount or 0
+
+    if moved:
+        logger.warning(
+            "Статьи из рубрики «Интервью» перенесены в «Сообщество»: %s.",
+            moved,
+        )
+
+    return moved
+
+
 def _link_seed_complexes_to_exercises(connection) -> int:
     """
     Переносит в уже существующую базу структурированную схему и связь с
@@ -346,6 +419,25 @@ def _run_migrations() -> None:
         # движения — см. REMOVED_MOVEMENT_TYPES.
         if "exercise" in existing_tables:
             _replace_removed_movement_types(connection)
+
+            # Оборудование упражнений: новый формат (ключи + «без
+            # оборудования»), старые значения сбрасываются.
+            _reset_exercise_equipment(connection, boolean_default_false)
+
+        # Рубрика статей «Интервью» убрана — переносим такие статьи в
+        # «Сообщество».
+        if "article" in existing_tables:
+            _move_interview_articles_to_community(connection)
+
+        # Производитель оборудования площадки (название и ссылка на сайт),
+        # оба необязательные — см. Playground в models_playground.py.
+        if "playground" in existing_tables:
+            _add_column_if_missing(
+                connection, "playground", "manufacturer_name", "VARCHAR"
+            )
+            _add_column_if_missing(
+                connection, "playground", "manufacturer_url", "VARCHAR"
+            )
 
         # Связь комплекса с упражнениями из базы упражнений (см.
         # Complex.exercise_ids): новая колонка и привязка стартовых

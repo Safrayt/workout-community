@@ -1,3 +1,5 @@
+import type { PlaygroundEquipment } from "./playground";
+
 /**
  * Мышечные группы карты мышц (см. constants/muscleGroups.ts). Ключ
  * один и тот же в данных упражнений, в фильтрах, в адресной строке
@@ -24,6 +26,22 @@ export type MuscleGroupKey =
     | "hamstrings"
     | "calves";
 
+/**
+ * Оборудование, которое считается имеющимся на любой площадке и потому
+ * в форме площадки не отмечается: упражнения с ним подходят к каждой
+ * площадке. Сейчас — только вертикальный столб (дерево, фонарный столб
+ * и т. п.). Должно совпадать с UNIVERSAL_EQUIPMENT в
+ * app/models_exercise.py.
+ */
+export type UniversalEquipment = "verticalPost";
+
+/**
+ * Оборудование упражнения: то же, что у площадок (PlaygroundEquipment),
+ * плюс универсальное. Должно совпадать с ExerciseEquipment в
+ * app/models_exercise.py.
+ */
+export type ExerciseEquipmentKey = PlaygroundEquipment | UniversalEquipment;
+
 /** Тип движения (см. constants/movementTypes.ts). */
 export type MovementType =
     | "pull"
@@ -49,8 +67,14 @@ export type Exercise = {
     /** Мышцы, которые работают в помощь (синергисты и стабилизаторы). */
     auxiliaryMuscles: MuscleGroupKey[];
 
-    /** Что нужно для выполнения: "Турник", "Брусья", "Без оборудования". */
-    equipment: string[];
+    /**
+     * Что нужно для выполнения: достаточно любого из перечисленных
+     * пунктов. Пусто и noEquipment=false — оборудование не указано.
+     */
+    equipment: ExerciseEquipmentKey[];
+
+    /** Упражнение выполняется без оборудования (тогда equipment пуст). */
+    noEquipment: boolean;
 
     /** Блок "Что это такое?": одно-два предложения о сути упражнения. */
     description: string;

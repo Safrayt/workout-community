@@ -248,6 +248,8 @@ def test_publishing_sets_date_once(client, admin):
         {"title": "я" * 151},
         {"summary": "я" * 301},
         {"category": "unknown"},
+        # Рубрику «Интервью» убрали — такие статьи идут в «Сообщество».
+        {"category": "interview"},
         {"body": "я" * 100_001},
     ],
 )
@@ -354,7 +356,7 @@ def library_fixture(client, admin):
             tags=["белок", "питание"],
         ),
         "chef": _create(
-            client, admin, title="Интервью с поваром", category="interview",
+            client, admin, title="Интервью с поваром", category="community",
             tags=["питание", "турник"],
         ),
         "sleep": _create(
@@ -411,7 +413,7 @@ def test_several_tags_are_combined_with_and(client, library):
 
 
 def test_category_and_tag_combine(client, library):
-    response = client.get("/articles/?category=interview&tag=питание")
+    response = client.get("/articles/?category=community&tag=питание")
 
     assert _ids(response) == [library["chef"]]
 
@@ -430,7 +432,54 @@ def test_unknown_or_invalid_tag_gives_empty_list(client, library):
 
 def test_unknown_category_and_status_are_422(client):
     assert client.get("/articles/?category=unknown").status_code == 422
+    assert client.get("/articles/?category=interview").status_code == 422
     assert client.get("/articles/?status=all").status_code == 422
+
+
+@pytest.mark.parametrize(
+    "category", ["equipment", "playgrounds", "motivation", "community"]
+)
+def test_new_categories_can_be_used_and_filtered(client, admin, category):
+    created = _create(client, admin, title=f"Про {category}", category=category)
+
+    assert created["category"] == category
+
+    response = client.get(f"/articles/?category={category}")
+
+    assert response.status_code == 200
+    assert _ids(response) == [created["id"]]
+
+
+def test_interview_articles_are_moved_to_community():
+    from sqlalchemy import create_engine, text
+
+    from app.database import _move_interview_articles_to_community
+
+    engine = create_engine("sqlite://")
+
+    with engine.connect() as connection:
+        connection.exec_driver_sql(
+            "CREATE TABLE article (id TEXT PRIMARY KEY, category TEXT)"
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO article (id, category) VALUES "
+            "('a', 'interview'), ('b', 'training'), ('c', 'interview')"
+        )
+        connection.commit()
+
+        assert _move_interview_articles_to_community(connection) == 2
+
+        rows = connection.execute(
+            text("SELECT id, category FROM article ORDER BY id")
+        ).all()
+        assert [(r[0], r[1]) for r in rows] == [
+            ("a", "community"),
+            ("b", "training"),
+            ("c", "community"),
+        ]
+
+        # Повторный запуск (перезапуск сервера) ничего не меняет.
+        assert _move_interview_articles_to_community(connection) == 0
 
 
 def test_pagination(client, library):

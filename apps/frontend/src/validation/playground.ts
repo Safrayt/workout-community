@@ -11,6 +11,9 @@ import {
     MAX_PLAYGROUND_PHOTOS,
 } from "../constants/playgroundPhotos";
 
+import { MAX_MANUFACTURER_NAME_LENGTH } from "../constants/playgroundManufacturer";
+import { normalizeWebsiteUrl } from "../utils/websiteUrl";
+
 export function validatePlayground(
     playground: NewPlayground,
     options: { isEditing?: boolean } = {}
@@ -89,6 +92,33 @@ export function validatePlayground(
             field: "description",
             message: "Добавьте описание площадки.",
         });
+    }
+
+    const manufacturerName = playground.manufacturerName.trim();
+    const manufacturerUrl = playground.manufacturerUrl.trim();
+
+    if (manufacturerName.length > MAX_MANUFACTURER_NAME_LENGTH) {
+        errors.push({
+            field: "manufacturerName",
+            message: `Название производителя — не длиннее ${MAX_MANUFACTURER_NAME_LENGTH} символов.`,
+        });
+    }
+
+    if (manufacturerUrl.length > 0) {
+        if (manufacturerName.length === 0) {
+            errors.push({
+                field: "manufacturerName",
+                message:
+                    "Укажите название производителя, чтобы добавить ссылку на его сайт.",
+            });
+        }
+
+        if (normalizeWebsiteUrl(manufacturerUrl) === null) {
+            errors.push({
+                field: "manufacturerUrl",
+                message: "Введите корректную ссылку, например https://example.com.",
+            });
+        }
     }
 
     if (

@@ -44,9 +44,20 @@
     color: var(--color-text-secondary);
 }
 
+/* Текст комментария — на белой панели (как в комментариях к комплексу,
+   см. complex-comments.css): на сером фоне страницы он терялся. */
 .program-comments__text {
     margin: 0;
+    padding: var(--space-3) var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+
     white-space: pre-line;
+
+    /* Длинная ссылка без пробелов не должна выпирать за панель. */
+    overflow-wrap: anywhere;
 }
 
 .program-comments__owner-actions {

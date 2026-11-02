@@ -44,4 +44,8 @@ export type NewPlayground = {
     openingHours: string;
 
     description: string;
+
+    manufacturerName: string;
+
+    manufacturerUrl: string;
 };

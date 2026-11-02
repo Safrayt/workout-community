@@ -27,7 +27,7 @@ VALID_PAYLOAD = {
     "movement_type": "pull",
     "target_muscles": ["lats"],
     "auxiliary_muscles": ["biceps"],
-    "equipment": ["Турник"],
+    "equipment": ["widePullBar", "highPullBar"],
     "description": "Описание тестового упражнения.",
     "technique": ["Шаг первый", "Шаг второй"],
 }
@@ -263,14 +263,14 @@ def test_text_fields_are_trimmed_and_cleaned(client, admin):
         name="  Пробелы  ",
         name_en="   ",
         target_muscles=["lats", "lats"],
-        equipment=["  Турник ", "", "   "],
+        equipment=["rings", "rings"],
         advantages=["Первое", "  ", "Второе  "],
     )
 
     assert created["name"] == "Пробелы"
     assert created["name_en"] is None
     assert created["target_muscles"] == ["lats"]
-    assert created["equipment"] == ["Турник"]
+    assert created["equipment"] == ["rings"]
     assert created["advantages"] == ["Первое", "Второе"]
 
 
@@ -422,6 +422,8 @@ def test_seed_marks_iliacus_for_hip_flexion_exercises(client):
         {"target_muscles": ["lats"], "auxiliary_muscles": ["lats"]},
         {"equipment": []},
         {"equipment": ["", "  "]},
+        {"equipment": ["Турник"]},
+        {"equipment": ["rings"], "no_equipment": True},
         {"description": ""},
         {"description": "а" * 2001},
         {"technique": []},

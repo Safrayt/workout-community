@@ -55,6 +55,42 @@ MuscleGroup = Literal[
     "calves",
 ]
 
+# Оборудование упражнения. Ключи — те же, что у оборудования площадок
+# (models_playground.PlaygroundEquipment, строка-в-строку), плюс
+# "универсальное" оборудование, которое считается имеющимся на любой
+# площадке и поэтому в форме площадки не отмечается (сейчас —
+# вертикальный столб: дерево, фонарный столб и т. п.). Упражнение
+# подходит к площадке, если оно «без оборудования», или в нём есть
+# универсальный пункт, или хотя бы один его пункт есть у площадки —
+# сопоставление делает фронтенд (utils/exerciseAvailability.ts).
+# Если здесь добавить значение, его нужно добавить и во фронтенд
+# (types/exercise.ts, constants/exerciseEquipment.ts); соответствие
+# PlaygroundEquipment проверяет tests/test_exercise_equipment.py.
+UNIVERSAL_EQUIPMENT = ("verticalPost",)
+
+ExerciseEquipment = Literal[
+    "widePullBar",
+    "highPullBar",
+    "mediumPullBar",
+    "lowPullBar",
+    "middlePushBar",
+    "lowPushBar",
+    "labyrinth",
+    "highParallelBars",
+    "mediumParallelBars",
+    "parallettes",
+    "pushUpBars",
+    "wideMonkeyBars",
+    "narrowMonkeyBars",
+    "swedishWall",
+    "Bench",
+    "inclineBench",
+    "posts",
+    "rings",
+    "rope",
+    "verticalPost",
+]
+
 # Пределы длины — чтобы одна ошибка (или вставка целой статьи в поле
 # названия) не раздула страницу и базу.
 MAX_NAME_LENGTH = 120
@@ -88,7 +124,15 @@ class ExerciseDB(SQLModel, table=True):
 
     target_muscles: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     auxiliary_muscles: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+    # Оборудование: ключи ExerciseEquipment; «достаточно любого из
+    # перечисленных». no_equipment — упражнение выполняется без
+    # оборудования (тогда список пуст). Пустой список при
+    # no_equipment=False — «оборудование не указано»: так выглядят
+    # упражнения, у которых оно ещё не расставлено заново (см.
+    # database._reset_exercise_equipment).
     equipment: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    no_equipment: bool = False
 
     description: str = ""
     advantages: List[str] = Field(default_factory=list, sa_column=Column(JSON))
@@ -148,7 +192,8 @@ class ExerciseWrite(SQLModel):
 
     target_muscles: List[MuscleGroup]
     auxiliary_muscles: List[MuscleGroup] = []
-    equipment: List[str]
+    equipment: List[ExerciseEquipment] = []
+    no_equipment: bool = False
 
     description: str
     advantages: List[str] = []
@@ -211,15 +256,10 @@ class ExerciseWrite(SQLModel):
 
     @field_validator("equipment")
     @classmethod
-    def _validate_equipment(cls, value: List[str]) -> List[str]:
-        cleaned = _clean_items(value, "Оборудование")
-
-        if not cleaned:
-            raise ValueError(
-                "Укажите оборудование (например, «Без оборудования»)"
-            )
-
-        return cleaned
+    def _dedupe_equipment(
+        cls, value: List[ExerciseEquipment]
+    ) -> List[ExerciseEquipment]:
+        return list(dict.fromkeys(value))
 
     @field_validator("technique")
     @classmethod
@@ -265,6 +305,20 @@ class ExerciseWrite(SQLModel):
 
         return self
 
+    @model_validator(mode="after")
+    def _validate_equipment(self) -> "ExerciseWrite":
+        if self.no_equipment and self.equipment:
+            raise ValueError(
+                "Нельзя одновременно выбрать оборудование и «Без оборудования»"
+            )
+
+        if not self.no_equipment and not self.equipment:
+            raise ValueError(
+                "Укажите оборудование или отметьте «Без оборудования»"
+            )
+
+        return self
+
 
 class ExerciseRead(SQLModel):
     id: str
@@ -275,6 +329,7 @@ class ExerciseRead(SQLModel):
     target_muscles: List[str]
     auxiliary_muscles: List[str]
     equipment: List[str]
+    no_equipment: bool
 
     description: str
     advantages: List[str]
@@ -348,6 +403,7 @@ def exercise_from_db(row: ExerciseDB) -> ExerciseRead:
         target_muscles=list(row.target_muscles or []),
         auxiliary_muscles=list(row.auxiliary_muscles or []),
         equipment=list(row.equipment or []),
+        no_equipment=bool(row.no_equipment),
         description=row.description,
         advantages=list(row.advantages or []),
         disadvantages=list(row.disadvantages or []),
@@ -366,6 +422,7 @@ def apply_exercise_write(row: ExerciseDB, data: ExerciseWrite) -> None:
     row.target_muscles = list(data.target_muscles)
     row.auxiliary_muscles = list(data.auxiliary_muscles)
     row.equipment = list(data.equipment)
+    row.no_equipment = data.no_equipment
     row.description = data.description
     row.advantages = list(data.advantages)
     row.disadvantages = list(data.disadvantages)

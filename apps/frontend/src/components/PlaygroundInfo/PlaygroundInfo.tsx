@@ -20,6 +20,7 @@ import PlaygroundInspectionPrompt, {
 } from "../PlaygroundInspection/PlaygroundInspection";
 
 import { calculatePlaygroundRating } from "../../utils/playgroundRating";
+import { normalizeWebsiteUrl } from "../../utils/websiteUrl";
 
 type Props = {
 
@@ -33,6 +34,12 @@ export default function PlaygroundInfo({
     playground,
     onEdit,
 }: Props) {
+
+    // Ссылку заводят обычные пользователи — перед выводом ещё раз
+    // проверяем, что это http/https; иначе показываем просто название.
+    const manufacturerUrl = playground.manufacturerUrl
+        ? normalizeWebsiteUrl(playground.manufacturerUrl)
+        : null;
 
     return (
 
@@ -73,6 +80,30 @@ export default function PlaygroundInfo({
                     ]
                 }
             </InfoRow>
+
+            {
+                playground.manufacturerName && (
+
+                    <InfoRow label="Производитель">
+                        {
+                            manufacturerUrl ? (
+
+                                <a
+                                    href={manufacturerUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer nofollow ugc"
+                                >
+                                    {playground.manufacturerName}
+                                </a>
+
+                            ) : (
+                                playground.manufacturerName
+                            )
+                        }
+                    </InfoRow>
+
+                )
+            }
 
             <InfoRow label="Доступ">
                 {

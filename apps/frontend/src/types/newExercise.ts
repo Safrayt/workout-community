@@ -1,4 +1,8 @@
-import type { MovementType, MuscleGroupKey } from "./exercise";
+import type {
+    ExerciseEquipmentKey,
+    MovementType,
+    MuscleGroupKey,
+} from "./exercise";
 
 /**
  * Значение формы добавления/редактирования упражнения (текстовая
@@ -15,7 +19,8 @@ export type NewExercise = {
     targetMuscles: MuscleGroupKey[];
     auxiliaryMuscles: MuscleGroupKey[];
 
-    equipment: string[];
+    equipment: ExerciseEquipmentKey[];
+    noEquipment: boolean;
     description: string;
     advantages: string[];
     disadvantages: string[];
@@ -31,6 +36,7 @@ export const EMPTY_NEW_EXERCISE: NewExercise = {
     targetMuscles: [],
     auxiliaryMuscles: [],
     equipment: [],
+    noEquipment: false,
     description: "",
     advantages: [],
     disadvantages: [],

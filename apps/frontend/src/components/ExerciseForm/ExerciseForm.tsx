@@ -8,11 +8,16 @@ import FormSection from "../ui/FormSection/FormSection";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import MuscleMap from "../MuscleMap/MuscleMap";
 import MuscleMapLegend from "../MuscleMapLegend/MuscleMapLegend";
+import ExerciseEquipmentPicker from "../ExerciseEquipmentPicker/ExerciseEquipmentPicker";
 
 import "../../styles/components/exercise-filters.css";
 import "../../styles/components/exercise-form.css";
 
-import type { MovementType, MuscleGroupKey } from "../../types/exercise";
+import type {
+    ExerciseEquipmentKey,
+    MovementType,
+    MuscleGroupKey,
+} from "../../types/exercise";
 import {
     NO_MEDIA_CHANGES,
     type ExerciseMediaChanges,
@@ -36,7 +41,7 @@ const MAX_VIDEO_SIZE_MB = 25;
 const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
 /**
- * Поля формы. Списки (оборудование, преимущества, шаги техники и т. д.)
+ * Поля формы. Списки (преимущества, шаги техники и т. д.)
  * редактируются как обычный текст "один пункт на строку" — так удобно
  * вставлять готовые описания целиком; в список они превращаются при
  * отправке (linesToItems).
@@ -47,7 +52,8 @@ type Draft = {
     movementType: MovementType | "";
     targetMuscles: MuscleGroupKey[];
     auxiliaryMuscles: MuscleGroupKey[];
-    equipment: string;
+    equipment: ExerciseEquipmentKey[];
+    noEquipment: boolean;
     description: string;
     advantages: string;
     disadvantages: string;
@@ -63,7 +69,8 @@ function toDraft(value: NewExercise): Draft {
         movementType: value.movementType,
         targetMuscles: value.targetMuscles,
         auxiliaryMuscles: value.auxiliaryMuscles,
-        equipment: itemsToLines(value.equipment),
+        equipment: value.equipment,
+        noEquipment: value.noEquipment,
         description: value.description,
         advantages: itemsToLines(value.advantages),
         disadvantages: itemsToLines(value.disadvantages),
@@ -80,7 +87,8 @@ function fromDraft(draft: Draft): NewExercise {
         movementType: draft.movementType,
         targetMuscles: draft.targetMuscles,
         auxiliaryMuscles: draft.auxiliaryMuscles,
-        equipment: linesToItems(draft.equipment),
+        equipment: draft.equipment,
+        noEquipment: draft.noEquipment,
         description: draft.description.trim(),
         advantages: linesToItems(draft.advantages),
         disadvantages: linesToItems(draft.disadvantages),
@@ -348,21 +356,25 @@ export default function ExerciseForm({
                     />
 
                     <div>
-                        <Textarea
-                            id="exercise-equipment"
-                            label="Оборудование *"
-                            rows={2}
-                            value={draft.equipment}
-                            error={errors.equipment}
-                            onChange={(event) =>
-                                updateDraft("equipment", event.target.value)
+                        <h4 className="exercise-form__subtitle">
+                            Оборудование *
+                        </h4>
+
+                        <ExerciseEquipmentPicker
+                            equipment={draft.equipment}
+                            noEquipment={draft.noEquipment}
+                            onChange={(next) =>
+                                setDraft((current) => ({ ...current, ...next }))
                             }
                         />
 
-                        <p className="exercise-form__hint">
-                            Один вариант на строку, например: «Турник» или
-                            «Без оборудования».
-                        </p>
+                        {
+                            errors.equipment && (
+                                <small className="exercise-form__error">
+                                    {errors.equipment}
+                                </small>
+                            )
+                        }
                     </div>
                 </div>
             </FormSection>

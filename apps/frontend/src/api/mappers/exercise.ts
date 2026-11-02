@@ -1,6 +1,11 @@
 import { resolveMediaUrl } from "../media";
 
-import type { Exercise, MovementType, MuscleGroupKey } from "../../types/exercise";
+import type {
+    Exercise,
+    ExerciseEquipmentKey,
+    MovementType,
+    MuscleGroupKey,
+} from "../../types/exercise";
 import type { NewExercise } from "../../types/newExercise";
 
 /** Упражнение так, как его отдаёт бэкенд (app/models_exercise.py). */
@@ -11,7 +16,8 @@ export type ApiExercise = {
     movement_type: MovementType;
     target_muscles: MuscleGroupKey[];
     auxiliary_muscles: MuscleGroupKey[];
-    equipment: string[];
+    equipment: ExerciseEquipmentKey[];
+    no_equipment: boolean;
     description: string;
     advantages: string[];
     disadvantages: string[];
@@ -48,6 +54,7 @@ export function mapApiExerciseToExercise(api: ApiExercise): Exercise {
         targetMuscles: api.target_muscles,
         auxiliaryMuscles: api.auxiliary_muscles,
         equipment: api.equipment,
+        noEquipment: api.no_equipment,
         description: api.description,
         advantages: api.advantages,
         disadvantages: api.disadvantages,
@@ -68,6 +75,7 @@ export function mapNewExerciseToApi(exercise: NewExercise) {
         target_muscles: exercise.targetMuscles,
         auxiliary_muscles: exercise.auxiliaryMuscles,
         equipment: exercise.equipment,
+        no_equipment: exercise.noEquipment,
         description: exercise.description,
         advantages: exercise.advantages,
         disadvantages: exercise.disadvantages,

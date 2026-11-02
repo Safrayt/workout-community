@@ -27,11 +27,17 @@ from app.utc import UtcDatetime
 # (constants/articleCategories.ts) — если добавить значение здесь,
 # его нужно добавить и там, и наоборот. У статьи ровно одна
 # направленность; хештегов может быть несколько.
+#
+# Рубрики «Интервью» больше нет: такие материалы публикуются в
+# «Сообщество». Старые статьи с рубрикой interview при запуске сервера
+# переносятся в community (database._move_interview_articles_to_community).
 ArticleCategory = Literal[
     "training",
     "nutrition",
     "recovery",
-    "interview",
+    "equipment",
+    "playgrounds",
+    "motivation",
     "community",
 ]
 

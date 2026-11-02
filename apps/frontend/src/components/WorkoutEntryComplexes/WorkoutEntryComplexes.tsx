@@ -71,12 +71,8 @@ export default function WorkoutEntryComplexes({ entryId }: WorkoutEntryComplexes
                                         {complexDef.name}
                                     </span>
 
-                                    <span className="workout-entry-complexes__variant">
-                                        {complexDef.exercise}
-                                    </span>
-
                                     <span className="workout-entry-complexes__result">
-                                        {formatCompletionResult(complexDef, completion)}
+                                        Результат: {formatCompletionResult(complexDef, completion)}
                                     </span>
                                 </div>
 

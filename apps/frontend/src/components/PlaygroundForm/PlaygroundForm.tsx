@@ -15,6 +15,10 @@ import PlaygroundsMap from "../Map/PlaygroundsMap";
 import { getPlaygroundMarkers } from "../../utils/maps";
 import { PLAYGROUND_FOCUS_ZOOM } from "../../constants/map";
 import {
+    MAX_MANUFACTURER_NAME_LENGTH,
+    MAX_MANUFACTURER_URL_LENGTH,
+} from "../../constants/playgroundManufacturer";
+import {
     reverseGeocode,
 } from "../../services/geocoding";
 
@@ -348,6 +352,38 @@ export default function PlaygroundForm({
                         updateField(
                             "surface",
                             event.target.value as NewPlayground["surface"]
+                        )
+                    }
+                />
+
+                <Input
+                    id="manufacturerName"
+                    label="Производитель оборудования (необязательно)"
+                    placeholder="Название фирмы"
+                    maxLength={MAX_MANUFACTURER_NAME_LENGTH}
+                    value={playground.manufacturerName}
+                    error={getFieldError(errors, "manufacturerName")}
+                    onChange={(event) =>
+                        updateField(
+                            "manufacturerName",
+                            event.target.value
+                        )
+                    }
+                />
+
+                <Input
+                    id="manufacturerUrl"
+                    label="Сайт производителя (необязательно)"
+                    placeholder="https://example.com"
+                    inputMode="url"
+                    autoComplete="off"
+                    maxLength={MAX_MANUFACTURER_URL_LENGTH}
+                    value={playground.manufacturerUrl}
+                    error={getFieldError(errors, "manufacturerUrl")}
+                    onChange={(event) =>
+                        updateField(
+                            "manufacturerUrl",
+                            event.target.value
                         )
                     }
                 />

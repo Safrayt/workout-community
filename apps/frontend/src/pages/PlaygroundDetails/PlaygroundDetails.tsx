@@ -9,6 +9,7 @@ import PlaygroundMainPhoto from "../../components/PlaygroundMainPhoto/Playground
 import PlaygroundGallery from "../../components/PlaygroundGallery/PlaygroundGallery";
 import PlaygroundAmenities from "../../components/PlaygroundAmenities/PlaygroundAmenities";
 import PlaygroundEquipment from "../../components/PlaygroundEquipment/PlaygroundEquipment";
+import PlaygroundExercises from "../../components/PlaygroundExercises/PlaygroundExercises";
 import PlaygroundQuickFacts from "../../components/PlaygroundQuickFacts/PlaygroundQuickFacts";
 import PlaygroundActions from "../../components/PlaygroundActions/PlaygroundActions";
 import PlaygroundUpcomingEvent from "../../components/PlaygroundUpcomingEvent/PlaygroundUpcomingEvent";
@@ -204,6 +205,11 @@ export default function PlaygroundDetails() {
 
             {/* 5. Equipment */}
             <PlaygroundEquipment
+                playground={playground}
+            />
+
+            {/* 5b. Exercises available with this equipment */}
+            <PlaygroundExercises
                 playground={playground}
             />
 

@@ -131,6 +131,12 @@ export type Playground = {
 
     description: string;
 
+    /** Фирма-производитель оборудования; не указана — пункт не показываем. */
+    manufacturerName?: string;
+
+    /** Ссылка на сайт производителя; бывает только вместе с названием. */
+    manufacturerUrl?: string;
+
     createdAt: string;
 
     updatedAt: string;

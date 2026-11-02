@@ -88,6 +88,7 @@ export default function Playgrounds() {
                 selectedMarkerId={selectedPlaygroundId ?? undefined}
                 focusMarkerId={focusPlaygroundId ?? undefined}
                 onMarkerClick={(marker) => setSelectedPlaygroundId(marker.id)}
+                openDetailsInNewTab
                 initialCenter={EURASIA_MAP_CENTER}
                 initialZoom={EURASIA_MAP_ZOOM}
             />

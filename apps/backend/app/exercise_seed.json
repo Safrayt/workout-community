@@ -14,8 +14,12 @@
       "forearms"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Базовое вертикальное тяговое упражнение. Широкий хват смещает акцент на широчайшие мышцы спины.",
     "advantages": [],
     "disadvantages": [],
@@ -45,8 +49,12 @@
       "forearms"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Хват снизу на ширине плеч. По сравнению с хватом сверху сильнее нагружает бицепсы.",
     "advantages": [],
     "disadvantages": [],
@@ -77,8 +85,11 @@
       "glutes"
     ],
     "equipment": [
-      "Низкая перекладина или петли"
+      "middlePushBar",
+      "lowPushBar",
+      "rings"
     ],
+    "no_equipment": false,
     "description": "Горизонтальная тяга собственным весом: тело под наклоном, чем ниже перекладина, тем сложнее. Хороший способ подойти к обычным подтягиваниям.",
     "advantages": [],
     "disadvantages": [],
@@ -109,8 +120,9 @@
       "abs"
     ],
     "equipment": [
-      "Вертикальный столб"
+      "verticalPost"
     ],
+    "no_equipment": false,
     "description": "Подтягивания к столбу — это упражнение с собственным весом, при котором человек удерживается за вертикальный столб и, максимально отклонившись назад, подтягивает корпус к нему.",
     "advantages": [
       "Подходит для начинающих, которым пока сложно выполнять тягу с большим наклоном — австралийские подтягивания.",
@@ -150,8 +162,12 @@
       "forearms"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Движение только в лопатках, без сгибания рук: учит включать мышцы спины в начале подтягивания и укрепляет хват.",
     "advantages": [],
     "disadvantages": [],
@@ -183,8 +199,12 @@
       "glutes"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Статическое удержание тела в горизонтальном положении под перекладиной на прямых руках. Требует очень сильных широчайших и корпуса; осваивается по прогрессиям: тук, продвинутый тук, разножка, полный фронт-левер.",
     "advantages": [],
     "disadvantages": [],
@@ -213,8 +233,10 @@
       "upperChest"
     ],
     "equipment": [
-      "Брусья"
+      "highParallelBars",
+      "mediumParallelBars"
     ],
+    "no_equipment": false,
     "description": "Базовое жимовое упражнение. Наклон корпуса вперёд смещает нагрузку на грудные, вертикальное положение — на трицепсы.",
     "advantages": [],
     "disadvantages": [],
@@ -242,9 +264,8 @@
       "upperChest",
       "abs"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Классическое жимовое упражнение. Нагрузку легко менять углом корпуса и шириной постановки рук.",
     "advantages": [],
     "disadvantages": [],
@@ -270,9 +291,8 @@
       "pecMajor",
       "frontDelts"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Руки стоят близко друг к другу под грудью, и основная нагрузка уходит на трицепсы.",
     "advantages": [],
     "disadvantages": [],
@@ -300,9 +320,8 @@
       "upperTrapezius",
       "pecMajor"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Отжимания с поднятым тазом: упор на плечи. Подводящее упражнение к отжиманиям в стойке на руках.",
     "advantages": [],
     "disadvantages": [],
@@ -330,8 +349,9 @@
       "sideDelts"
     ],
     "equipment": [
-      "Петли или кольца"
+      "rings"
     ],
+    "no_equipment": false,
     "description": "Тело под наклоном, руки разводятся в стороны: работают задние дельты и мышцы между лопатками.",
     "advantages": [],
     "disadvantages": [],
@@ -356,9 +376,8 @@
     "auxiliary_muscles": [
       "obliques"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Изолированная работа ягодиц сбоку. Подходит для разминки и укрепления таза.",
     "advantages": [],
     "disadvantages": [],
@@ -385,9 +404,8 @@
       "sideDelts",
       "abs"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Боковая планка с подъёмом верхней ноги: ягодицы и косые мышцы корпуса работают одновременно.",
     "advantages": [],
     "disadvantages": [],
@@ -416,8 +434,12 @@
       "quads"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Пресс в висе на перекладине. Важно подкручивать таз, а не просто поднимать ноги.",
     "advantages": [],
     "disadvantages": [],
@@ -442,9 +464,8 @@
     "auxiliary_muscles": [
       "obliques"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Простое упражнение на верх пресса, с которого удобно начинать.",
     "advantages": [],
     "disadvantages": [],
@@ -473,8 +494,12 @@
       "iliacus"
     ],
     "equipment": [
-      "Турник"
+      "widePullBar",
+      "highPullBar",
+      "mediumPullBar",
+      "lowPullBar"
     ],
+    "no_equipment": false,
     "description": "Вариант подъёма коленей в висе с поворотом таза: делает акцент на косых мышцах живота.",
     "advantages": [],
     "disadvantages": [],
@@ -503,9 +528,8 @@
       "spinalErectors",
       "abs"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Базовое упражнение для ног. Нагрузку можно менять глубиной приседа, темпом и постановкой стоп.",
     "advantages": [],
     "disadvantages": [],
@@ -533,9 +557,8 @@
       "calves",
       "abs"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Упражнение на одну ногу за раз: развивает силу и баланс, помогает выровнять разницу между ногами.",
     "advantages": [],
     "disadvantages": [],
@@ -565,9 +588,8 @@
       "iliacus",
       "spinalErectors"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Сложный вариант приседаний: нужны сила, баланс и подвижность голеностопа. Начинайте с опорой или присев на скамью.",
     "advantages": [],
     "disadvantages": [],
@@ -594,9 +616,8 @@
       "spinalErectors",
       "abs"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Простое упражнение на ягодицы и заднюю поверхность бёдер, хорошо подходит для начала.",
     "advantages": [],
     "disadvantages": [],
@@ -624,9 +645,8 @@
       "rearDelts",
       "lowerTrapezius"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Разгибание корпуса лёжа на животе: укрепляет мышцы вдоль позвоночника и ягодицы.",
     "advantages": [],
     "disadvantages": [],
@@ -654,9 +674,8 @@
       "abs",
       "calves"
     ],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Наклон на одной ноге с отведением другой назад: нагрузка на заднюю поверхность бёдер и ягодицы и тренировка равновесия.",
     "advantages": [],
     "disadvantages": [],
@@ -679,9 +698,8 @@
       "calves"
     ],
     "auxiliary_muscles": [],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Базовое упражнение на икры. Амплитуду можно увеличить, встав носками на ступеньку.",
     "advantages": [],
     "disadvantages": [],
@@ -704,9 +722,8 @@
       "calves"
     ],
     "auxiliary_muscles": [],
-    "equipment": [
-      "Без оборудования"
-    ],
+    "equipment": [],
+    "no_equipment": true,
     "description": "Усложнённый вариант подъёмов на носки: весь вес тела приходится на одну икру.",
     "advantages": [],
     "disadvantages": [],

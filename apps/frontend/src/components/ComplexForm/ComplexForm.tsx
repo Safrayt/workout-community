@@ -285,7 +285,7 @@ export default function ComplexForm({
 
                 <Textarea
                     id="complex-restrictions"
-                    label="Ограничения/противопоказания (необязательно)"
+                    label="Обратить внимание: ограничения, противопоказания (необязательно)"
                     value={complex.restrictions}
                     onChange={(event) =>
                         updateField("restrictions", event.target.value)

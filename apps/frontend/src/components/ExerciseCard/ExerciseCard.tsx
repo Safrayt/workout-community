@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import Card from "../ui/Card/Card";
 import Button from "../ui/Button/Button";
@@ -37,9 +37,6 @@ export default function ExerciseCard({
     onSelect,
 }: ExerciseCardProps) {
     const { id, name, movementType, targetMuscles, photoUrl } = exercise;
-
-    // Адрес списка вместе с фильтрами — страница упражнения вернёт к нему.
-    const location = useLocation();
 
     // Что показано в верхней части карточки. Переключатель есть только
     // у упражнений с фото; без фото всегда схема мышц. По умолчанию —
@@ -164,9 +161,12 @@ export default function ExerciseCard({
                     {targetMuscles.map((muscle) => muscleGroupLabels[muscle]).join(", ")}
                 </p>
 
+                {/* Страница упражнения открывается в новой вкладке: список
+                    с настроенными фильтрами остаётся в этой. */}
                 <Link
                     to={`/knowledge/exercises/${id}`}
-                    state={{ listSearch: location.search }}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="exercise-card__link"
                     onClick={(event) => event.stopPropagation()}
                 >

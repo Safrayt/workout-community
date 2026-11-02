@@ -1,7 +1,9 @@
 import enum
 from datetime import datetime, timezone
 from typing import List, Optional
+from urllib.parse import urlparse
 
+from pydantic import field_validator, model_validator
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -143,6 +145,89 @@ class PlaygroundPhotoRead(PlaygroundPhotoBase):
     playground_id: int
 
 
+# --- Производитель оборудования ---------------------------------------------
+
+MANUFACTURER_NAME_MAX_LENGTH = 100
+MANUFACTURER_URL_MAX_LENGTH = 300
+
+MANUFACTURER_URL_NEEDS_NAME_MESSAGE = (
+    "Укажите название производителя, чтобы добавить ссылку на его сайт"
+)
+
+
+def normalize_manufacturer_name(value: Optional[str]) -> Optional[str]:
+    """Пустое название — «производитель не указан» (None)."""
+    if value is None:
+        return None
+
+    cleaned = value.strip()
+
+    if not cleaned:
+        return None
+
+    if len(cleaned) > MANUFACTURER_NAME_MAX_LENGTH:
+        raise ValueError(
+            "Название производителя не должно быть длиннее "
+            f"{MANUFACTURER_NAME_MAX_LENGTH} символов"
+        )
+
+    return cleaned
+
+
+def normalize_manufacturer_url(value: Optional[str]) -> Optional[str]:
+    """
+    Ссылка на сайт производителя показывается всем посетителям как
+    кликабельная, а площадки добавляют обычные пользователи — поэтому
+    принимаем ТОЛЬКО http/https (иначе «javascript:…» и подобное).
+    Адрес без схемы («example.com») считаем https. Пустая ссылка — None.
+    """
+    if value is None:
+        return None
+
+    cleaned = value.strip()
+
+    if not cleaned:
+        return None
+
+    if len(cleaned) > MANUFACTURER_URL_MAX_LENGTH:
+        raise ValueError(
+            "Ссылка не должна быть длиннее "
+            f"{MANUFACTURER_URL_MAX_LENGTH} символов"
+        )
+
+    if any(char.isspace() for char in cleaned):
+        raise ValueError("Ссылка не должна содержать пробелов")
+
+    if "://" not in cleaned:
+        cleaned = f"https://{cleaned}"
+
+    error = ValueError(
+        "Укажите ссылку на сайт в формате https://example.com"
+    )
+
+    try:
+        parsed = urlparse(cleaned)
+        # Обращение к port проверяет, что порт — число.
+        _ = parsed.port
+    except ValueError:
+        raise error from None
+
+    # Хост обязан содержать точку (отсекает «https://localhost»), а
+    # логин/пароль в адресе запрещены: «https://site.com@evil.com» ведёт
+    # на evil.com, а выглядит как site.com, и так же «склеивается»
+    # «mailto:a@b.com».
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.hostname
+        or "." not in parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise error
+
+    return cleaned
+
+
 # --- Площадка ---------------------------------------------------------------
 
 class PlaygroundBase(SQLModel):
@@ -167,6 +252,12 @@ class PlaygroundBase(SQLModel):
     opening_hours: str
     description: str = ""
 
+    # Фирма-производитель оборудования и (необязательно) ссылка на её
+    # сайт. Нет названия — пункт на странице площадки не показывается;
+    # ссылка без названия не допускается. См. normalize_manufacturer_*.
+    manufacturer_name: Optional[str] = None
+    manufacturer_url: Optional[str] = None
+
     # PlaygroundAmenities с фронтенда — тоже вложенный объект,
     # по той же причине "распрямляем" его в отдельные колонки.
     lighting: bool = False
@@ -179,6 +270,27 @@ class PlaygroundBase(SQLModel):
     bicycle_parking: bool = False
     trash_bins: bool = False
     shade: bool = False
+
+    @field_validator("manufacturer_name")
+    @classmethod
+    def _validate_manufacturer_name(
+        cls, value: Optional[str]
+    ) -> Optional[str]:
+        return normalize_manufacturer_name(value)
+
+    @field_validator("manufacturer_url")
+    @classmethod
+    def _validate_manufacturer_url(
+        cls, value: Optional[str]
+    ) -> Optional[str]:
+        return normalize_manufacturer_url(value)
+
+    @model_validator(mode="after")
+    def _validate_manufacturer_url_needs_name(self) -> "PlaygroundBase":
+        if self.manufacturer_url and not self.manufacturer_name:
+            raise ValueError(MANUFACTURER_URL_NEEDS_NAME_MESSAGE)
+
+        return self
 
 
 class Playground(PlaygroundBase, table=True):
@@ -262,6 +374,26 @@ class PlaygroundUpdate(SQLModel):
     trash_bins: Optional[bool] = None
     shade: Optional[bool] = None
     equipment: Optional[List[PlaygroundEquipment]] = None
+
+    # null/пустая строка очищает поле. Связь «ссылка требует название»
+    # проверяется в routers/playgrounds.py уже на итоговых значениях
+    # (здесь неизвестно, какое название у площадки сейчас).
+    manufacturer_name: Optional[str] = None
+    manufacturer_url: Optional[str] = None
+
+    @field_validator("manufacturer_name")
+    @classmethod
+    def _validate_manufacturer_name(
+        cls, value: Optional[str]
+    ) -> Optional[str]:
+        return normalize_manufacturer_name(value)
+
+    @field_validator("manufacturer_url")
+    @classmethod
+    def _validate_manufacturer_url(
+        cls, value: Optional[str]
+    ) -> Optional[str]:
+        return normalize_manufacturer_url(value)
 
 
 class PlaygroundRead(PlaygroundBase):

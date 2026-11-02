@@ -32,6 +32,7 @@ export function exerciseToFormValue(exercise: Exercise): NewExercise {
         targetMuscles: exercise.targetMuscles,
         auxiliaryMuscles: exercise.auxiliaryMuscles,
         equipment: exercise.equipment,
+        noEquipment: exercise.noEquipment,
         description: exercise.description,
         advantages: exercise.advantages ?? [],
         disadvantages: exercise.disadvantages ?? [],
@@ -103,11 +104,12 @@ export function validateExerciseForm(value: NewExercise): ExerciseFormErrors {
         errors.targetMuscles = "Выберите хотя бы одну целевую мышцу.";
     }
 
-    if (value.equipment.length === 0) {
+    if (value.noEquipment && value.equipment.length > 0) {
         errors.equipment =
-            "Укажите оборудование, например «Без оборудования».";
-    } else {
-        errors.equipment = checkListLimits(value.equipment);
+            "Нельзя одновременно выбрать оборудование и «Без оборудования».";
+    } else if (!value.noEquipment && value.equipment.length === 0) {
+        errors.equipment =
+            "Выберите оборудование или отметьте «Без оборудования».";
     }
 
     if (value.description.trim() === "") {

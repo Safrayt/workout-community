@@ -1,8 +1,11 @@
 import "../../styles/components/exercise-filters.css";
 
+import { Link } from "react-router-dom";
+
 import Button from "../ui/Button/Button";
 
 import type { MovementType, MuscleGroupKey } from "../../types/exercise";
+import type { Playground } from "../../types/playground";
 
 import { movementTypes } from "../../constants/movementTypes";
 import { muscleGroups } from "../../constants/muscleGroups";
@@ -16,16 +19,29 @@ import {
 type ExerciseFiltersProps = {
     filters: ExerciseFilterState;
     onChange: (filters: ExerciseFilterState) => void;
+
+    /** Выбранная площадка (по filters.playgroundId); пока не найдена — undefined. */
+    selectedPlayground?: Playground;
+
+    /**
+     * Площадка есть в адресе, но такой нет (удалена или опечатка в
+     * ссылке) — отбор по ней не применяется, об этом пишем в блоке.
+     */
+    isPlaygroundMissing?: boolean;
 };
 
 /**
- * Фильтры упражнений: тип движения и мышечные группы. Кнопки мышц
- * работают вместе с картой — это один и тот же выбор, а ещё
- * единственный способ выбрать мышцу с клавиатуры.
+ * Фильтры упражнений: тип движения, мышечные группы и площадка.
+ * Кнопки мышц работают вместе с картой мышц — это один и тот же выбор,
+ * а ещё единственный способ выбрать мышцу с клавиатуры. Блок
+ * «Площадка» виден только когда площадка выбрана (на карте площадок
+ * или ссылкой): в нём её название и кнопка «Снять выбор».
  */
 export default function ExerciseFilters({
     filters,
     onChange,
+    selectedPlayground,
+    isPlaygroundMissing = false,
 }: ExerciseFiltersProps) {
     function toggleMovementType(type: MovementType) {
         onChange({
@@ -118,6 +134,59 @@ export default function ExerciseFilters({
             </div>
 
             {
+                filters.playgroundId !== "" && (
+                    <div className="exercise-filters__group">
+                        <h4 className="exercise-filters__title">Площадка</h4>
+
+                        <p className="exercise-filters__hint">
+                            Упражнения, которые можно выполнить на выбранной
+                            площадке.
+                        </p>
+
+                        <div className="exercise-filters__playground">
+                            {
+                                selectedPlayground ? (
+                                    <Link
+                                        to={`/playgrounds/${selectedPlayground.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <strong>{selectedPlayground.name}</strong>
+                                    </Link>
+                                ) : isPlaygroundMissing ? (
+                                    <span>
+                                        Площадка не найдена — отбор по площадке
+                                        не применяется.
+                                    </span>
+                                ) : null
+                            }
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    onChange({ ...filters, playgroundId: "" })
+                                }
+                            >
+                                Снять выбор
+                            </Button>
+                        </div>
+
+                        {
+                            selectedPlayground &&
+                                selectedPlayground.equipment.length === 0 && (
+                                    <p className="exercise-filters__hint">
+                                        У площадки не указано оборудование,
+                                        поэтому показаны только упражнения без
+                                        оборудования и с вертикальным столбом.
+                                    </p>
+                                )
+                        }
+                    </div>
+                )
+            }
+
+            {
                 hasActiveExerciseFilters(filters) && (
                     <div className="exercise-filters__reset">
                         <Button
@@ -130,6 +199,7 @@ export default function ExerciseFilters({
                                     ...filters,
                                     movementTypes: [],
                                     muscles: [],
+                                    playgroundId: "",
                                 })
                             }
                         >

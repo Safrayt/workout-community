@@ -17,6 +17,8 @@ type Props = {
  *
  * Второстепенный блок, как и WorkoutEntryTags: если фотографий нет,
  * блок полностью скрывается — отдельный empty state не нужен.
+ * Видимого заголовка нет — и так понятно, что это фотографии; для
+ * программ экранного чтения у раздела есть aria-label.
  * Открытие фото — полноэкранный lightbox с навигацией стрелками
  * клавиатуры (Esc/←/→), по аналогии с PlaygroundGallery.
  */
@@ -82,11 +84,10 @@ export default function WorkoutEntryGallery({
 
     return (
 
-        <section className="workout-entry-gallery">
-
-            <h2 className="workout-entry-gallery__title">
-                Фотографии
-            </h2>
+        <section
+            className="workout-entry-gallery"
+            aria-label="Фотографии"
+        >
 
             <div className="workout-entry-gallery__grid">
                 {

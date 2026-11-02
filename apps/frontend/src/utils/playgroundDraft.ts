@@ -58,6 +58,8 @@ export function createEmptyPlayground(): NewPlayground {
         photos: [],
         openingHours: "",
         description: "",
+        manufacturerName: "",
+        manufacturerUrl: "",
     };
 }
 
@@ -125,6 +127,8 @@ export function isPlaygroundDraftEmpty(playground: NewPlayground) {
         playground.description.trim() === "" &&
         playground.accessRestrictions.trim() === "" &&
         playground.openingHours.trim() === "" &&
+        playground.manufacturerName.trim() === "" &&
+        playground.manufacturerUrl.trim() === "" &&
         playground.coordinates === null &&
         playground.size === "" &&
         playground.surface === "" &&

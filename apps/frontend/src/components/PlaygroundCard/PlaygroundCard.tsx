@@ -123,8 +123,12 @@ export default function PlaygroundCard({
                     {playgroundAccessLabels[access]}
                 </p>
 
+                {/* Страница площадки открывается в новой вкладке: список и
+                    карта с настроенными фильтрами остаются в этой. */}
                 <Link
                     to={`/playgrounds/${id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="playground-card__link"
                 >
                     <Button variant="outline">

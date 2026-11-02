@@ -1,7 +1,9 @@
 import type { Exercise, MovementType, MuscleGroupKey } from "../types/exercise";
+import type { PlaygroundEquipment } from "../types/playground";
 
 import { movementTypeKeys } from "../constants/movementTypes";
 import { muscleGroupKeys } from "../constants/muscleGroups";
+import { isExerciseAvailableAt } from "./exerciseEquipment";
 
 export type ExerciseFilterState = {
     /** Выбранные типы движения. Пусто — любые. */
@@ -9,6 +11,12 @@ export type ExerciseFilterState = {
 
     /** Выбранные мышечные группы. Пусто — любые. */
     muscles: MuscleGroupKey[];
+
+    /**
+     * id площадки, по оборудованию которой отбираются упражнения (см.
+     * isExerciseAvailableAt). Пустая строка — без отбора по площадке.
+     */
+    playgroundId: string;
 
     /**
      * Строка поиска по названию упражнения (как её ввёл человек, без
@@ -22,12 +30,20 @@ export type ExerciseFilterState = {
 export const emptyExerciseFilters: ExerciseFilterState = {
     movementTypes: [],
     muscles: [],
+    playgroundId: "",
     query: "",
 };
 
-/** Сколько выбрано типов движения и мышц (поиск по названию не считается). */
+/**
+ * Сколько выбрано фильтров: типы движения, мышцы и площадка (поиск по
+ * названию не считается).
+ */
 export function countActiveExerciseFilters(filters: ExerciseFilterState) {
-    return filters.movementTypes.length + filters.muscles.length;
+    return (
+        filters.movementTypes.length +
+        filters.muscles.length +
+        (filters.playgroundId !== "" ? 1 : 0)
+    );
 }
 
 export function hasActiveExerciseFilters(filters: ExerciseFilterState) {
@@ -80,7 +96,12 @@ export function getExerciseMuscles(exercise: Exercise): MuscleGroupKey[] {
  *   выбранных типов значат "любой из них";
  * - по мышцам — "И": остаются упражнения, которые нагружают ВСЕ выбранные
  *   мышечные группы (целевые или вспомогательные);
- * - по названию — см. matchesSearchQuery; сочетается с остальным по "И".
+ * - по названию — см. matchesSearchQuery; сочетается с остальным по "И";
+ * - по площадке — остаются упражнения, которые можно выполнить на её
+ *   оборудовании (см. isExerciseAvailableAt). Оборудование площадки
+ *   передаётся отдельным аргументом: сам фильтр хранит только id. Пока
+ *   оборудование неизвестно (площадка не найдена или не загружена),
+ *   отбор по площадке не применяется.
  *
  * Если выбраны мышцы, упражнения упорядочиваются по релевантности: сначала те,
  * где больше выбранных мышц — целевые, а не вспомогательные. Среди равных
@@ -88,7 +109,8 @@ export function getExerciseMuscles(exercise: Exercise): MuscleGroupKey[] {
  */
 export function filterExercises(
     exercises: Exercise[],
-    filters: ExerciseFilterState
+    filters: ExerciseFilterState,
+    playgroundEquipment?: PlaygroundEquipment[]
 ): Exercise[] {
     const matching = exercises.filter((exercise) => {
         if (
@@ -99,6 +121,14 @@ export function filterExercises(
         }
 
         if (!matchesSearchQuery(exercise, filters.query)) {
+            return false;
+        }
+
+        if (
+            filters.playgroundId !== "" &&
+            playgroundEquipment !== undefined &&
+            !isExerciseAvailableAt(exercise, playgroundEquipment)
+        ) {
             return false;
         }
 
@@ -124,7 +154,8 @@ export function filterExercises(
 }
 
 // ---------------------------------------------------------------------
-// Фильтры в адресной строке: ?movement=pull,push&muscles=lats,biceps&q=подтяг
+// Фильтры в адресной строке:
+// ?movement=pull,push&muscles=lats,biceps&playground=<id>&q=подтяг
 //
 // Так выбранные фильтры и поиск переживают переход на страницу
 // упражнения и возврат назад, а подборку можно отправить ссылкой.
@@ -132,7 +163,11 @@ export function filterExercises(
 
 const MOVEMENT_PARAM = "movement";
 const MUSCLES_PARAM = "muscles";
+const PLAYGROUND_PARAM = "playground";
 const QUERY_PARAM = "q";
+
+/** id площадки в ссылке длиннее этого не бывает — лишнее отбрасываем. */
+const MAX_PLAYGROUND_ID_LENGTH = 100;
 
 /** Длиннее названия упражнения запрос быть не может — ограничиваем и ввод, и ссылку. */
 export const MAX_EXERCISE_QUERY_LENGTH = 100;
@@ -160,6 +195,10 @@ export function parseExerciseFilters(
     return {
         movementTypes: parseList(params.get(MOVEMENT_PARAM), movementTypeKeys),
         muscles: parseList(params.get(MUSCLES_PARAM), muscleGroupKeys),
+        playgroundId: (params.get(PLAYGROUND_PARAM) ?? "").slice(
+            0,
+            MAX_PLAYGROUND_ID_LENGTH
+        ),
         query: (params.get(QUERY_PARAM) ?? "").slice(0, MAX_EXERCISE_QUERY_LENGTH),
     };
 }
@@ -184,6 +223,12 @@ export function writeExerciseFilters(
         next.set(MUSCLES_PARAM, filters.muscles.join(","));
     } else {
         next.delete(MUSCLES_PARAM);
+    }
+
+    if (filters.playgroundId !== "") {
+        next.set(PLAYGROUND_PARAM, filters.playgroundId);
+    } else {
+        next.delete(PLAYGROUND_PARAM);
     }
 
     if (filters.query !== "") {

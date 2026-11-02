@@ -17,7 +17,13 @@
     color: var(--color-text-secondary);
 }
 
-/* Блок с картой мышц — на месте карты мира на странице "Площадки". */
+/* Переключатель «Карта мышц / Карта площадок» над картой. */
+.exercises-map-switch {
+    max-width: 420px;
+    margin-bottom: var(--space-3);
+}
+
+/* Блок с картой мышц или площадок — на месте карты мира на странице "Площадки". */
 .exercises-map {
     display: flex;
     flex-direction: column;

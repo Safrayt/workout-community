@@ -12,6 +12,7 @@ import type {
 import type { NewPlayground } from "../../types/newPlayground";
 
 import { resolveMediaUrl } from "../media";
+import { normalizeWebsiteUrl } from "../../utils/websiteUrl";
 
 export type ApiPlaygroundPhoto = {
     id: number;
@@ -44,6 +45,8 @@ export type ApiPlayground = {
     condition: PlaygroundCondition;
     opening_hours: string;
     description: string;
+    manufacturer_name: string | null;
+    manufacturer_url: string | null;
     lighting: boolean;
     covered: boolean;
     changing_room: boolean;
@@ -119,6 +122,8 @@ export function mapApiPlaygroundToPlayground(
         photos: apiPlayground.photos.map(mapApiPhoto),
         openingHours: apiPlayground.opening_hours,
         description: apiPlayground.description,
+        manufacturerName: apiPlayground.manufacturer_name ?? undefined,
+        manufacturerUrl: apiPlayground.manufacturer_url ?? undefined,
         createdAt: apiPlayground.created_at,
         updatedAt: apiPlayground.updated_at,
         history: apiPlayground.history.map(mapApiHistoryEntry),
@@ -154,6 +159,12 @@ export function mapNewPlaygroundToApi(
                 ? playground.openingHours
                 : "Не указано",
         description: playground.description,
+        // Нет названия — производитель не указан (ссылка без названия
+        // не допускается); null на редактировании очищает поля.
+        manufacturer_name: playground.manufacturerName.trim() || null,
+        manufacturer_url: playground.manufacturerName.trim()
+            ? normalizeWebsiteUrl(playground.manufacturerUrl) || null
+            : null,
         lighting: playground.amenities.lighting,
         covered: playground.amenities.covered,
         changing_room: playground.amenities.changingRoom,
