@@ -1,0 +1,28 @@
+.program-versions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 720px;
+}
+
+.program-versions__back {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+}
+
+.program-versions__title {
+    margin: 0;
+}
+
+.program-versions__meta {
+    margin: calc(var(--space-2) * -1) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.program-versions__empty,
+.program-versions__loading,
+.program-versions__not-found {
+    color: var(--color-text-secondary);
+}

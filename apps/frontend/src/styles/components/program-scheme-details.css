@@ -1,0 +1,98 @@
+/* Оформление — как у страницы комплекса (complex-details.css). */
+.program-scheme-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 720px;
+}
+
+.program-scheme-details__back {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+}
+
+.program-scheme-details__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* Название и ссылка «Скачать картинкой» — своя строка. */
+.program-scheme-details__title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.program-scheme-details__name {
+    margin: 0;
+}
+
+/* Кнопка выглядит как ссылка «Редактировать» на странице комплекса. */
+.program-scheme-details__download {
+    margin-left: auto;
+    padding: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.program-scheme-details__download:hover {
+    color: var(--color-primary);
+}
+
+/* Теги под названием: раздел, версия, типы движения. */
+.program-scheme-details__tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.program-scheme-details__chip {
+    --chip-color: var(--color-primary);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 2px var(--space-3);
+
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+/* Цветная точка типа движения — как на кнопках фильтра. */
+.program-scheme-details__dot {
+    width: 10px;
+    height: 10px;
+
+    background: var(--chip-color);
+    border-radius: 50%;
+}
+
+.program-scheme-details__historical-notice {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-surface-alt, var(--color-surface));
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+}
+
+.program-scheme-details__loading,
+.program-scheme-details__not-found {
+    color: var(--color-text-secondary);
+}

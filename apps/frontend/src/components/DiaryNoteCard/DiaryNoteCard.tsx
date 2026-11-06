@@ -17,6 +17,9 @@ import "../../styles/components/workout-entry-card.css";
 type DiaryNoteCardProps = {
     note: DiaryNote;
     playground?: Playground;
+
+    /** Сколько комментариев у заметки; 0 или не передано — счётчик не показываем. */
+    commentsCount?: number;
 };
 
 /**
@@ -32,6 +35,7 @@ type DiaryNoteCardProps = {
 export default function DiaryNoteCard({
     note,
     playground,
+    commentsCount = 0,
 }: DiaryNoteCardProps) {
     // См. аналогичный комментарий в WorkoutEntryCard: своя фотография,
     // а если её нет — главное фото отмеченной площадки.
@@ -101,6 +105,17 @@ export default function DiaryNoteCard({
                     !photoUrl && note.title && (
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(note.text)}
+                        </p>
+                    )
+                }
+
+                {
+                    commentsCount > 0 && (
+                        <p
+                            className="workout-entry-card__comments"
+                            aria-label={`Комментариев: ${commentsCount}`}
+                        >
+                            💬 {commentsCount}
                         </p>
                     )
                 }

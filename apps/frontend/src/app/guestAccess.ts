@@ -17,7 +17,9 @@ export type GuestProviderGroup =
     | "complexes"
     | "complex"
     | "programs"
-    | "program";
+    | "program"
+    | "programScheme"
+    | "programVersions";
 
 /**
  * Поле handle маршрута. Наличие guest делает страницу доступной без

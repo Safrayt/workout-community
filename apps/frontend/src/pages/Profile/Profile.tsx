@@ -10,6 +10,11 @@ import ProfileStats from "../../components/ProfileStats/ProfileStats";
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
+import { useComments } from "../../context/CommentContext";
+import {
+    countCommentsByRecord,
+    getRecordCommentsCount,
+} from "../../utils/comments";
 import EventSummary from "../../components/EventSummary/EventSummary";
 import SubscriptionsList from "../../components/SubscriptionsList/SubscriptionsList";
 import FavoritePlaygroundsSection from "../../components/FavoritePlaygroundsSection/FavoritePlaygroundsSection";
@@ -98,6 +103,9 @@ import { MAX_PERSONAL_TAGS } from "../../constants/personalTags";
  */
 export default function Profile() {
     const { username } = useParams();
+
+    const { comments } = useComments();
+    const commentCounts = countCommentsByRecord(comments);
 
     const {
         currentUser,
@@ -316,11 +324,13 @@ export default function Profile() {
                                                 <WorkoutEntryCard
                                                     key={`workout-${record.data.id}`}
                                                     entry={record.data}
+                                                    commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                                 />
                                             ) : (
                                                 <DiaryNoteCard
                                                     key={`note-${record.data.id}`}
                                                     note={record.data}
+                                                    commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                                 />
                                             )
                                         )

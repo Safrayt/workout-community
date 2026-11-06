@@ -13,6 +13,7 @@ from app.database import get_session
 from app.files import delete_image, save_image
 from app.models import User
 from app.models_diary import WorkoutEntry
+from app.models_exercise import ExerciseDB
 from app.notifications import notify_mentions
 from app.models_program import (
     ProgramComment,
@@ -32,6 +33,7 @@ from app.models_program import (
     ProgramVersionSummary,
     bump_version_number,
     empty_structure,
+    structure_exercise_ids,
 )
 
 router = APIRouter(prefix="/programs", tags=["programs"])
@@ -515,7 +517,32 @@ def update_program_draft(
             detail="У программы сейчас нет редактируемого черновика",
         )
 
-    draft.structure = data.model_dump(mode="json")
+    structure = data.model_dump(mode="json")
+
+    # Ссылки на упражнения должны вести в базу: иначе у схемы осталась бы
+    # ссылка в никуда (и пропали бы её мышцы на картинке).
+    exercise_ids = structure_exercise_ids(structure)
+
+    if exercise_ids:
+        known = set(
+            session.exec(
+                select(ExerciseDB.id).where(ExerciseDB.id.in_(exercise_ids))
+            ).all()
+        )
+        unknown = [item for item in exercise_ids if item not in known]
+
+        if unknown:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Этих упражнений нет в базе упражнений: "
+                    + ", ".join(unknown)
+                    + ". Выберите упражнение из списка или добавьте своё "
+                    "текстом."
+                ),
+            )
+
+    draft.structure = structure
     draft.updated_at = datetime.now(timezone.utc)
 
     session.add(draft)

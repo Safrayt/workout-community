@@ -235,8 +235,7 @@ export default function ProgramDetails() {
 
                         <ProgramStructureView
                             structure={currentVersion.structure}
-                            programTitle={program.title}
-                            versionNumber={currentVersion.versionNumber}
+                            schemeLinkBase={`/programs/${program.id}`}
                         />
                     </section>
                 )
@@ -248,6 +247,7 @@ export default function ProgramDetails() {
                         programId={program.id}
                         versions={versions}
                         currentVersionId={program.currentVersionId}
+                        maxVisible={1}
                     />
                 )
             }

@@ -58,6 +58,8 @@ import ProgramDetails from "../pages/ProgramDetails/ProgramDetails";
 import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
 import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
 import ProgramVersionDetails from "../pages/ProgramVersionDetails/ProgramVersionDetails";
+import ProgramSchemeDetails from "../pages/ProgramSchemeDetails/ProgramSchemeDetails";
+import ProgramVersions from "../pages/ProgramVersions/ProgramVersions";
 import RequireAdmin from "./RequireAdmin";
 import AdminUsers from "../pages/AdminUsers/AdminUsers";
 import NotFound from "../pages/NotFound/NotFound";
@@ -344,8 +346,27 @@ export const router = createBrowserRouter([
           element: <ProgramEdit />,
       },
       {
+          // Вся история версий — публичная, как и раздел с последней
+          // версией на странице программы.
+          path: "programs/:id/versions",
+          element: <ProgramVersions />,
+          handle: { guest: ["programVersions"] } satisfies RouteHandle,
+      },
+      {
           path: "programs/:id/versions/:versionId",
           element: <ProgramVersionDetails />,
+      },
+      {
+          // Схема текущей версии — публичная, как и страница программы.
+          path: "programs/:id/schemes/:schemeId",
+          element: <ProgramSchemeDetails />,
+          handle: { guest: ["programScheme"] } satisfies RouteHandle,
+      },
+      {
+          // Схема конкретной версии — как и сама страница версии, только
+          // для вошедших пользователей.
+          path: "programs/:id/versions/:versionId/schemes/:schemeId",
+          element: <ProgramSchemeDetails />,
       },
       {
           // База знаний: /knowledge сам по себе страницы не имеет —

@@ -1,0 +1,148 @@
+/* Оформление — как у страницы комплекса (complex-details.css): раздел —
+   серый заголовок и белая панель. Компонент возвращает разделы без
+   обёртки: расстояние между ними задаёт страница (gap у
+   .program-scheme-details). */
+.program-scheme-content__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.program-scheme-content__section-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+}
+
+.program-scheme-content__panel {
+    margin: 0;
+    padding: var(--space-4) var(--space-5);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+}
+
+/* Сохраняем переносы строк из текста автора. */
+.program-scheme-content__text {
+    color: var(--color-text);
+    white-space: pre-line;
+}
+
+.program-scheme-content__empty {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Упражнения блока — как шаги схемы на странице комплекса
+   (complex-scheme-view.css): крупный номер «01», название жирным с
+   точечным подчёркиванием, под ним обычным текстом нагрузка. */
+.program-scheme-content__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+.program-scheme-content__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.program-scheme-content__number {
+    flex: 0 0 72px;
+
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.program-scheme-content__body {
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.program-scheme-content__name {
+    margin: 0;
+    font-weight: 700;
+}
+
+.program-scheme-content__link {
+    color: inherit;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+
+.program-scheme-content__link:hover,
+.program-scheme-content__link:focus-visible {
+    color: var(--color-primary);
+    text-decoration-style: solid;
+}
+
+.program-scheme-content__exercise-type {
+    margin-left: var(--space-2);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+}
+
+.program-scheme-content__note-inline {
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* Нагрузка — обычным текстом под названием, как описание шага. */
+.program-scheme-content__description {
+    margin: var(--space-1) 0 0;
+}
+
+.program-scheme-content__block-scheme {
+    margin: var(--space-4) 0 0;
+    font-weight: 600;
+}
+
+.program-scheme-content__note {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    white-space: pre-line;
+}
+
+/* Первая подпись в панели не нужно отодвигать вниз. */
+.program-scheme-content__panel > .program-scheme-content__note:first-child {
+    margin-top: 0;
+}
+
+.program-scheme-content__muscles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-5);
+}
+
+.program-scheme-content__map {
+    flex: 0 1 320px;
+    min-width: 220px;
+}
+
+.program-scheme-content__muscles-text {
+    flex: 1 1 240px;
+}
+
+.program-scheme-content__muscles-text p {
+    margin: var(--space-2) 0 0;
+}
+
+@media (max-width: 480px) {
+    .program-scheme-content__number {
+        flex-basis: 56px;
+    }
+}

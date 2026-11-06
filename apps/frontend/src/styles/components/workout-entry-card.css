@@ -24,14 +24,27 @@
     transform: translateY(-2px);
 }
 
+/* Фото квадратное. Этот класс общий для карточек записи тренировки,
+   заметки и ленты на главной (HomeFeedCard), поэтому они меняются
+   вместе. Прежнее ограничение высоты (max-height) убрано: с ним фото
+   на широкой карточке перестало бы быть квадратным. */
 .workout-entry-card__photo {
     display: block;
 
     width: 100%;
-    aspect-ratio: 4 / 3;
-    max-height: 220px;
+    aspect-ratio: 1 / 1;
 
     object-fit: cover;
+}
+
+/* Число комментариев под записью — как на карточке в ленте главной
+   (home-feed-card.css). Карточка целиком ссылка, поэтому счётчик —
+   просто подпись, а не отдельная кнопка. */
+.workout-entry-card__comments {
+    margin: var(--space-2) 0 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
 }
 
 .workout-entry-card__body {

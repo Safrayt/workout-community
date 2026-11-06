@@ -122,8 +122,7 @@ export default function ProgramVersionDetails() {
 
             <ProgramStructureView
                 structure={version.structure}
-                programTitle={program.title}
-                versionNumber={version.versionNumber}
+                schemeLinkBase={`/programs/${program.id}/versions/${version.id}`}
             />
         </div>
     );

@@ -95,10 +95,18 @@ const GUEST_PROVIDERS: Record<GuestProviderGroup, GuestProvider[]> = {
         ComplexCommentProvider,
     ],
     programs: [ProgramProvider],
+    // Страница схемы программы: упражнения схемы — ссылки на базу
+    // упражнений, а по их мышцам строится картинка.
+    programScheme: [ExerciseProvider],
+    // Страница всей истории версий грузит данные напрямую, без контекстов.
+    programVersions: [],
+    // + база упражнений: упражнения блоков схем — ссылки на неё, а по
+    // их мышцам строится картинка схемы.
     program: [
         UserDirectoryProvider,
         ProgramProvider,
         ProgramCommentProvider,
+        ExerciseProvider,
     ],
 };
 

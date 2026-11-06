@@ -11,6 +11,11 @@ import CollapsibleSection from "../../components/ui/CollapsibleSection/Collapsib
 
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
+import { useComments } from "../../context/CommentContext";
+import {
+    countCommentsByRecord,
+    getRecordCommentsCount,
+} from "../../utils/comments";
 import DiaryStats from "../../components/DiaryStats/DiaryStats";
 import DiaryMap from "../../components/DiaryMap/DiaryMap";
 import WorkoutCalendar from "../../components/WorkoutCalendar/WorkoutCalendar";
@@ -84,6 +89,9 @@ const RECORD_TYPE_OPTIONS = [
 ];
 
 export default function Diary() {
+    const { comments } = useComments();
+    const commentCounts = countCommentsByRecord(comments);
+
     const {
         entries,
     } = useWorkoutDiary();
@@ -462,12 +470,14 @@ export default function Diary() {
                                                             key={`workout-${record.data.id}`}
                                                             entry={record.data}
                                                             playground={playground}
+                                                            commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                                         />
                                                     ) : (
                                                         <DiaryNoteCard
                                                             key={`note-${record.data.id}`}
                                                             note={record.data}
                                                             playground={playground}
+                                                            commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                                         />
                                                     );
                                                 }

@@ -152,8 +152,39 @@
     gap: var(--space-2);
 }
 
-.program-structure-editor__exercise-row > .input {
+/* Название упражнения и под ним — нагрузка. */
+.program-structure-editor__exercise-fields {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+/* Упражнение из базы: название (не редактируется — оно из базы) и метка. */
+.program-structure-editor__exercise-linked {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-width: 0;
+    font-weight: 500;
+}
+
+.program-structure-editor__exercise-badge {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--color-text-secondary);
+    background: var(--color-background);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+}
+
+.program-structure-editor__hint {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
 }
 
 .program-structure-editor__exercise-index {

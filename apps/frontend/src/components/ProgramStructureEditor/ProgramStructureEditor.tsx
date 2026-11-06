@@ -1,14 +1,17 @@
-import { useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import Input from "../ui/Input/Input";
 import Textarea from "../ui/Textarea/Textarea";
 import Button from "../ui/Button/Button";
+import ExerciseSearchBox from "../ExerciseSearchBox/ExerciseSearchBox";
 
 import "../../styles/components/program-structure-editor.css";
 
 import { generateLocalId } from "../../api/mappers/program";
+import { useExercises } from "../../context/ExerciseContext";
 import type {
     ProgramBlock,
+    ProgramBlockItem,
     ProgramScheme,
     ProgramSection,
     ProgramStructure,
@@ -100,27 +103,62 @@ function CollapseToggle({
 }
 
 // =====================================================================
-// Упражнения (п.14-15 документа) — обычный текст, порядок фиксирует
-// автор, система его не интерпретирует.
+// Упражнения (п.14-15 документа) — из базы упражнений (ссылкой) или
+// своим текстом, порядок фиксирует автор, система его не интерпретирует.
+// Упражнения из базы связаны с их страницами и дают мышцы для картинки
+// схемы; своим текстом записывают то, чего в базе нет.
 // =====================================================================
 
+// Должно совпадать с MAX_BLOCK_EXERCISE_LOAD_LENGTH в app/models_program.py.
+const MAX_LOAD_LENGTH = 100;
+
+// Подсказки для поля «Нагрузка» — только подсказки: можно ввести что
+// угодно (система нагрузку не разбирает, см. ProgramBlockItem.load).
+const LOAD_SUGGESTIONS = [
+    "Максимум",
+    "Технический максимум",
+    "80% от максимума",
+    "20 повторений",
+    "30 секунд",
+    "1 минута",
+];
+
 function ExerciseListEditor({
-    exercises,
+    items,
     onChange,
 }: {
-    exercises: string[];
-    onChange: (exercises: string[]) => void;
+    items: ProgramBlockItem[];
+    onChange: (items: ProgramBlockItem[]) => void;
 }) {
-    function updateExercise(index: number, value: string) {
-        onChange(exercises.map((item, i) => (i === index ? value : item)));
+    const { exercises } = useExercises();
+
+    const loadListId = useId();
+
+    const nameById = useMemo(
+        () => new Map(exercises.map((exercise) => [exercise.id, exercise.name])),
+        [exercises]
+    );
+
+    function updateText(index: number, text: string) {
+        onChange(
+            items.map((item, i) =>
+                i === index && item.kind === "text" ? { ...item, text } : item
+            )
+        );
     }
 
-    function removeExercise(index: number) {
-        onChange(exercises.filter((_, i) => i !== index));
+    function updateLoad(index: number, load: string) {
+        onChange(
+            items.map((item, i) => (i === index ? { ...item, load } : item))
+        );
     }
 
-    function moveExercise(index: number, direction: -1 | 1) {
-        onChange(moveItem(exercises, index, direction));
+    function removeItem(index: number) {
+        onChange(items.filter((_, i) => i !== index));
+    }
+
+    function moveEntry(index: number, direction: -1 | 1) {
+        onChange(moveItem(items, index, direction));
     }
 
     return (
@@ -130,7 +168,7 @@ function ExerciseListEditor({
             </span>
 
             {
-                exercises.map((exercise, index) => (
+                items.map((item, index) => (
                     <div
                         key={index}
                         className="program-structure-editor__exercise-row"
@@ -139,27 +177,50 @@ function ExerciseListEditor({
                             {index + 1}.
                         </span>
 
-                        <Input
-                            aria-label={`Упражнение ${index + 1}`}
-                            value={exercise}
-                            onChange={(event) =>
-                                updateExercise(index, event.target.value)
+                        <div className="program-structure-editor__exercise-fields">
+                            {
+                                item.kind === "exercise" ? (
+                                    <span className="program-structure-editor__exercise-linked">
+                                        {nameById.get(item.exerciseId) ?? `Не найдено: ${item.exerciseId}`}
+
+                                        <span className="program-structure-editor__exercise-badge">
+                                            из базы
+                                        </span>
+                                    </span>
+                                ) : (
+                                    <Input
+                                        aria-label={`Упражнение ${index + 1}`}
+                                        value={item.text}
+                                        onChange={(event) =>
+                                            updateText(index, event.target.value)
+                                        }
+                                        placeholder="Своё упражнение, например: Ходьба на руках"
+                                    />
+                                )
                             }
-                            placeholder="Например: Подтягивания"
-                        />
+
+                            <Input
+                                aria-label={`Нагрузка упражнения ${index + 1}`}
+                                list={loadListId}
+                                maxLength={MAX_LOAD_LENGTH}
+                                value={item.load ?? ""}
+                                onChange={(event) =>
+                                    updateLoad(index, event.target.value)
+                                }
+                                placeholder="Нагрузка: 20 повторений, максимум, 30 секунд…"
+                            />
+                        </div>
 
                         <ReorderButtons
                             index={index}
-                            count={exercises.length}
-                            onMove={(direction) =>
-                                moveExercise(index, direction)
-                            }
+                            count={items.length}
+                            onMove={(direction) => moveEntry(index, direction)}
                         />
 
                         <button
                             type="button"
                             className="program-structure-editor__remove-button"
-                            onClick={() => removeExercise(index)}
+                            onClick={() => removeItem(index)}
                         >
                             Удалить
                         </button>
@@ -167,13 +228,41 @@ function ExerciseListEditor({
                 ))
             }
 
-            <Button
-                type="button"
-                variant="outline"
-                onClick={() => onChange([...exercises, ""])}
-            >
-                Добавить упражнение
-            </Button>
+            <datalist id={loadListId}>
+                {
+                    LOAD_SUGGESTIONS.map((suggestion) => (
+                        <option key={suggestion} value={suggestion} />
+                    ))
+                }
+            </datalist>
+
+            <ExerciseSearchBox
+                onSelect={(exercise) =>
+                    onChange([
+                        ...items,
+                        { kind: "exercise", exerciseId: exercise.id },
+                    ])
+                }
+                emptyText="В базе нет упражнений."
+            />
+
+            <div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onChange([...items, { kind: "text", text: "" }])}
+                >
+                    Добавить своё упражнение (нет в базе)
+                </Button>
+            </div>
+
+            <p className="program-structure-editor__hint">
+                Упражнения из базы становятся ссылками, а их мышцы попадают на
+                картинку схемы. Если нужного упражнения в базе нет, добавьте
+                своё — оно останется обычным текстом. В поле «Нагрузка» можно
+                написать что угодно: сколько повторений или секунд, «максимум»,
+                «80% от максимума».
+            </p>
         </div>
     );
 }
@@ -206,8 +295,8 @@ function BlockEditor({
             />
 
             <ExerciseListEditor
-                exercises={block.exercises}
-                onChange={(exercises) => onChange({ ...block, exercises })}
+                items={block.items}
+                onChange={(items) => onChange({ ...block, items })}
             />
 
             <Input
@@ -266,7 +355,7 @@ function BlockListEditor({
             {
                 id: generateLocalId("block"),
                 title: "",
-                exercises: [],
+                items: [],
             },
         ]);
     }

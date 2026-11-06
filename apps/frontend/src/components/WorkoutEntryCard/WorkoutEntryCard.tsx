@@ -18,6 +18,9 @@ import "../../styles/components/workout-entry-card.css";
 type WorkoutEntryCardProps = {
     entry: WorkoutEntry;
     playground?: Playground;
+
+    /** Сколько комментариев у записи; 0 или не передано — счётчик не показываем. */
+    commentsCount?: number;
 };
 
 /**
@@ -33,6 +36,7 @@ type WorkoutEntryCardProps = {
 export default function WorkoutEntryCard({
     entry,
     playground,
+    commentsCount = 0,
 }: WorkoutEntryCardProps) {
     // Миниатюра записи — главная фотография, выбранная пользователем
     // в форме, либо первая загруженная, если главная не отмечена
@@ -108,6 +112,17 @@ export default function WorkoutEntryCard({
                     !photoUrl && entry.description && (
                         <p className="workout-entry-card__description">
                             {getCardDescriptionPreview(entry.description)}
+                        </p>
+                    )
+                }
+
+                {
+                    commentsCount > 0 && (
+                        <p
+                            className="workout-entry-card__comments"
+                            aria-label={`Комментариев: ${commentsCount}`}
+                        >
+                            💬 {commentsCount}
                         </p>
                     )
                 }

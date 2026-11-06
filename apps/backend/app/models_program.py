@@ -2,6 +2,7 @@ import enum
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from pydantic import field_validator, model_validator
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
@@ -52,6 +53,94 @@ class ProgramVersionStatus(str, enum.Enum):
 # валидации/сериализации этого JSON.
 
 
+MAX_BLOCK_EXERCISE_TEXT_LENGTH = 200
+MAX_BLOCK_EXERCISE_LOAD_LENGTH = 100
+
+
+class ProgramBlockExercise(SQLModel):
+    """
+    Одно упражнение блока: либо из базы упражнений (exercise_id — на
+    него ссылаются, его мышцы идут в картинку схемы), либо свободный
+    текст автора (text — упражнение, которого нет в базе; остаётся
+    обычной строкой). Ровно одно из двух. Порядок элементов в
+    ProgramBlock.items — порядок упражнений, заданный автором (п.15),
+    поэтому ссылки на упражнения и свободный текст могут чередоваться.
+
+    load — нагрузка в этом упражнении, необязательная и свободным
+    текстом: «20 повторений», «максимум», «технический максимум»,
+    «80% от максимума», «30 секунд». Не число и не пара «повторения /
+    время» намеренно: у авторов слишком разные способы задавать нагрузку,
+    и система не интерпретирует авторскую методику (п.18).
+    """
+
+    exercise_id: Optional[str] = None
+    text: Optional[str] = None
+    load: Optional[str] = None
+
+    @field_validator("exercise_id", "text", "load")
+    @classmethod
+    def _blank_is_none(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+
+        cleaned = value.strip()
+
+        return cleaned or None
+
+    @field_validator("text")
+    @classmethod
+    def _check_text_length(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and len(value) > MAX_BLOCK_EXERCISE_TEXT_LENGTH:
+            raise ValueError(
+                "Название упражнения не должно быть длиннее "
+                f"{MAX_BLOCK_EXERCISE_TEXT_LENGTH} символов"
+            )
+
+        return value
+
+    @field_validator("load")
+    @classmethod
+    def _check_load_length(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and len(value) > MAX_BLOCK_EXERCISE_LOAD_LENGTH:
+            raise ValueError(
+                "Нагрузка не должна быть длиннее "
+                f"{MAX_BLOCK_EXERCISE_LOAD_LENGTH} символов"
+            )
+
+        return value
+
+    @model_validator(mode="after")
+    def _exactly_one(self) -> "ProgramBlockExercise":
+        if (self.exercise_id is None) == (self.text is None):
+            raise ValueError(
+                "У упражнения блока должно быть заполнено ровно одно поле: "
+                "упражнение из базы или свой текст"
+            )
+
+        return self
+
+
+def structure_exercise_ids(structure: Optional[dict]) -> List[str]:
+    """
+    Id упражнений из базы, на которые ссылается структура версии (сырой
+    JSON из ProgramVersionDB.structure или из ProgramStructure.model_dump).
+    Без повторов, в порядке появления. Нужна и для проверки при
+    сохранении черновика, и для защиты от удаления упражнения.
+    """
+    found: dict[str, None] = {}
+
+    for section in (structure or {}).get("sections") or []:
+        for scheme in section.get("schemes") or []:
+            for block in scheme.get("blocks") or []:
+                for item in block.get("items") or []:
+                    exercise_id = (item or {}).get("exercise_id")
+
+                    if exercise_id:
+                        found[exercise_id] = None
+
+    return list(found)
+
+
 class ProgramBlock(SQLModel):
     """
     Блок — минимальная структурированная часть схемы (п.12-17).
@@ -71,7 +160,17 @@ class ProgramBlock(SQLModel):
     # порядок элементов этого списка и есть порядок, который увидят
     # пользователи. Система не делает из него вывод о том, что
     # упражнения выполняются последовательно, круговой тренировке и т.п.
+    #
+    # УСТАРЕВШЕЕ ПОЛЕ — только чтение: так упражнения хранились, пока
+    # они были просто строками. Опубликованные версии неизменяемы, поэтому
+    # у старых версий остаётся оно; фронтенд при чтении превращает такие
+    # строки в «свои» упражнения (см. items) и при сохранении черновика
+    # пишет уже только items, а здесь оставляет пустой список.
     exercises: List[str] = []
+    # Упражнения блока по порядку: из базы упражнений или своим текстом
+    # (см. ProgramBlockExercise). Если пусто, а exercises нет — блок без
+    # упражнений.
+    items: List[ProgramBlockExercise] = []
     # "Схема / описание выполнения блока" (п.16) — свободный текст,
     # например "5 × 10" или "4 круга по 10+5+5".
     scheme: Optional[str] = None

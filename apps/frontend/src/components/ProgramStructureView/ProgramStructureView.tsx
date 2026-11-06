@@ -1,37 +1,37 @@
+import { Link } from "react-router-dom";
+
 import "../../styles/components/program-structure-view.css";
 
-import type { ProgramStructure } from "../../types/program";
+import type { ProgramScheme, ProgramStructure } from "../../types/program";
 
-import { downloadSchemeAsImage } from "../../utils/exportSchemeImage";
+import { pluralizeRu } from "../../utils/pluralize";
 
 type ProgramStructureViewProps = {
     structure: ProgramStructure;
 
-    /** Нужны только для подписи на скачиваемой картинке схемы (см.
-     *  utils/exportSchemeImage.ts) — на самом отображении структуры
-     *  не влияют. */
-    programTitle: string;
-
-    versionNumber?: string;
+    /**
+     * Адрес, к которому добавляется "/schemes/<id схемы>": страница
+     * программы передаёт "/programs/<id>" (схемы текущей версии), страница
+     * версии — "/programs/<id>/versions/<id версии>".
+     */
+    schemeLinkBase: string;
 };
 
 /**
- * Только отображение — используется и на странице программы (для
- * актуальной версии), и при просмотре конкретной исторической версии
- * (см. pages/ProgramDetails, pages/ProgramVersionDetails). Никакой
- * интерпретации содержимого, просто раскладка того, что ввёл автор
- * (п.18 документа).
+ * Оглавление программы: разделы (если автор их завёл) и схемы со
+ * ссылками на их страницы (pages/ProgramSchemeDetails). Содержимое
+ * схем — комплексы, упражнения, мышцы — здесь не показываем: оно на
+ * странице схемы, а эта страница остаётся короткой (раньше она была
+ * одной длинной простынёй). Используется и на странице программы
+ * (для актуальной версии), и при просмотре конкретной версии (см.
+ * pages/ProgramDetails, pages/ProgramVersionDetails).
  *
- * Разделы и схемы сворачиваются на нативных <details>/<summary> — по
- * умолчанию раздел развёрнут (чтобы сразу было видно, какие в нём
- * схемы), а сама схема свёрнута (чтобы не показывать все комплексы и
- * упражнения программы разом — это и было исходной проблемой:
- * страница программы выглядела одной длинной простынёй).
+ * Разделы сворачиваются на нативных <details>/<summary> и по умолчанию
+ * развёрнуты — чтобы сразу было видно, какие в них схемы.
  */
 export default function ProgramStructureView({
     structure,
-    programTitle,
-    versionNumber,
+    schemeLinkBase,
 }: ProgramStructureViewProps) {
     const hasNamedSections = structure.sections.some((section) => section.name);
 
@@ -43,129 +43,62 @@ export default function ProgramStructureView({
         );
     }
 
-    function renderSchemes(schemesOfSection: ProgramStructure["sections"][number]["schemes"]) {
-        return schemesOfSection.map((scheme) => (
-            <details
-                key={scheme.id}
-                className="program-structure-view__scheme"
-            >
-                <summary className="program-structure-view__scheme-summary">
-                    <span className="program-structure-view__scheme-icon" aria-hidden="true" />
+    function describeScheme(scheme: ProgramScheme): string {
+        const blocksCount = scheme.blocks.length;
+        const exercisesCount = scheme.blocks.reduce(
+            (sum, block) => sum + block.items.length,
+            0
+        );
 
+        const parts: string[] = [];
+
+        if (blocksCount > 0) {
+            parts.push(
+                `${blocksCount} ${pluralizeRu(blocksCount, ["комплекс", "комплекса", "комплексов"])}`
+            );
+        }
+
+        if (exercisesCount > 0) {
+            parts.push(
+                `${exercisesCount} ${pluralizeRu(exercisesCount, ["упражнение", "упражнения", "упражнений"])}`
+            );
+        }
+
+        return parts.join(" · ");
+    }
+
+    function renderSchemes(schemes: ProgramScheme[]) {
+        return schemes.map((scheme) => {
+            const meta = describeScheme(scheme);
+
+            return (
+                <Link
+                    key={scheme.id}
+                    to={`${schemeLinkBase}/schemes/${scheme.id}`}
+                    className="program-structure-view__scheme"
+                >
                     <span className="program-structure-view__scheme-title">
                         {scheme.name || "Схема"}
                     </span>
 
-                    <button
-                        type="button"
-                        className="program-structure-view__download-button"
-                        onClick={(event) => {
-                            // Клик по кнопке не должен переключать
-                            // раскрытие <details> — только скачивать.
-                            event.preventDefault();
-                            event.stopPropagation();
+                    {
+                        meta && (
+                            <span className="program-structure-view__scheme-meta">
+                                {meta}
+                            </span>
+                        )
+                    }
 
-                            downloadSchemeAsImage(
-                                scheme,
-                                programTitle,
-                                versionNumber
-                            ).catch((error: unknown) => {
-                                console.error(
-                                    "Не удалось скачать схему как изображение:",
-                                    error
-                                );
-                                window.alert(
-                                    "Не удалось скачать схему. Попробуйте ещё раз."
-                                );
-                            });
-                        }}
-                    >
-                        Скачать
-                    </button>
-                </summary>
-
-                <div className="program-structure-view__scheme-content">
                     {
                         scheme.description && (
-                            <p className="program-structure-view__scheme-description">
+                            <span className="program-structure-view__scheme-description">
                                 {scheme.description}
-                            </p>
+                            </span>
                         )
                     }
-
-                    <div className="program-structure-view__blocks">
-                        {
-                            scheme.blocks.map((block, blockIndex) => (
-                                <div
-                                    key={block.id}
-                                    className="program-structure-view__block"
-                                >
-                                    <h4 className="program-structure-view__block-title">
-                                        {block.title || `Комплекс ${blockIndex + 1}`}
-                                    </h4>
-
-                                    {
-                                        block.exercises.length > 0 && (
-                                            <ol className="program-structure-view__exercises">
-                                                {
-                                                    block.exercises.map(
-                                                        (exercise, index) => (
-                                                            <li key={index}>
-                                                                {exercise}
-                                                            </li>
-                                                        )
-                                                    )
-                                                }
-                                            </ol>
-                                        )
-                                    }
-
-                                    {
-                                        block.scheme && (
-                                            <p className="program-structure-view__block-scheme">
-                                                {block.scheme}
-                                            </p>
-                                        )
-                                    }
-
-                                    {
-                                        block.note && (
-                                            <p className="program-structure-view__note">
-                                                Примечание: {block.note}
-                                            </p>
-                                        )
-                                    }
-
-                                    {
-                                        block.rest && (
-                                            <p className="program-structure-view__rest">
-                                                Отдых: {block.rest}
-                                            </p>
-                                        )
-                                    }
-                                </div>
-                            ))
-                        }
-                    </div>
-
-                    {
-                        scheme.note && (
-                            <p className="program-structure-view__note">
-                                Примечание: {scheme.note}
-                            </p>
-                        )
-                    }
-
-                    {
-                        scheme.extraMaterials && (
-                            <p className="program-structure-view__extra-materials">
-                                Дополнительные материалы: {scheme.extraMaterials}
-                            </p>
-                        )
-                    }
-                </div>
-            </details>
-        ));
+                </Link>
+            );
+        });
     }
 
     return (

@@ -7,6 +7,11 @@ import Pagination from "../../components/ui/Pagination/Pagination";
 
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
+import { useComments } from "../../context/CommentContext";
+import {
+    countCommentsByRecord,
+    getRecordCommentsCount,
+} from "../../utils/comments";
 
 import "../../styles/components/diary.css";
 
@@ -43,6 +48,9 @@ import { paginate, getTotalPages } from "../../utils/pagination";
  */
 export default function UserDiary() {
     const { username } = useParams();
+
+    const { comments } = useComments();
+    const commentCounts = countCommentsByRecord(comments);
 
     const { currentUser } = useCurrentUser();
     const { getUserByUsername } = useUserDirectory();
@@ -132,11 +140,13 @@ export default function UserDiary() {
                                         <WorkoutEntryCard
                                             key={`workout-${record.data.id}`}
                                             entry={record.data}
+                                            commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                         />
                                     ) : (
                                         <DiaryNoteCard
                                             key={`note-${record.data.id}`}
                                             note={record.data}
+                                            commentsCount={getRecordCommentsCount(commentCounts, record.data.id, record.type)}
                                         />
                                     )
                                 )

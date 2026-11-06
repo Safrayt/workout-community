@@ -18,6 +18,11 @@ from app.models_exercise import (
     exercise_from_db,
     make_unique_slug,
 )
+from app.models_program import (
+    ProgramDB,
+    ProgramVersionDB,
+    structure_exercise_ids,
+)
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
@@ -149,6 +154,30 @@ def delete_exercise(
                 "Нельзя удалить упражнение — оно входит в комплексы: "
                 + ", ".join(f"«{name}»" for name in used_in)
                 + ". Сначала уберите его из этих комплексов."
+            ),
+        )
+
+    # То же для программ: на упражнение ссылаются блоки схем (в том числе
+    # в опубликованных версиях, которые менять нельзя, и в черновиках).
+    program_ids = {
+        program_id
+        for program_id, structure in session.exec(
+            select(ProgramVersionDB.program_id, ProgramVersionDB.structure)
+        ).all()
+        if exercise_id in structure_exercise_ids(structure)
+    }
+
+    if program_ids:
+        titles = session.exec(
+            select(ProgramDB.title).where(ProgramDB.id.in_(program_ids))
+        ).all()
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Нельзя удалить упражнение — оно используется в программах: "
+                + ", ".join(f"«{title}»" for title in sorted(titles))
+                + ". Сначала уберите его из схем этих программ."
             ),
         )
 

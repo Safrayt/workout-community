@@ -1,5 +1,7 @@
 import type { ProgramScheme } from "../types/program";
 
+import { getBlockExerciseNames } from "./programExercises";
+
 // Экспортируем в 2x относительно логической ширины разметки — иначе
 // текст на скачанной картинке выглядит смазанным на ретина-экранах.
 const WIDTH = 800;
@@ -92,7 +94,8 @@ function buildLayout(
     ctx: CanvasRenderingContext2D,
     scheme: ProgramScheme,
     programTitle: string,
-    versionNumber?: string
+    versionNumber: string | undefined,
+    nameOf: (exerciseId: string) => string
 ): { commands: DrawCommand[]; height: number } {
     const commands: DrawCommand[] = [];
     const contentWidth = WIDTH - PADDING * 2;
@@ -185,7 +188,7 @@ function buildLayout(
             blockContentWidth
         );
 
-        const exerciseLineGroups = block.exercises.map((exercise, exerciseIndex) =>
+        const exerciseLineGroups = getBlockExerciseNames(block, nameOf).map((exercise, exerciseIndex) =>
             wrapLines(
                 ctx,
                 `${exerciseIndex + 1}. ${exercise}`,
@@ -364,10 +367,15 @@ function slugifyFileName(value: string): string {
     return transliterated || "schema";
 }
 
+/**
+ * nameOf — название упражнения из базы по id (на картинке упражнения
+ * блока выводятся текстом, и «из базы», и свои).
+ */
 export async function downloadSchemeAsImage(
     scheme: ProgramScheme,
     programTitle: string,
-    versionNumber?: string
+    versionNumber: string | undefined,
+    nameOf: (exerciseId: string) => string
 ): Promise<void> {
     // Первый проход — только для раскладки/измерения текста, canvas
     // сам по себе никуда не идёт и в DOM не добавляется.
@@ -382,7 +390,8 @@ export async function downloadSchemeAsImage(
         measuringCtx,
         scheme,
         programTitle,
-        versionNumber
+        versionNumber,
+        nameOf
     );
 
     const canvas = document.createElement("canvas");

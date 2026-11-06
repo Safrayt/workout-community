@@ -1,6 +1,7 @@
 import type {
     Program,
     ProgramBlock,
+    ProgramBlockItem,
     ProgramDifficulty,
     ProgramScheme,
     ProgramSection,
@@ -20,10 +21,20 @@ import { resolveMediaUrl } from "../media";
 // однословное. id блоков/схем/разделов генерируется на фронтенде (см.
 // types/program.ts) и просто хранится бэкендом, не пересчитывается.
 
+export type ApiProgramBlockItem = {
+    exercise_id: string | null;
+    text: string | null;
+    load?: string | null;
+};
+
 export type ApiProgramBlock = {
     id?: string | null;
     title: string;
+
+    /** Устаревшее поле: упражнения-строки старых версий. При записи
+     *  всегда пустое — всё лежит в items. */
     exercises: string[];
+    items?: ApiProgramBlockItem[] | null;
     scheme?: string | null;
     note?: string | null;
     rest?: string | null;
@@ -58,20 +69,63 @@ export function generateLocalId(prefix: string): string {
     return `${prefix}-${Date.now()}-${localIdCounter}`;
 }
 
+function mapApiItemsToItems(block: ApiProgramBlock): ProgramBlockItem[] {
+    // Версии, сохранённые до связи с базой упражнений, хранят строки в
+    // exercises, а items у них пуст — показываем эти строки как «свои»
+    // упражнения. Опубликованные версии неизменяемы, поэтому читаем их
+    // так всегда, а не переписываем в базе.
+    if (!block.items || block.items.length === 0) {
+        return block.exercises.map((text) => ({ kind: "text", text }));
+    }
+
+    return block.items.flatMap((item): ProgramBlockItem[] => {
+        const load = item.load || undefined;
+
+        if (item.exercise_id) {
+            return [{ kind: "exercise", exerciseId: item.exercise_id, load }];
+        }
+
+        return item.text ? [{ kind: "text", text: item.text, load }] : [];
+    });
+}
+
+function mapItemsToApiItems(items: ProgramBlockItem[]): ApiProgramBlockItem[] {
+    // Пустые строки (автор добавил «своё упражнение» и не заполнил) не
+    // сохраняем — сервер отклонил бы такой элемент.
+    return items.flatMap((item): ApiProgramBlockItem[] => {
+        const load = item.load?.trim() || null;
+
+        if (item.kind === "exercise") {
+            return [{ exercise_id: item.exerciseId, text: null, load }];
+        }
+
+        const text = item.text.trim();
+
+        return text ? [{ exercise_id: null, text, load }] : [];
+    });
+}
+
 function mapApiBlockToBlock(block: ApiProgramBlock): ProgramBlock {
     return {
         id: block.id || generateLocalId("block"),
         title: block.title,
-        exercises: block.exercises,
+        items: mapApiItemsToItems(block),
         scheme: block.scheme ?? undefined,
         note: block.note ?? undefined,
         rest: block.rest ?? undefined,
     };
 }
 
-function mapApiSchemeToScheme(scheme: ApiProgramScheme): ProgramScheme {
+// Схемы и разделы без сохранённого id (старые данные) получают id по
+// месту в структуре, а не случайный: на id схемы строится её адрес
+// (/programs/:id/schemes/:schemeId), и он не должен меняться от
+// загрузки к загрузке. Новые схемы получают настоящий id в редакторе.
+function mapApiSchemeToScheme(
+    scheme: ApiProgramScheme,
+    fallbackId: string
+): ProgramScheme {
     return {
-        id: scheme.id || generateLocalId("scheme"),
+        id: scheme.id || fallbackId,
         name: scheme.name,
         description: scheme.description ?? undefined,
         blocks: scheme.blocks.map(mapApiBlockToBlock),
@@ -80,11 +134,21 @@ function mapApiSchemeToScheme(scheme: ApiProgramScheme): ProgramScheme {
     };
 }
 
-function mapApiSectionToSection(section: ApiProgramSection): ProgramSection {
+function mapApiSectionToSection(
+    section: ApiProgramSection,
+    sectionIndex: number
+): ProgramSection {
+    const sectionNumber = sectionIndex + 1;
+
     return {
-        id: section.id || generateLocalId("section"),
+        id: section.id || `section-${sectionNumber}`,
         name: section.name ?? undefined,
-        schemes: section.schemes.map(mapApiSchemeToScheme),
+        schemes: section.schemes.map((scheme, schemeIndex) =>
+            mapApiSchemeToScheme(
+                scheme,
+                `scheme-${sectionNumber}-${schemeIndex + 1}`
+            )
+        ),
     };
 }
 
@@ -92,7 +156,9 @@ export function mapApiStructureToStructure(
     structure: ApiProgramStructure
 ): ProgramStructure {
     return {
-        sections: structure.sections.map(mapApiSectionToSection),
+        sections: structure.sections.map((section, index) =>
+            mapApiSectionToSection(section, index)
+        ),
     };
 }
 
@@ -100,7 +166,8 @@ function mapBlockToApi(block: ProgramBlock): ApiProgramBlock {
     return {
         id: block.id,
         title: block.title,
-        exercises: block.exercises,
+        exercises: [],
+        items: mapItemsToApiItems(block.items),
         scheme: block.scheme || null,
         note: block.note || null,
         rest: block.rest || null,
