@@ -91,6 +91,10 @@ ExerciseEquipment = Literal[
     "verticalPost",
 ]
 
+# Сколько упражнений можно указать в каждом из списков «менее сложные» и
+# «более сложные».
+MAX_RELATED_EXERCISES = 10
+
 # Пределы длины — чтобы одна ошибка (или вставка целой статьи в поле
 # названия) не раздула страницу и базу.
 MAX_NAME_LENGTH = 120
@@ -140,6 +144,12 @@ class ExerciseDB(SQLModel, table=True):
     technique: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     features: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     suitable_for: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+    # Связанные упражнения из этой же базы: что делать, когда это
+    # слишком сложно (easier), и к чему переходить, когда стало легко
+    # (harder). Список id в порядке, заданном администратором.
+    easier_exercise_ids: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    harder_exercise_ids: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     # Ссылки на файлы. Загруженные через сайт лежат в /uploads/exercises/
     # (их можно удалять вместе с упражнением); стартовые указывают на
@@ -201,6 +211,12 @@ class ExerciseWrite(SQLModel):
     technique: List[str]
     features: List[str] = []
     suitable_for: List[str] = []
+
+    # Id менее сложных и более сложных упражнений из базы. Что они
+    # существуют и не указывают на само упражнение, проверяет роутер
+    # (здесь неизвестны ни база, ни id редактируемого упражнения).
+    easier_exercise_ids: List[str] = []
+    harder_exercise_ids: List[str] = []
 
     @field_validator("name")
     @classmethod
@@ -305,6 +321,32 @@ class ExerciseWrite(SQLModel):
 
         return self
 
+    @field_validator("easier_exercise_ids", "harder_exercise_ids")
+    @classmethod
+    def _clean_related_exercises(cls, value: List[str]) -> List[str]:
+        cleaned = list(
+            dict.fromkeys(item.strip() for item in value if item.strip())
+        )
+
+        if len(cleaned) > MAX_RELATED_EXERCISES:
+            raise ValueError(
+                f"В списке не больше {MAX_RELATED_EXERCISES} упражнений"
+            )
+
+        return cleaned
+
+    @model_validator(mode="after")
+    def _validate_related_exercises(self) -> "ExerciseWrite":
+        overlap = set(self.easier_exercise_ids) & set(self.harder_exercise_ids)
+
+        if overlap:
+            raise ValueError(
+                "Одно и то же упражнение не может быть одновременно менее "
+                "сложным и более сложным"
+            )
+
+        return self
+
     @model_validator(mode="after")
     def _validate_equipment(self) -> "ExerciseWrite":
         if self.no_equipment and self.equipment:
@@ -337,6 +379,9 @@ class ExerciseRead(SQLModel):
     technique: List[str]
     features: List[str]
     suitable_for: List[str]
+
+    easier_exercise_ids: List[str]
+    harder_exercise_ids: List[str]
 
     photo_url: Optional[str] = None
     video_url: Optional[str] = None
@@ -410,6 +455,8 @@ def exercise_from_db(row: ExerciseDB) -> ExerciseRead:
         technique=list(row.technique or []),
         features=list(row.features or []),
         suitable_for=list(row.suitable_for or []),
+        easier_exercise_ids=list(row.easier_exercise_ids or []),
+        harder_exercise_ids=list(row.harder_exercise_ids or []),
         photo_url=row.photo_url,
         video_url=row.video_url,
     )
@@ -429,6 +476,8 @@ def apply_exercise_write(row: ExerciseDB, data: ExerciseWrite) -> None:
     row.technique = list(data.technique)
     row.features = list(data.features)
     row.suitable_for = list(data.suitable_for)
+    row.easier_exercise_ids = list(data.easier_exercise_ids)
+    row.harder_exercise_ids = list(data.harder_exercise_ids)
     row.updated_at = datetime.now(timezone.utc)
 
 
@@ -459,8 +508,15 @@ def seed_exercises_if_empty(session: Session) -> None:
     for position, seed in enumerate(load_seed_exercises()):
         # Через ExerciseWrite — чтобы стартовые данные проходили ту же
         # проверку, что и введённые вручную (см. тесты).
+        # Поля, которых нет в сид-файле (например, связанные упражнения),
+        # получают значения по умолчанию; обязательных полей это не
+        # касается — их отсутствие проверка выше сообщит ошибкой.
         data = ExerciseWrite(
-            **{key: seed[key] for key in ExerciseWrite.model_fields}
+            **{
+                key: seed[key]
+                for key in ExerciseWrite.model_fields
+                if key in seed
+            }
         )
 
         row = ExerciseDB(

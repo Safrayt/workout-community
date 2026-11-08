@@ -26,6 +26,24 @@ type ExercisePickerProps = {
      * ничего не выбрано).
      */
     legacyText?: string;
+
+    /** Заголовок над списком. По умолчанию — для комплексов. */
+    label?: string;
+
+    /** Пояснение под полем поиска. По умолчанию — для схемы комплекса. */
+    hint?: string;
+
+    /** Текст, пока ничего не выбрано. */
+    emptyText?: string;
+
+    /** Подпись кнопки «убрать» для программ экранного чтения: «<подпись>: <упражнение>». */
+    removeLabel?: string;
+
+    /** Показывать ли общие мышцы выбранных упражнений (нужно комплексам). */
+    showMuscles?: boolean;
+
+    /** Упражнения, которые не предлагать в подсказках, кроме уже выбранных. */
+    excludedIds?: string[];
 };
 
 /**
@@ -41,6 +59,12 @@ export default function ExercisePicker({
     onChange,
     error,
     legacyText,
+    label = "Упражнения комплекса",
+    hint = "Добавляйте упражнения в том порядке, в каком они идут в схеме: порядок можно поменять стрелками. Нужного нет в списке — сначала добавьте его в базу упражнений.",
+    emptyText = "Пока не выбрано ни одного упражнения.",
+    removeLabel = "Убрать из комплекса",
+    showMuscles = true,
+    excludedIds,
 }: ExercisePickerProps) {
     const { exercises } = useExercises();
 
@@ -79,7 +103,7 @@ export default function ExercisePicker({
 
     return (
         <div className="exercise-picker">
-            <p className="exercise-picker__label">Упражнения комплекса</p>
+            <p className="exercise-picker__label">{label}</p>
 
             {
                 selected.length === 0 && legacyText && (
@@ -135,7 +159,7 @@ export default function ExercisePicker({
                                             <button
                                                 type="button"
                                                 className="exercise-picker__icon-button exercise-picker__icon-button--remove"
-                                                aria-label={`Убрать из комплекса: ${title}`}
+                                                aria-label={`${removeLabel}: ${title}`}
                                                 onClick={() => remove(id)}
                                             >
                                                 ×
@@ -152,25 +176,23 @@ export default function ExercisePicker({
             {
                 selected.length === 0 && (
                     <p className="exercise-picker__hint">
-                        Пока не выбрано ни одного упражнения.
+                        {emptyText}
                     </p>
                 )
             }
 
             <ExerciseSearchBox
-                excludedIds={value}
+                excludedIds={excludedIds ? [...value, ...excludedIds] : value}
                 onSelect={(exercise) => onChange([...value, exercise.id])}
                 invalid={Boolean(error)}
             />
 
             <p className="exercise-picker__hint">
-                Добавляйте упражнения в том порядке, в каком они идут в схеме:
-                порядок можно поменять стрелками. Нужного нет в списке — сначала
-                добавьте его в базу упражнений.
+                {hint}
             </p>
 
             {
-                (muscles.target.length > 0 || muscles.auxiliary.length > 0) && (
+                showMuscles && (muscles.target.length > 0 || muscles.auxiliary.length > 0) && (
                     <div className="exercise-picker__muscles">
                         <p>
                             <strong>Целевые мышцы комплекса:</strong>{" "}

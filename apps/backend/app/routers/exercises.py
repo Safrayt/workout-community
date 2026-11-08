@@ -63,6 +63,42 @@ def get_exercise(
     return exercise_from_db(_get_exercise_db_or_404(exercise_id, session))
 
 
+def _ensure_related_exercises_exist(
+    data: ExerciseWrite, session: Session, exercise_id: str | None
+) -> None:
+    """
+    Менее сложные и более сложные упражнения — это ссылки на другие
+    упражнения базы: они должны существовать и не могут вести на само
+    упражнение (exercise_id — id редактируемого; при создании его ещё нет).
+    """
+    related_ids = [*data.easier_exercise_ids, *data.harder_exercise_ids]
+
+    if not related_ids:
+        return
+
+    if exercise_id is not None and exercise_id in related_ids:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Упражнение не может быть более простым или более сложным "
+                "вариантом самого себя"
+            ),
+        )
+
+    known = set(
+        session.exec(
+            select(ExerciseDB.id).where(ExerciseDB.id.in_(related_ids))
+        ).all()
+    )
+    unknown = [item for item in related_ids if item not in known]
+
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail="Этих упражнений нет в базе: " + ", ".join(unknown),
+        )
+
+
 @router.post(
     "/", response_model=ExerciseRead, status_code=status.HTTP_201_CREATED
 )
@@ -72,6 +108,8 @@ def create_exercise(
     session: Session = Depends(get_session),
 ) -> ExerciseRead:
     ensure_admin(current_user, "Добавлять упражнения может только администратор")
+
+    _ensure_related_exercises_exist(data, session, exercise_id=None)
 
     last_position = session.exec(
         select(ExerciseDB.position).order_by(ExerciseDB.position.desc())
@@ -115,6 +153,8 @@ def update_exercise(
     )
 
     row = _get_exercise_db_or_404(exercise_id, session)
+
+    _ensure_related_exercises_exist(data, session, exercise_id=exercise_id)
 
     apply_exercise_write(row, data)
 
@@ -178,6 +218,28 @@ def delete_exercise(
                 "Нельзя удалить упражнение — оно используется в программах: "
                 + ", ".join(f"«{title}»" for title in sorted(titles))
                 + ". Сначала уберите его из схем этих программ."
+            ),
+        )
+
+    # И для других упражнений: оно может быть указано у них как менее
+    # или более сложный вариант.
+    related_names = [
+        row.name
+        for row in session.exec(
+            select(ExerciseDB).where(ExerciseDB.id != exercise_id)
+        ).all()
+        if exercise_id in (row.easier_exercise_ids or [])
+        or exercise_id in (row.harder_exercise_ids or [])
+    ]
+
+    if related_names:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Нельзя удалить упражнение — оно указано как менее или более "
+                "сложное в упражнениях: "
+                + ", ".join(f"«{name}»" for name in sorted(related_names))
+                + ". Сначала уберите его из этих упражнений."
             ),
         )
 

@@ -424,6 +424,14 @@ def _run_migrations() -> None:
             # оборудования»), старые значения сбрасываются.
             _reset_exercise_equipment(connection, boolean_default_false)
 
+            # Менее и более сложные упражнения (списки id упражнений).
+            _add_column_if_missing(
+                connection, "exercise", "easier_exercise_ids", "JSON DEFAULT '[]'"
+            )
+            _add_column_if_missing(
+                connection, "exercise", "harder_exercise_ids", "JSON DEFAULT '[]'"
+            )
+
         # Рубрика статей «Интервью» убрана — переносим такие статьи в
         # «Сообщество».
         if "article" in existing_tables:

@@ -24,6 +24,8 @@ export type ApiExercise = {
     technique: string[];
     features: string[];
     suitable_for: string[];
+    easier_exercise_ids: string[];
+    harder_exercise_ids: string[];
     photo_url: string | null;
     video_url: string | null;
 };
@@ -61,6 +63,8 @@ export function mapApiExerciseToExercise(api: ApiExercise): Exercise {
         technique: api.technique,
         features: api.features,
         suitableFor: api.suitable_for,
+        easierExerciseIds: api.easier_exercise_ids ?? [],
+        harderExerciseIds: api.harder_exercise_ids ?? [],
         photoUrl: resolveExerciseMediaUrl(api.photo_url),
         videoUrl: resolveExerciseMediaUrl(api.video_url),
     };
@@ -82,5 +86,7 @@ export function mapNewExerciseToApi(exercise: NewExercise) {
         technique: exercise.technique,
         features: exercise.features,
         suitable_for: exercise.suitableFor,
+        easier_exercise_ids: exercise.easierExerciseIds,
+        harder_exercise_ids: exercise.harderExerciseIds,
     };
 }

@@ -19,6 +19,13 @@
     color: var(--color-text-secondary);
 }
 
+/* Два выбора упражнений (менее и более сложные) друг под другом. */
+.exercise-form__related {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
 .exercise-form__subtitle {
     margin: 0 0 var(--space-2);
 

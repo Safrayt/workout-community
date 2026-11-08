@@ -1,7 +1,7 @@
 .program-structure-view {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
 }
 
 .program-structure-view__empty {
@@ -28,17 +28,20 @@
     display: none;
 }
 
+/* Название раздела программы — крупнее и тёмнее серых заголовков внутри
+   схемы: это заголовок уровня «глава», под ним целая группа схем. */
 .program-structure-view__section-title {
     margin: 0;
-    font-size: var(--font-size-base);
-    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-text);
 }
 
 .program-structure-view__section-content {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin-top: var(--space-2);
+    margin-top: var(--space-4);
 }
 
 .program-structure-view__flat-section {

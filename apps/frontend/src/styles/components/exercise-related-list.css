@@ -1,0 +1,107 @@
+.exercise-related {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    margin-top: var(--space-6, var(--space-5));
+}
+
+/* Заголовок — как у разделов страницы комплекса: серый, небольшой. */
+.exercise-related__title {
+    margin: 0;
+
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+}
+
+/* Упражнения — по одному в строке. */
+.exercise-related__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+/* Плитка — строка: небольшое квадратное фото слева, название справа,
+   выровненное по верху фото. Так и на телефоне, и на компьютере. */
+.exercise-related__tile {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+
+    padding: var(--space-3);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+
+    color: inherit;
+    text-decoration: none;
+}
+
+.exercise-related__tile:hover,
+.exercise-related__tile:focus-visible {
+    border-color: var(--color-primary);
+}
+
+/* Небольшое квадратное фото, как на карточках упражнений. */
+.exercise-related__photo {
+    display: block;
+    flex: 0 0 96px;
+
+    width: 96px;
+    height: 96px;
+
+    object-fit: cover;
+    border-radius: var(--radius-md);
+}
+
+/* Текст плитки: название, под ним тип движения и целевые мышцы. */
+.exercise-related__info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    min-width: 0;
+}
+
+.exercise-related__name {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+/* Тип движения — с цветной точкой, как на кнопках фильтра упражнений. */
+.exercise-related__type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.exercise-related__dot {
+    flex-shrink: 0;
+
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+.exercise-related__muscles {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* На компьютере ширина списка ограничена, чтобы плитки не растягивались
+   на всю страницу; на телефоне они занимают всю ширину. */
+@media (min-width: 641px) {
+    .exercise-related__list {
+        max-width: 520px;
+    }
+}

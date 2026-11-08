@@ -27,6 +27,8 @@ export type NewExercise = {
     technique: string[];
     features: string[];
     suitableFor: string[];
+    easierExerciseIds: string[];
+    harderExerciseIds: string[];
 };
 
 export const EMPTY_NEW_EXERCISE: NewExercise = {
@@ -43,6 +45,8 @@ export const EMPTY_NEW_EXERCISE: NewExercise = {
     technique: [],
     features: [],
     suitableFor: [],
+    easierExerciseIds: [],
+    harderExerciseIds: [],
 };
 
 /**

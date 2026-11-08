@@ -39,6 +39,8 @@ export function exerciseToFormValue(exercise: Exercise): NewExercise {
         technique: exercise.technique,
         features: exercise.features ?? [],
         suitableFor: exercise.suitableFor ?? [],
+        easierExerciseIds: exercise.easierExerciseIds,
+        harderExerciseIds: exercise.harderExerciseIds,
     };
 }
 
@@ -48,6 +50,9 @@ const MAX_NAME_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 2000;
 const MAX_ITEM_LENGTH = 500;
 const MAX_LIST_ITEMS = 20;
+
+/** Должно совпадать с MAX_RELATED_EXERCISES в app/models_exercise.py. */
+const MAX_RELATED_EXERCISES = 10;
 
 export type ExerciseFormErrors = Partial<
     Record<
@@ -61,7 +66,9 @@ export type ExerciseFormErrors = Partial<
         | "disadvantages"
         | "technique"
         | "features"
-        | "suitableFor",
+        | "suitableFor"
+        | "easierExercises"
+        | "harderExercises",
         string
     >
 >;
@@ -128,6 +135,25 @@ export function validateExerciseForm(value: NewExercise): ExerciseFormErrors {
     errors.disadvantages = checkListLimits(value.disadvantages);
     errors.features = checkListLimits(value.features);
     errors.suitableFor = checkListLimits(value.suitableFor);
+
+    // Менее и более сложные упражнения. Что они есть в базе и не ведут на
+    // само упражнение, проверяет сервер (здесь нет id редактируемого).
+    if (value.easierExerciseIds.length > MAX_RELATED_EXERCISES) {
+        errors.easierExercises = `Не больше ${MAX_RELATED_EXERCISES} упражнений.`;
+    }
+
+    if (value.harderExerciseIds.length > MAX_RELATED_EXERCISES) {
+        errors.harderExercises = `Не больше ${MAX_RELATED_EXERCISES} упражнений.`;
+    }
+
+    if (
+        value.easierExerciseIds.some((id) =>
+            value.harderExerciseIds.includes(id)
+        )
+    ) {
+        errors.harderExercises =
+            "Одно и то же упражнение не может быть одновременно менее сложным и более сложным.";
+    }
 
     // Без ключей со значением undefined: так проверка "есть ли ошибки" —
     // это просто Object.keys(errors).length.

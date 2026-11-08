@@ -8,8 +8,11 @@ import Button from "../../components/ui/Button/Button";
 import MuscleMap from "../../components/MuscleMap/MuscleMap";
 import MuscleMapLegend from "../../components/MuscleMapLegend/MuscleMapLegend";
 import ViewSwitch from "../../components/ViewSwitch/ViewSwitch";
+import ExerciseRelatedList from "../../components/ExerciseRelatedList/ExerciseRelatedList";
 
 import "../../styles/components/exercise-details.css";
+
+import type { Exercise } from "../../types/exercise";
 
 import { useIsAdmin } from "../../context/CurrentUserContext";
 import { useComplexes } from "../../context/ComplexContext";
@@ -94,6 +97,16 @@ export default function KnowledgeExerciseDetails() {
     const usedInComplexes = exercise
         ? complexes.filter((complex) => complex.exerciseIds.includes(exercise.id))
         : [];
+
+    // Менее и более сложные упражнения — разделы внизу страницы. Нет
+    // упражнений — нет и раздела.
+    const easierExercises = (exercise?.easierExerciseIds ?? [])
+        .map((relatedId) => getExerciseById(relatedId))
+        .filter((related): related is Exercise => related !== undefined);
+
+    const harderExercises = (exercise?.harderExerciseIds ?? [])
+        .map((relatedId) => getExerciseById(relatedId))
+        .filter((related): related is Exercise => related !== undefined);
 
     // Что показано в медиа-панели. Видео по умолчанию, если оно есть:
     // по нему сразу понятно, как выполнять упражнение; карта мышц — одним
@@ -348,6 +361,24 @@ export default function KnowledgeExerciseDetails() {
                         }
                     </aside>
                 </div>
+
+                {
+                    easierExercises.length > 0 && (
+                        <ExerciseRelatedList
+                            title="Менее сложные упражнения"
+                            exercises={easierExercises}
+                        />
+                    )
+                }
+
+                {
+                    harderExercises.length > 0 && (
+                        <ExerciseRelatedList
+                            title="Более сложные упражнения"
+                            exercises={harderExercises}
+                        />
+                    )
+                }
             </Section>
         </>
     );

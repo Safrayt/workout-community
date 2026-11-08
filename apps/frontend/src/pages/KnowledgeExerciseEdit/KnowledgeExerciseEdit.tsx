@@ -140,6 +140,7 @@ export default function KnowledgeExerciseEdit() {
                 // key — при переходе на другое упражнение форма создаётся
                 // заново с его данными, а не показывает прежние.
                 key={current.id}
+                exerciseId={current.id}
                 initialValue={exerciseToFormValue(current)}
                 currentPhotoUrl={current.photoUrl}
                 currentVideoUrl={current.videoUrl}

@@ -9,6 +9,7 @@ import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import MuscleMap from "../MuscleMap/MuscleMap";
 import MuscleMapLegend from "../MuscleMapLegend/MuscleMapLegend";
 import ExerciseEquipmentPicker from "../ExerciseEquipmentPicker/ExerciseEquipmentPicker";
+import ExercisePicker from "../ExercisePicker/ExercisePicker";
 
 import "../../styles/components/exercise-filters.css";
 import "../../styles/components/exercise-form.css";
@@ -60,6 +61,8 @@ type Draft = {
     technique: string;
     features: string;
     suitableFor: string;
+    easierExerciseIds: string[];
+    harderExerciseIds: string[];
 };
 
 function toDraft(value: NewExercise): Draft {
@@ -77,6 +80,8 @@ function toDraft(value: NewExercise): Draft {
         technique: itemsToLines(value.technique),
         features: itemsToLines(value.features),
         suitableFor: itemsToLines(value.suitableFor),
+        easierExerciseIds: value.easierExerciseIds,
+        harderExerciseIds: value.harderExerciseIds,
     };
 }
 
@@ -95,6 +100,8 @@ function fromDraft(draft: Draft): NewExercise {
         technique: linesToItems(draft.technique),
         features: linesToItems(draft.features),
         suitableFor: linesToItems(draft.suitableFor),
+        easierExerciseIds: draft.easierExerciseIds,
+        harderExerciseIds: draft.harderExerciseIds,
     };
 }
 
@@ -106,6 +113,9 @@ type PickedFile = {
 
 type ExerciseFormProps = {
     initialValue: NewExercise;
+
+    /** Id редактируемого упражнения: его нельзя выбрать менее или более сложным вариантом самого себя. */
+    exerciseId?: string;
 
     /** Фото и видео, которые у упражнения уже есть (при редактировании). */
     currentPhotoUrl?: string;
@@ -133,6 +143,7 @@ type ExerciseFormProps = {
  */
 export default function ExerciseForm({
     initialValue,
+    exerciseId,
     currentPhotoUrl,
     currentVideoUrl,
     submitLabel,
@@ -547,6 +558,44 @@ export default function ExerciseForm({
                         onChange={(event) =>
                             updateDraft("suitableFor", event.target.value)
                         }
+                    />
+                </div>
+            </FormSection>
+
+            <FormSection title="Менее и более сложные упражнения">
+                <div className="exercise-form__related">
+                    <ExercisePicker
+                        label="Менее сложные упражнения"
+                        value={draft.easierExerciseIds}
+                        onChange={(ids) =>
+                            updateDraft("easierExerciseIds", ids)
+                        }
+                        excludedIds={[
+                            ...(exerciseId ? [exerciseId] : []),
+                            ...draft.harderExerciseIds,
+                        ]}
+                        error={errors.easierExercises}
+                        emptyText="Пока не выбрано ни одного упражнения — раздел на странице не покажется."
+                        hint="Что делать, когда это упражнение пока слишком трудное. Порядок можно поменять стрелками, например от самого лёгкого."
+                        removeLabel="Убрать из менее сложных"
+                        showMuscles={false}
+                    />
+
+                    <ExercisePicker
+                        label="Более сложные упражнения"
+                        value={draft.harderExerciseIds}
+                        onChange={(ids) =>
+                            updateDraft("harderExerciseIds", ids)
+                        }
+                        excludedIds={[
+                            ...(exerciseId ? [exerciseId] : []),
+                            ...draft.easierExerciseIds,
+                        ]}
+                        error={errors.harderExercises}
+                        emptyText="Пока не выбрано ни одного упражнения — раздел на странице не покажется."
+                        hint="К чему переходить, когда это упражнение стало лёгким. Порядок можно поменять стрелками, например от самого близкого по сложности."
+                        removeLabel="Убрать из более сложных"
+                        showMuscles={false}
                     />
                 </div>
             </FormSection>
