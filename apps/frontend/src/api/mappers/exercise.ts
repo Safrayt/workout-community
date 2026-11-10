@@ -13,6 +13,7 @@ export type ApiExercise = {
     id: string;
     name: string;
     name_en: string | null;
+    other_names: string[];
     movement_type: MovementType;
     target_muscles: MuscleGroupKey[];
     auxiliary_muscles: MuscleGroupKey[];
@@ -52,6 +53,7 @@ export function mapApiExerciseToExercise(api: ApiExercise): Exercise {
         id: api.id,
         name: api.name,
         nameEn: api.name_en ?? undefined,
+        otherNames: api.other_names ?? [],
         movementType: api.movement_type,
         targetMuscles: api.target_muscles,
         auxiliaryMuscles: api.auxiliary_muscles,
@@ -75,6 +77,7 @@ export function mapNewExerciseToApi(exercise: NewExercise) {
     return {
         name: exercise.name,
         name_en: exercise.nameEn.trim() === "" ? null : exercise.nameEn,
+        other_names: exercise.otherNames,
         movement_type: exercise.movementType,
         target_muscles: exercise.targetMuscles,
         auxiliary_muscles: exercise.auxiliaryMuscles,

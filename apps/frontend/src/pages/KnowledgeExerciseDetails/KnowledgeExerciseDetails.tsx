@@ -161,6 +161,7 @@ export default function KnowledgeExerciseDetails() {
     const {
         name,
         nameEn,
+        otherNames,
         movementType,
         targetMuscles,
         auxiliaryMuscles,
@@ -219,6 +220,15 @@ export default function KnowledgeExerciseDetails() {
                                 <strong>Оборудование:</strong>{" "}
                                 {describeExerciseEquipment(exercise)}
                             </p>
+
+                            {
+                                otherNames.length > 0 && (
+                                    <p>
+                                        <strong>Другие названия:</strong>{" "}
+                                        {otherNames.join(", ")}
+                                    </p>
+                                )
+                            }
                         </div>
 
                         <DetailsBlock title="Что это такое?">

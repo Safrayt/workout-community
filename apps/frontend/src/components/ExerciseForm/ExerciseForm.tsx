@@ -50,6 +50,7 @@ const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 type Draft = {
     name: string;
     nameEn: string;
+    otherNames: string;
     movementType: MovementType | "";
     targetMuscles: MuscleGroupKey[];
     auxiliaryMuscles: MuscleGroupKey[];
@@ -69,6 +70,7 @@ function toDraft(value: NewExercise): Draft {
     return {
         name: value.name,
         nameEn: value.nameEn,
+        otherNames: itemsToLines(value.otherNames),
         movementType: value.movementType,
         targetMuscles: value.targetMuscles,
         auxiliaryMuscles: value.auxiliaryMuscles,
@@ -89,6 +91,7 @@ function fromDraft(draft: Draft): NewExercise {
     return {
         name: draft.name.trim(),
         nameEn: draft.nameEn.trim(),
+        otherNames: linesToItems(draft.otherNames),
         movementType: draft.movementType,
         targetMuscles: draft.targetMuscles,
         auxiliaryMuscles: draft.auxiliaryMuscles,
@@ -348,6 +351,25 @@ export default function ExerciseForm({
                         maxLength={200}
                         onChange={(event) => updateDraft("nameEn", event.target.value)}
                     />
+
+                    <Textarea
+                        id="exercise-other-names"
+                        label="Другие названия"
+                        rows={3}
+                        value={draft.otherNames}
+                        error={errors.otherNames}
+                        onChange={(event) =>
+                            updateDraft("otherNames", event.target.value)
+                        }
+                    />
+
+                    <p className="exercise-form__hint">
+                        Устоявшиеся синонимы — по одному на строку. Они
+                        показываются на странице под оборудованием, и по ним
+                        упражнение находят в поиске по сайту и в поисковиках.
+                        Названия, повторяющие основное или английское, сайт
+                        уберёт сам.
+                    </p>
 
                     <Select
                         id="exercise-movement-type"

@@ -65,8 +65,8 @@ export function normalizeSearchText(text: string): string {
 }
 
 /**
- * Подходит ли упражнение под строку поиска. Ищем в русском и в
- * английском названии. Запрос из нескольких слов — по "И": каждое
+ * Подходит ли упражнение под строку поиска. Ищем в русском, в
+ * английском и в других названиях. Запрос из нескольких слов — по "И": каждое
  * слово должно встретиться в названии (в любом порядке), поэтому
  * "подтяг шир" находит "Подтягивания широким хватом". Пустой запрос
  * (или из одних пробелов) подходит всем.
@@ -79,7 +79,9 @@ export function matchesSearchQuery(exercise: Exercise, query: string): boolean {
     }
 
     const name = normalizeSearchText(
-        [exercise.name, exercise.nameEn].filter(Boolean).join(" ")
+        [exercise.name, exercise.nameEn, ...exercise.otherNames]
+            .filter(Boolean)
+            .join(" ")
     );
 
     return words.every((word) => name.includes(word));

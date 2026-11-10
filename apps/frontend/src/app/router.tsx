@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import ProtectedLayout from "./ProtectedLayout";
 import RootLayout from "../components/layout/RootLayout";
+import Layout from "../components/layout/Layout";
 import type { RouteHandle } from "./guestAccess";
 
 import Login from "../pages/Login/Login";
@@ -71,9 +72,21 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
   {
-    path: "/login",
-    handle: { title: "Вход" } satisfies RouteHandle,
-    element: <Login />,
+    // Вход — в обычном макете, с шапкой и подвалом: сюда перенаправляют
+    // гостя с главной, и без навигации ему было бы некуда пойти, кроме
+    // как зарегистрироваться, хотя площадки, события, упражнения и
+    // статьи открыты и без входа. Макет не требует провайдеров
+    // (см. ProtectedLayout). /register и /recover намеренно остались
+    // без шапки: после них показывается ключ восстановления, который
+    // нельзя потерять, случайно уйдя по ссылке из навигации.
+    element: <Layout />,
+    children: [
+      {
+        path: "/login",
+        handle: { title: "Вход" } satisfies RouteHandle,
+        element: <Login />,
+      },
+    ],
   },
   {
     path: "/register",

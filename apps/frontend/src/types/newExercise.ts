@@ -12,6 +12,7 @@ import type {
 export type NewExercise = {
     name: string;
     nameEn: string;
+    otherNames: string[];
 
     /** Пустая строка — тип ещё не выбран (проверяется при отправке). */
     movementType: MovementType | "";
@@ -34,6 +35,7 @@ export type NewExercise = {
 export const EMPTY_NEW_EXERCISE: NewExercise = {
     name: "",
     nameEn: "",
+    otherNames: [],
     movementType: "",
     targetMuscles: [],
     auxiliaryMuscles: [],

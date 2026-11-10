@@ -28,6 +28,7 @@ export function exerciseToFormValue(exercise: Exercise): NewExercise {
     return {
         name: exercise.name,
         nameEn: exercise.nameEn ?? "",
+        otherNames: exercise.otherNames,
         movementType: exercise.movementType,
         targetMuscles: exercise.targetMuscles,
         auxiliaryMuscles: exercise.auxiliaryMuscles,
@@ -54,10 +55,14 @@ const MAX_LIST_ITEMS = 20;
 /** Должно совпадать с MAX_RELATED_EXERCISES в app/models_exercise.py. */
 const MAX_RELATED_EXERCISES = 10;
 
+/** Должно совпадать с MAX_OTHER_NAMES в app/models_exercise.py. */
+const MAX_OTHER_NAMES = 10;
+
 export type ExerciseFormErrors = Partial<
     Record<
         | "name"
         | "nameEn"
+        | "otherNames"
         | "movementType"
         | "targetMuscles"
         | "equipment"
@@ -101,6 +106,12 @@ export function validateExerciseForm(value: NewExercise): ExerciseFormErrors {
 
     if (value.nameEn.trim().length > MAX_NAME_LENGTH) {
         errors.nameEn = `Название не длиннее ${MAX_NAME_LENGTH} символов.`;
+    }
+
+    if (value.otherNames.length > MAX_OTHER_NAMES) {
+        errors.otherNames = `Не больше ${MAX_OTHER_NAMES} названий.`;
+    } else if (value.otherNames.some((name) => name.length > MAX_NAME_LENGTH)) {
+        errors.otherNames = `Каждое название не длиннее ${MAX_NAME_LENGTH} символов.`;
     }
 
     if (value.movementType === "") {

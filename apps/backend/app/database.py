@@ -432,6 +432,11 @@ def _run_migrations() -> None:
                 connection, "exercise", "harder_exercise_ids", "JSON DEFAULT '[]'"
             )
 
+            # Другие названия упражнения (синонимы).
+            _add_column_if_missing(
+                connection, "exercise", "other_names", "JSON DEFAULT '[]'"
+            )
+
         # Рубрика статей «Интервью» убрана — переносим такие статьи в
         # «Сообщество».
         if "article" in existing_tables:

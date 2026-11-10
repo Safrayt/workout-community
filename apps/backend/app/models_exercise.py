@@ -95,6 +95,9 @@ ExerciseEquipment = Literal[
 # «более сложные».
 MAX_RELATED_EXERCISES = 10
 
+# Сколько «других названий» можно указать у одного упражнения.
+MAX_OTHER_NAMES = 10
+
 # Пределы длины — чтобы одна ошибка (или вставка целой статьи в поле
 # названия) не раздула страницу и базу.
 MAX_NAME_LENGTH = 120
@@ -124,6 +127,11 @@ class ExerciseDB(SQLModel, table=True):
 
     name: str
     name_en: Optional[str] = None
+
+    # Другие устоявшиеся названия упражнения (синонимы): по ним
+    # упражнение находят в поиске по сайту и в поисковиках.
+    other_names: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+
     movement_type: str
 
     target_muscles: List[str] = Field(default_factory=list, sa_column=Column(JSON))
@@ -187,6 +195,57 @@ def _clean_items(value: List[str], field_label: str) -> List[str]:
     return cleaned
 
 
+def _name_key(value: str) -> str:
+    """Ключ для сравнения названий: без регистра и без различия «е»/«ё»."""
+    return value.casefold().replace("ё", "е")
+
+
+def clean_other_names(names: List[str]) -> List[str]:
+    """
+    Другие названия: лишние пробелы убираются, пустые и повторы (без
+    учёта регистра) выбрасываются с сохранением порядка, проверяются
+    длина названия и число названий.
+    """
+    cleaned: List[str] = []
+    seen = set()
+
+    for name in names:
+        # " ".join(split()) заодно схлопывает двойные пробелы внутри.
+        name = " ".join(name.split())
+
+        if not name:
+            continue
+
+        if len(name) > MAX_NAME_LENGTH:
+            raise ValueError(
+                f"Другое название не длиннее {MAX_NAME_LENGTH} символов"
+            )
+
+        key = _name_key(name)
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        cleaned.append(name)
+
+    if len(cleaned) > MAX_OTHER_NAMES:
+        raise ValueError(
+            f"Другие названия: не больше {MAX_OTHER_NAMES}"
+        )
+
+    return cleaned
+
+
+def without_main_names(
+    names: List[str], main_names: List[Optional[str]]
+) -> List[str]:
+    """Убирает из «других названий» те, что повторяют основные."""
+    main_keys = {_name_key(name) for name in main_names if name}
+
+    return [name for name in names if _name_key(name) not in main_keys]
+
+
 class ExerciseWrite(SQLModel):
     """
     Тело запроса на добавление и на редактирование (PUT заменяет все
@@ -198,6 +257,7 @@ class ExerciseWrite(SQLModel):
 
     name: str
     name_en: Optional[str] = None
+    other_names: List[str] = []
     movement_type: MovementType
 
     target_muscles: List[MuscleGroup]
@@ -248,6 +308,21 @@ class ExerciseWrite(SQLModel):
 
         # Пустая строка из формы — то же самое, что "не указано".
         return value or None
+
+    @field_validator("other_names")
+    @classmethod
+    def _validate_other_names(cls, value: List[str]) -> List[str]:
+        return clean_other_names(value)
+
+    @model_validator(mode="after")
+    def _drop_other_names_repeating_main(self) -> "ExerciseWrite":
+        # «Другое название», совпадающее с основным или английским, —
+        # лишний повтор на странице: молча убираем.
+        self.other_names = without_main_names(
+            self.other_names, [self.name, self.name_en]
+        )
+
+        return self
 
     @field_validator("description")
     @classmethod
@@ -366,6 +441,7 @@ class ExerciseRead(SQLModel):
     id: str
     name: str
     name_en: Optional[str] = None
+    other_names: List[str] = []
     movement_type: str
 
     target_muscles: List[str]
@@ -444,6 +520,7 @@ def exercise_from_db(row: ExerciseDB) -> ExerciseRead:
         id=row.id,
         name=row.name,
         name_en=row.name_en,
+        other_names=list(row.other_names or []),
         movement_type=row.movement_type,
         target_muscles=list(row.target_muscles or []),
         auxiliary_muscles=list(row.auxiliary_muscles or []),
@@ -465,6 +542,7 @@ def exercise_from_db(row: ExerciseDB) -> ExerciseRead:
 def apply_exercise_write(row: ExerciseDB, data: ExerciseWrite) -> None:
     row.name = data.name
     row.name_en = data.name_en
+    row.other_names = list(data.other_names)
     row.movement_type = data.movement_type
     row.target_muscles = list(data.target_muscles)
     row.auxiliary_muscles = list(data.auxiliary_muscles)
