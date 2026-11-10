@@ -7,6 +7,11 @@ import LazyMarkdownContent from "../MarkdownContent/LazyMarkdownContent";
 import "../../styles/components/markdown-editor.css";
 
 import { MAX_ARTICLE_BODY_LENGTH } from "../../utils/articleForm";
+import {
+    buildCarouselBlock,
+    MAX_CAROUSEL_IMAGES,
+    type CarouselImage,
+} from "../../utils/articleCarousel";
 import { prepareArticleImage } from "../../utils/articleImages";
 import {
     insertBlock,
@@ -95,6 +100,7 @@ export default function MarkdownEditor({
 }: MarkdownEditorProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const carouselInputRef = useRef<HTMLInputElement>(null);
 
     const [mode, setMode] = useState<EditorMode>("write");
     const [isUploading, setIsUploading] = useState(false);
@@ -184,6 +190,77 @@ export default function MarkdownEditor({
         }
     }
 
+    // Карусель: выбранные файлы загружаются по очереди (так не
+    // перегружаем сервер и сохраняем порядок), а в текст вставляется
+    // один блок со всеми картинками. Если часть файлов не загрузилась,
+    // остальные всё равно вставляются, а об ошибке сообщаем.
+    async function handleCarouselPicked(event: ChangeEvent<HTMLInputElement>) {
+        const picked = Array.from(event.target.files ?? []);
+
+        // Сброс позволяет выбрать те же файлы ещё раз.
+        event.target.value = "";
+
+        if (picked.length === 0) {
+            return;
+        }
+
+        setUploadError(null);
+
+        if (picked.length > MAX_CAROUSEL_IMAGES) {
+            setUploadError(
+                `В карусель можно добавить не больше ${MAX_CAROUSEL_IMAGES} картинок за раз`
+            );
+
+            return;
+        }
+
+        setIsUploading(true);
+
+        const uploaded: CarouselImage[] = [];
+        const failures: string[] = [];
+
+        for (const file of picked) {
+            try {
+                const prepared = await prepareArticleImage(file);
+                const url = await onUploadImage(prepared);
+
+                uploaded.push({
+                    src: url,
+                    alt: `${IMAGE_ALT_PLACEHOLDER} ${uploaded.length + 1}`,
+                });
+            } catch (uploadFailure: unknown) {
+                console.error(
+                    "Не удалось загрузить картинку:",
+                    uploadFailure
+                );
+
+                failures.push(
+                    `${file.name}: ${
+                        uploadFailure instanceof Error
+                            ? uploadFailure.message
+                            : "не удалось загрузить"
+                    }`
+                );
+            }
+        }
+
+        if (uploaded.length > 0) {
+            const block = buildCarouselBlock(uploaded);
+
+            applyEdit((text, start, end) =>
+                insertBlock(text, start, end, block)
+            );
+        }
+
+        if (failures.length > 0) {
+            setUploadError(
+                `Не загружено файлов: ${failures.length}. ${failures.join("; ")}`
+            );
+        }
+
+        setIsUploading(false);
+    }
+
     const isNearLimit = value.length > MAX_ARTICLE_BODY_LENGTH * 0.9;
 
     // Подсказка про Markdown для тех, кто видит его впервые.
@@ -224,6 +301,19 @@ export default function MarkdownEditor({
                     файл загружается на сайт, а в текст вставляется ссылка на
                     него. Картинки с других сайтов вставить нельзя.
                 </p>
+
+                <p>
+                    <strong>Карусель</strong> — кнопка «Карусель»: выберите
+                    сразу несколько файлов (до {MAX_CAROUSEL_IMAGES}), и в
+                    текст вставится блок, который читатели листают. Порядок
+                    слайдов — порядок строк в блоке; строки можно менять
+                    местами, удалять или добавлять новые картинки внутрь.
+                </p>
+
+                <pre>{`\`\`\`carousel
+![описание](…)
+![описание](…)
+\`\`\``}</pre>
             </div>
         </CollapsibleSection>
     );
@@ -340,12 +430,29 @@ export default function MarkdownEditor({
                         {isUploading ? "Загрузка…" : "Картинка"}
                     </ToolbarButton>
 
+                    <ToolbarButton
+                        title="Вставить карусель из нескольких картинок"
+                        disabled={isUploading}
+                        onClick={() => carouselInputRef.current?.click()}
+                    >
+                        {isUploading ? "Загрузка…" : "Карусель"}
+                    </ToolbarButton>
+
                     <input
                         ref={fileInputRef}
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         className="markdown-editor__file-input"
                         onChange={handleImagePicked}
+                    />
+
+                    <input
+                        ref={carouselInputRef}
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp"
+                        className="markdown-editor__file-input"
+                        onChange={handleCarouselPicked}
                     />
                 </div>
 

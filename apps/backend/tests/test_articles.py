@@ -589,6 +589,51 @@ def test_body_accepts_uploaded_image_and_rejects_foreign(
         assert response.status_code == 422, foreign
 
 
+def test_carousel_block_keeps_its_images_and_rejects_foreign(
+    client, admin, upload_root
+):
+    """Карусель — это блок ```carousel с обычными картинками внутри:
+    бэкенд проверяет и бережёт их так же, как одиночные."""
+
+    first = _upload_image(client, admin)
+    second = _upload_image(client, admin)
+
+    def on_disk(image_url: str) -> bool:
+        return (upload_root / image_url.removeprefix("/uploads/")).exists()
+
+    body = f"Текст\n\n```carousel\n![раз]({first})\n![два]({second})\n```"
+    article = _create(client, admin, body=body)
+
+    assert on_disk(first)
+    assert on_disk(second)
+
+    # Чужая картинка внутри карусели отклоняется, как и вне её.
+    foreign = client.post(
+        "/articles/",
+        json={
+            **VALID_PAYLOAD,
+            "body": f"```carousel\n![раз]({first})\n"
+            "![x](https://evil.example/pixel.png)\n```",
+        },
+        headers=admin,
+    )
+
+    assert foreign.status_code == 422
+
+    # Убрали одну картинку из карусели — удалена только она.
+    client.put(
+        f"/articles/{article['id']}",
+        json={
+            **VALID_PAYLOAD,
+            "body": f"```carousel\n![раз]({first})\n```",
+        },
+        headers=admin,
+    )
+
+    assert on_disk(first)
+    assert not on_disk(second)
+
+
 def test_cover_must_be_uploaded_image(client, admin, upload_root):
     url = _upload_image(client, admin)
 

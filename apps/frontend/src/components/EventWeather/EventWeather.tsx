@@ -8,10 +8,6 @@ import {
     getWeatherCodeInfo,
 } from "../../utils/weatherCode";
 
-import {
-    formatEventTime,
-} from "../../utils/formatEventDate";
-
 import type {
     PlaygroundCoordinates,
 } from "../../types/playground";
@@ -115,7 +111,9 @@ export default function EventWeather({
 
             <div className="event-weather__details">
                 <span className="event-weather__detail">
-                    {`Осадки: ${Math.round(forecast.precipitationProbability)}%`}
+                    {forecast.precipitationProbability !== null
+                        ? `Осадки: ${Math.round(forecast.precipitationProbability)}%`
+                        : `Осадки: ${forecast.precipitationAmount ?? 0} мм`}
                 </span>
 
                 <span className="event-weather__detail">
@@ -123,13 +121,18 @@ export default function EventWeather({
                 </span>
             </div>
 
-            {
-                !forecast.isExactHour && (
-                    <p className="event-weather__note">
-                        {`Точных данных на время начала нет, показан ближайший доступный час — ${formatEventTime(forecast.matchedTime)}.`}
-                    </p>
-                )
-            }
+            {/* Данные MET Norway распространяются под CC BY 4.0 —
+                ссылка на источник обязательна. */}
+            <p className="event-weather__note">
+                {"Данные: "}
+                <a
+                    href="https://www.met.no/en"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    MET Norway
+                </a>
+            </p>
 
         </section>
 

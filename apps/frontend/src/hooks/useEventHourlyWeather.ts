@@ -11,8 +11,10 @@ import type {
     HourlyForecast,
 } from "../services/weather";
 
-// Open-Meteo predicts up to 16 days ahead (today + 15 full days).
-const MAX_FORECAST_DAYS = 15;
+// MET Norway даёт прогноз примерно на 9–10 суток вперёд. Берём 9 с запасом:
+// для более поздних дат прогноза ещё нет, и честнее сказать об этом сразу,
+// чем отправлять запрос, который закончится пустым ответом.
+const MAX_FORECAST_DAYS = 9;
 
 export type EventHourlyWeatherState =
     | { status: "loading" }
@@ -115,9 +117,11 @@ export function useEventHourlyWeather(
 
                 setFetchResult({
                     key: requestKey,
+                    // null — сервер ответил 404: на это время прогноза
+                    // ещё нет (это не ошибка, а "пока недоступен").
                     state: forecast
                         ? { status: "ready", forecast }
-                        : { status: "error" },
+                        : { status: "too-far" },
                 });
             })
             .catch(() => {

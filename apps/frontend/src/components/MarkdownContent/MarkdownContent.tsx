@@ -1,8 +1,15 @@
+import { Children, isValidElement, type ReactElement, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
 
+import ArticleCarousel from "../ArticleCarousel/ArticleCarousel";
+
 import { resolveMediaUrl } from "../../api/media";
+import {
+    CAROUSEL_LANGUAGE,
+    parseCarouselSource,
+} from "../../utils/articleCarousel";
 
 import "../../styles/components/markdown-content.css";
 
@@ -13,6 +20,31 @@ import "../../styles/components/markdown-content.css";
  * слежения за читателями, и файлы, которые однажды пропадут.
  */
 const ARTICLE_IMAGE_PATH = /^\/uploads\/articles\/[0-9a-f]{32}\.(?:jpg|png|webp)$/;
+
+/**
+ * Если внутри <pre> лежит блок "carousel" (см. utils/articleCarousel.ts),
+ * возвращает его текст, иначе null — это обычный блок кода.
+ */
+function carouselSourceOf(children: ReactNode): string | null {
+    const [child] = Children.toArray(children);
+
+    if (!isValidElement(child)) {
+        return null;
+    }
+
+    const { className, children: text } = (
+        child as ReactElement<{ className?: string; children?: ReactNode }>
+    ).props;
+
+    if (
+        typeof text !== "string" ||
+        !className?.split(" ").includes(`language-${CAROUSEL_LANGUAGE}`)
+    ) {
+        return null;
+    }
+
+    return text;
+}
 
 /** react-markdown передаёт в компонент служебное поле node — на DOM-элемент его переносить нельзя. */
 function omitNode<T extends { node?: unknown }>(props: T): Omit<T, "node"> {
@@ -98,6 +130,37 @@ const components: Components = {
                 loading="lazy"
             />
         );
+    },
+
+    // Блок ```carousel с картинками внутри — карусель; любой другой
+    // блок кода остаётся обычным.
+    pre: (props) => {
+        const { children, ...rest } = omitNode(props);
+        const carouselSource = carouselSourceOf(children);
+
+        if (carouselSource === null) {
+            return <pre {...rest}>{children}</pre>;
+        }
+
+        // Как и у одиночной картинки: показываем только загруженные
+        // через редактор, остальные пропускаем.
+        const images = parseCarouselSource(carouselSource).flatMap((image) => {
+            const url = ARTICLE_IMAGE_PATH.test(image.src)
+                ? resolveMediaUrl(image.src)
+                : undefined;
+
+            return url ? [{ src: url, alt: image.alt }] : [];
+        });
+
+        if (images.length === 0) {
+            return (
+                <span className="markdown__image-blocked">
+                    [картинки недоступны]
+                </span>
+            );
+        }
+
+        return <ArticleCarousel images={images} />;
     },
 
     // Широкая таблица прокручивается внутри своей рамки, а не растягивает страницу.

@@ -6,8 +6,16 @@ export type HourlyForecast = {
 
     weatherCode: number;
 
-    precipitationProbability: number;
+    /**
+     * Вероятность осадков, %. null, если источник её не дал — тогда
+     * показываем количество осадков (precipitationAmount).
+     */
+    precipitationProbability: number | null;
 
+    /** Ожидаемое количество осадков за час, мм (null, если неизвестно). */
+    precipitationAmount: number | null;
+
+    /** Скорость ветра, км/ч. */
     windSpeed: number;
 
     /** Локальное время, для которого реально нашёлся прогноз ("2026-08-18T10:00"). */
@@ -28,7 +36,8 @@ export type DailyForecast = {
 /**
  * Раньше оба метода ниже стучались напрямую в api.open-meteo.com из
  * браузера. Теперь запрос идёт через наш бэкенд (app/routers/external.py),
- * который кэширует ответ и переиспользует его для всех пользователей,
+ * который берёт прогноз у MET Norway (Open-Meteo из РФ недоступен),
+ * кэширует ответ и переиспользует его для всех пользователей,
  * смотрящих одно и то же событие/площадку — см. аудит "сырых мест",
  * пункт про geocoding/weather.
  *

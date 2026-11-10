@@ -1,0 +1,135 @@
+/* Карусель картинок в тексте статьи (components/ArticleCarousel). */
+
+.article-carousel {
+    margin: var(--space-4) 0;
+}
+
+.article-carousel__viewport {
+    position: relative;
+}
+
+.article-carousel__track {
+    display: flex;
+
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+
+    /* Полосу прокрутки прячем: есть стрелки, точки и свайп. */
+    scrollbar-width: none;
+
+    /* Фон не задаём: поля вокруг картинок совпадают с тем, на чём
+       лежит карусель (фон страницы статьи или белое поле
+       предпросмотра в редакторе). */
+    border-radius: var(--radius-md);
+}
+
+.article-carousel__track::-webkit-scrollbar {
+    display: none;
+}
+
+.article-carousel__track:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.article-carousel__slide {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Одна высота у всех слайдов: страница не "прыгает" при листании,
+       а картинки любой пропорции целиком помещаются в рамку. */
+    aspect-ratio: 4 / 3;
+    max-height: 70vh;
+}
+
+.article-carousel__image {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+
+    object-fit: contain;
+
+    /* Скругление у самой картинки, как у одиночных в тексте. */
+    border-radius: var(--radius-md);
+}
+
+.article-carousel__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 40px;
+    height: 40px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 1.25rem;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.article-carousel__nav:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.75);
+}
+
+.article-carousel__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.article-carousel__nav--prev {
+    left: var(--space-2);
+}
+
+.article-carousel__nav--next {
+    right: var(--space-2);
+}
+
+.article-carousel__counter {
+    position: absolute;
+    right: var(--space-2);
+    bottom: var(--space-2);
+
+    padding: 2px var(--space-2);
+
+    border-radius: 999px;
+
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: var(--font-size-sm, 0.85rem);
+}
+
+.article-carousel__dots {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+
+    margin-top: var(--space-3);
+}
+
+.article-carousel__dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+
+    border: none;
+    border-radius: 50%;
+
+    background: var(--color-border);
+    cursor: pointer;
+}
+
+.article-carousel__dot--active {
+    background: var(--color-accent);
+}

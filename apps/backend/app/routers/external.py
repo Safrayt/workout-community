@@ -1,5 +1,5 @@
 """
-Прокси к внешним публичным сервисам (Open-Meteo, Nominatim), которые
+Прокси к внешним публичным сервисам (MET Norway, Nominatim), которые
 раньше вызывались напрямую из браузера пользователя. Два повода
 завести именно бэкенд-прокси, а не оставить как было:
 
@@ -13,7 +13,12 @@
    TTL-окно обернутся одним запросом к внешнему сервису, а не
    десятками.
 
-Оба эндпоинта отдают 404, если для запроса нет данных (например,
+Погода берётся у MET Norway (api.met.no), а не у Open-Meteo: сервер
+расположен в РФ, и api.open-meteo.com оттуда недоступен. Разбор
+ответа MET (часовой пояс площадки, коды погоды, подбор часа под
+время события) вынесен в app/met_weather.py.
+
+Оба эндпоинта погоды отдают 404, если для запроса нет данных (например,
 дата вне окна прогноза) — фронтенд (services/weather.ts,
 services/geocoding.ts) на этот случай трактует 404 как "нет данных"
 и возвращает null, сохраняя тот же контракт, что был при прямом
@@ -21,11 +26,19 @@ services/geocoding.ts) на этот случай трактует 404 как "�
 """
 
 import logging
+from datetime import datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.external_cache import TTLCache
+from app.met_weather import (
+    ForecastPoint,
+    daily_summary,
+    hourly_summary,
+    parse_timeseries,
+    timezone_for,
+)
 from app.rate_limit import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -34,7 +47,7 @@ router = APIRouter(prefix="/external", tags=["external"])
 
 # Не про безопасность (данные не приватные и не платные) — просто
 # чтобы один клиент, залипший в цикле или багнутым фронтендом, не
-# мог в одиночку нагенерировать сотни запросов к Open-Meteo/Nominatim
+# мог в одиночку нагенерировать сотни запросов к MET Norway/Nominatim
 # в минуту и не приблизить нас к их лимитам.
 _external_rate_limit = RateLimiter(max_requests=60, window_seconds=60)
 
@@ -48,15 +61,21 @@ _WEATHER_TTL_SECONDS = 15 * 60
 # редко), несколько дней со старым адресом в кэше не страшны.
 _GEOCODE_TTL_SECONDS = 7 * 24 * 60 * 60
 
-_daily_weather_cache = TTLCache(_WEATHER_TTL_SECONDS)
-_hourly_weather_cache = TTLCache(_WEATHER_TTL_SECONDS)
+# Кэш — один на оба эндпоинта погоды: из одного ответа MET получаются
+# и суточная сводка, и погода на конкретный час.
+_forecast_cache = TTLCache(_WEATHER_TTL_SECONDS)
 _geocode_cache = TTLCache(_GEOCODE_TTL_SECONDS)
 
-# Nominatim требует идентифицирующий User-Agent (usage policy:
-# https://operations.osmfoundation.org/policies/nominatim/) и
-# реально блокирует запросы без него 403-м — это и было причиной
-# пустых "Населённый пункт"/"Адрес" при добавлении площадки.
-_NOMINATIM_USER_AGENT = (
+# Прогноз по координатам с точностью до 4 знаков (~11 м) — MET просит
+# не присылать больше, иначе запросы кэшируются у них хуже.
+_MET_FORECAST_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
+
+# Nominatim (usage policy: https://operations.osmfoundation.org/policies/nominatim/)
+# и MET Norway (https://api.met.no/doc/TermsOfService) требуют
+# идентифицирующий User-Agent с контактом и блокируют запросы без
+# него — Nominatim 403-м (это и было причиной пустых "Населённый
+# пункт"/"Адрес" при добавлении площадки).
+_HTTP_USER_AGENT = (
     "WorkoutCommunity/1.0 "
     "(+http://89-253-255-127.sslip.io/; contact: tyarfas@gmail.com)"
 )
@@ -74,66 +93,116 @@ def _round_coord(value: float) -> float:
     return round(value, 4)
 
 
-@router.get(
-    "/weather/daily",
-    dependencies=[Depends(_external_rate_limit)],
-)
-async def get_daily_weather(
-    latitude: float = Query(...),
-    longitude: float = Query(...),
-    date: str = Query(..., description="Дата в формате YYYY-MM-DD"),
-) -> dict:
-    cache_key = f"{_round_coord(latitude)}:{_round_coord(longitude)}:{date}"
+async def _load_forecast_points(
+    latitude: float, longitude: float
+) -> list[ForecastPoint]:
+    """
+    Ряд точек прогноза для координат (время — местное для площадки).
+    Ответ MET разбирается один раз и кладётся в общий кэш: все, кто
+    смотрит события на этой площадке, за 15 минут обойдутся одним
+    запросом к MET.
+    """
+    rounded_latitude = _round_coord(latitude)
+    rounded_longitude = _round_coord(longitude)
 
-    cached = _daily_weather_cache.get(cache_key)
+    cache_key = f"{rounded_latitude}:{rounded_longitude}"
+
+    cached = _forecast_cache.get(cache_key)
 
     if cached is not None:
         return cached
 
-    url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}&longitude={longitude}"
-        "&daily=weathercode,temperature_2m_max,temperature_2m_min"
-        f"&timezone=auto&start_date={date}&end_date={date}"
-    )
-
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS, follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=_HTTP_TIMEOUT_SECONDS,
+        follow_redirects=True,
+        headers={
+            "User-Agent": _HTTP_USER_AGENT,
+            "Accept": "application/json",
+        },
+    ) as client:
         try:
-            response = await client.get(url)
-        except httpx.HTTPError:
+            response = await client.get(
+                _MET_FORECAST_URL,
+                params={"lat": rounded_latitude, "lon": rounded_longitude},
+            )
+        except httpx.HTTPError as error:
+            # Пользователю — общее сообщение, а в логах — настоящая
+            # причина (таймаут, блокировка сети, DNS и т.д.).
+            logger.warning(
+                "MET Norway недоступен (lat=%s, lon=%s): %r",
+                rounded_latitude,
+                rounded_longitude,
+                error,
+            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Сервис прогноза погоды сейчас недоступен.",
             )
 
     if response.status_code != 200:
+        logger.warning(
+            "MET Norway ответил %s (lat=%s, lon=%s): %s",
+            response.status_code,
+            rounded_latitude,
+            rounded_longitude,
+            response.text[:500],
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Сервис прогноза погоды вернул ошибку.",
         )
 
-    data = response.json()
-    daily = data.get("daily") or {}
+    try:
+        payload = response.json()
+    except ValueError:
+        logger.warning(
+            "MET Norway вернул не JSON (lat=%s, lon=%s): %s",
+            rounded_latitude,
+            rounded_longitude,
+            response.text[:500],
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Сервис прогноза погоды вернул ошибку.",
+        )
 
-    weather_codes = daily.get("weathercode") or []
-    temps_max = daily.get("temperature_2m_max") or []
-    temps_min = daily.get("temperature_2m_min") or []
+    points = parse_timeseries(
+        payload, timezone_for(rounded_latitude, rounded_longitude)
+    )
 
-    if not weather_codes or not temps_max or not temps_min:
+    _forecast_cache.set(cache_key, points)
+
+    return points
+
+
+@router.get(
+    "/weather/daily",
+    dependencies=[Depends(_external_rate_limit)],
+)
+async def get_daily_weather(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    date: str = Query(..., description="Дата в формате YYYY-MM-DD"),
+) -> dict:
+    try:
+        day = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Дата должна быть в формате YYYY-MM-DD.",
+        )
+
+    points = await _load_forecast_points(latitude, longitude)
+
+    summary = daily_summary(points, day)
+
+    if summary is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Прогноз на эту дату недоступен.",
         )
 
-    result = {
-        "weatherCode": weather_codes[0],
-        "temperatureMax": temps_max[0],
-        "temperatureMin": temps_min[0],
-    }
-
-    _daily_weather_cache.set(cache_key, result)
-
-    return result
+    return summary
 
 
 @router.get(
@@ -141,130 +210,33 @@ async def get_daily_weather(
     dependencies=[Depends(_external_rate_limit)],
 )
 async def get_hourly_weather(
-    latitude: float = Query(...),
-    longitude: float = Query(...),
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
     start: str = Query(
         ..., description="ISO-время начала события, напр. 2026-08-18T10:00"
     ),
 ) -> dict:
-    date_string = start[:10]
-    target_hour_key = start[:13]  # "2026-08-18T10"
-
-    # Кэш — на весь день и координату, а не на конкретный запрошенный
-    # час: несколько событий в один день на одной площадке переиспользуют
-    # один и тот же вызов внешнего API, подбор часа происходит уже
-    # локально при каждом запросе.
-    raw_cache_key = f"{_round_coord(latitude)}:{_round_coord(longitude)}:{date_string}"
-
-    raw = _hourly_weather_cache.get(raw_cache_key)
-
-    if raw is None:
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            f"?latitude={latitude}&longitude={longitude}"
-            "&hourly=temperature_2m,weathercode,precipitation_probability,windspeed_10m"
-            f"&timezone=auto&start_date={date_string}&end_date={date_string}"
+    try:
+        # Время события — местное, "настенное" (см. app/utc.py): пояс,
+        # если он вдруг пришёл, отбрасываем, а не пересчитываем.
+        target = datetime.fromisoformat(start).replace(tzinfo=None)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Время начала должно быть в формате ISO, напр. 2026-08-18T10:00.",
         )
 
-        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_SECONDS, follow_redirects=True) as client:
-            try:
-                response = await client.get(url)
-            except httpx.HTTPError:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Сервис прогноза погоды сейчас недоступен.",
-                )
+    points = await _load_forecast_points(latitude, longitude)
 
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Сервис прогноза погоды вернул ошибку.",
-            )
+    summary = hourly_summary(points, target)
 
-        data = response.json()
-        hourly = data.get("hourly") or {}
-
-        raw = {
-            "times": hourly.get("time") or [],
-            "temperatures": hourly.get("temperature_2m") or [],
-            "weatherCodes": hourly.get("weathercode") or [],
-            "precipitationProbabilities": hourly.get(
-                "precipitation_probability"
-            )
-            or [],
-            "windSpeeds": hourly.get("windspeed_10m") or [],
-        }
-
-        _hourly_weather_cache.set(raw_cache_key, raw)
-
-    times = raw["times"]
-
-    if not times:
+    if summary is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Прогноз на эту дату недоступен.",
+            detail="Прогноз на это время недоступен.",
         )
 
-    best_index = 0
-    is_exact_hour = False
-
-    for index, time_value in enumerate(times):
-        if time_value[:13] == target_hour_key:
-            best_index = index
-            is_exact_hour = True
-            break
-
-    if not is_exact_hour:
-        # Точного часа нет — берём ближайший по времени и явно
-        # помечаем это в ответе (фронтенд показывает пометку
-        # "ближайший доступный час", а не выдаёт его за точный).
-        from datetime import datetime
-
-        target_time = datetime.fromisoformat(start)
-        min_diff = None
-
-        for index, time_value in enumerate(times):
-            candidate_time = datetime.fromisoformat(time_value)
-            diff = abs((candidate_time - target_time).total_seconds())
-
-            if min_diff is None or diff < min_diff:
-                min_diff = diff
-                best_index = index
-
-    temperatures = raw["temperatures"]
-    weather_codes = raw["weatherCodes"]
-
-    if (
-        best_index >= len(temperatures)
-        or best_index >= len(weather_codes)
-        or temperatures[best_index] is None
-        or weather_codes[best_index] is None
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Прогноз на этот час недоступен.",
-        )
-
-    precipitation_probabilities = raw["precipitationProbabilities"]
-    wind_speeds = raw["windSpeeds"]
-
-    return {
-        "temperature": temperatures[best_index],
-        "weatherCode": weather_codes[best_index],
-        "precipitationProbability": (
-            precipitation_probabilities[best_index]
-            if best_index < len(precipitation_probabilities)
-            and precipitation_probabilities[best_index] is not None
-            else 0
-        ),
-        "windSpeed": (
-            wind_speeds[best_index]
-            if best_index < len(wind_speeds) and wind_speeds[best_index] is not None
-            else 0
-        ),
-        "matchedTime": times[best_index],
-        "isExactHour": is_exact_hour,
-    }
+    return summary
 
 
 def _build_short_address(address: dict) -> str:
@@ -308,7 +280,7 @@ async def reverse_geocode(
         timeout=_HTTP_TIMEOUT_SECONDS,
         follow_redirects=True,
         headers={
-            "User-Agent": _NOMINATIM_USER_AGENT,
+            "User-Agent": _HTTP_USER_AGENT,
             "Accept": "application/json",
         },
     ) as client:

@@ -83,3 +83,8 @@
         flex-wrap: wrap;
     }
 }
+
+.event-weather__note a {
+    color: inherit;
+    text-decoration: underline;
+}
