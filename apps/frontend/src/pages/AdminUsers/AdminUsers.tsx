@@ -175,6 +175,22 @@ export default function AdminUsers() {
         <div className="admin-users">
             <h1 className="admin-users__title">Пользователи</h1>
 
+            {
+                status === "loaded" && (
+                    <p className="admin-users__count">
+                        Всего пользователей: <strong>{users.length}</strong>
+
+                        {
+                            filteredUsers.length !== users.length && (
+                                <>
+                                    {" "}· Показано: <strong>{filteredUsers.length}</strong>
+                                </>
+                            )
+                        }
+                    </p>
+                )
+            }
+
             <Input
                 id="admin-users-search"
                 label="Поиск по имени пользователя"

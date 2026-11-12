@@ -1,5 +1,15 @@
-.home-page__title {
+.home-page__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3, 12px) var(--space-4);
+
     margin: 0 0 var(--space-4);
+}
+
+.home-page__title {
+    margin: 0;
 
     font-size: 1.5rem;
     color: var(--color-text);

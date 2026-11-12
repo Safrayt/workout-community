@@ -2,6 +2,7 @@ import type { DiaryRecord } from "../types/diaryRecord";
 import type { User } from "../types/user";
 import type { Playground } from "../types/playground";
 import type { Comment } from "../types/comment";
+import type { TimeOfDay } from "../types/workoutEntry";
 import type { Event } from "../types/event";
 import type { SystemFeedRecord } from "../types/systemFeedRecord";
 import type {
@@ -235,11 +236,50 @@ export function getSystemFeedRecords(
 function recordDisplaySortKey(record: DiaryRecord): string {
     // record.createdAt — ISO-строка вида "2026-09-16T10:30:00+00:00",
     // "T" всегда на 10-й позиции (после "YYYY-MM-DD"). Берём саму
-    // дату активности и "приклеиваем" к ней время публикации — так
-    // получается корректно сравнимая по возрастанию строка (тот же
-    // формат, что и обычный createdAt), просто с датой активности
-    // вместо даты публикации.
-    return record.date + record.createdAt.slice(10);
+    // дату активности, затем ранг времени суток, затем "приклеиваем"
+    // время публикации — так получается корректно сравнимая строка,
+    // в которой внутри одной даты порядок задаёт время суток, а
+    // createdAt остаётся лишь вторичным признаком.
+    const timeOfDay =
+        record.type === "workout" ? record.data.timeOfDay : undefined;
+
+    return buildDisplaySortKey(
+        record.date,
+        getTimeOfDaySortRank(timeOfDay),
+        record.createdAt
+    );
+}
+
+/**
+ * Ранг времени суток внутри одной даты. Лента идёт от новых к старым
+ * (по убыванию ключа), поэтому чем позже время суток, тем больше ранг:
+ * в пределах даты сверху вечер, затем день, утро, а ночь — самая
+ * нижняя (хронологически ночь — первый элемент даты, вечер — последний).
+ */
+const TIME_OF_DAY_SORT_RANK: Record<TimeOfDay, number> = {
+    night: 0,
+    morning: 1,
+    day: 2,
+    evening: 3,
+};
+
+/** Записи без времени суток (заметки, тренировки без пометки) и
+ *  системные записи ленты показываются выше всех в рамках даты. */
+const NO_TIME_OF_DAY_SORT_RANK = 4;
+
+function getTimeOfDaySortRank(timeOfDay?: TimeOfDay): number {
+    return timeOfDay
+        ? TIME_OF_DAY_SORT_RANK[timeOfDay]
+        : NO_TIME_OF_DAY_SORT_RANK;
+}
+
+/** "YYYY-MM-DD" + ранг + "THH:MM:SS..." (часть createdAt после даты). */
+function buildDisplaySortKey(
+    date: string,
+    rank: number,
+    createdAt: string
+): string {
+    return date + rank + createdAt.slice(10);
 }
 
 export function mergeFeedRawItems(
@@ -257,7 +297,11 @@ export function mergeFeedRawItems(
 
     const systemItems = systemRecords.map((record) => ({
         kind: "system" as const,
-        sortKey: record.createdAt,
+        sortKey: buildDisplaySortKey(
+            record.createdAt.slice(0, 10),
+            NO_TIME_OF_DAY_SORT_RANK,
+            record.createdAt
+        ),
         record,
     }));
 

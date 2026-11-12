@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 
 import { useWorkoutDiary } from "../../context/WorkoutDiaryContext";
 import { useDiaryNotes } from "../../context/DiaryNotesContext";
@@ -13,6 +14,7 @@ import { buildDiaryRecords } from "../../utils/diaryRecords";
 
 import HomeActivityMap from "../../components/HomeActivityMap/HomeActivityMap";
 import HomeFeed from "../../components/HomeFeed/HomeFeed";
+import Button from "../../components/ui/Button/Button";
 
 import "../../styles/components/home.css";
 
@@ -63,7 +65,16 @@ export default function Home() {
 
     return (
         <div className="home-page">
-            <h1 className="home-page__title">Главная</h1>
+            <div className="home-page__header">
+                <h1 className="home-page__title">Главная</h1>
+
+                {/* Быстрый вход в создание записи — без захода в дневник */}
+                <Link to="/diary/create">
+                    <Button variant="primary">
+                        Добавить запись
+                    </Button>
+                </Link>
+            </div>
 
             <HomeActivityMap
                 playgrounds={playgrounds}

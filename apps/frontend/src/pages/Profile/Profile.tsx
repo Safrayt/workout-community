@@ -337,12 +337,22 @@ export default function Profile() {
                                 }
                             </div>
 
-                            <ActionGroup>
+                            <ActionGroup direction="row">
                                 <Link to={isOwnProfile ? "/diary" : `/u/${user.nickname}/diary`}>
                                     <Button variant="secondary">
                                         Смотреть дневник
                                     </Button>
                                 </Link>
+
+                                {
+                                    isOwnProfile && (
+                                        <Link to="/diary/create">
+                                            <Button variant="primary">
+                                                Добавить запись
+                                            </Button>
+                                        </Link>
+                                    )
+                                }
                             </ActionGroup>
                         </>
                     )

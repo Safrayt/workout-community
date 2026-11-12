@@ -2,8 +2,13 @@ import { Link } from "react-router-dom";
 
 import "../../styles/components/program-structure-view.css";
 
+import MuscleMap from "../MuscleMap/MuscleMap";
+
 import type { ProgramScheme, ProgramStructure } from "../../types/program";
 
+import { useExercises } from "../../context/ExerciseContext";
+import { getComplexMuscles } from "../../utils/complexMuscles";
+import { getSchemeExercises } from "../../utils/programExercises";
 import { pluralizeRu } from "../../utils/pluralize";
 
 type ProgramStructureViewProps = {
@@ -27,12 +32,20 @@ type ProgramStructureViewProps = {
  * pages/ProgramDetails, pages/ProgramVersionDetails).
  *
  * Разделы сворачиваются на нативных <details>/<summary> и по умолчанию
- * развёрнуты — чтобы сразу было видно, какие в них схемы.
+ * свёрнуты: программа может быть очень большой (десятки недель), и
+ * развёрнутый список на входе превращался бы в длинную простыню.
+ *
+ * У плашки схемы справа миниатюра с нагружаемыми мышцами — та же
+ * картинка, что на странице схемы: объединение мышц упражнений схемы,
+ * выбранных из базы (свои упражнения текстом в расчёт не входят). Если
+ * в схеме нет ни одного упражнения из базы, миниатюры нет.
  */
 export default function ProgramStructureView({
     structure,
     schemeLinkBase,
 }: ProgramStructureViewProps) {
+    const { exercises } = useExercises();
+
     const hasNamedSections = structure.sections.some((section) => section.name);
 
     if (structure.sections.every((section) => section.schemes.length === 0)) {
@@ -71,28 +84,52 @@ export default function ProgramStructureView({
         return schemes.map((scheme) => {
             const meta = describeScheme(scheme);
 
+            const muscles = getComplexMuscles(
+                getSchemeExercises(scheme, exercises)
+            );
+            const hasMuscles =
+                muscles.target.length > 0 || muscles.auxiliary.length > 0;
+
             return (
                 <Link
                     key={scheme.id}
                     to={`${schemeLinkBase}/schemes/${scheme.id}`}
                     className="program-structure-view__scheme"
                 >
-                    <span className="program-structure-view__scheme-title">
-                        {scheme.name || "Схема"}
+                    <span className="program-structure-view__scheme-text">
+                        <span className="program-structure-view__scheme-title">
+                            {scheme.name || "Схема"}
+                        </span>
+
+                        {
+                            meta && (
+                                <span className="program-structure-view__scheme-meta">
+                                    {meta}
+                                </span>
+                            )
+                        }
+
+                        {
+                            scheme.description && (
+                                <span className="program-structure-view__scheme-description">
+                                    {scheme.description}
+                                </span>
+                            )
+                        }
                     </span>
 
                     {
-                        meta && (
-                            <span className="program-structure-view__scheme-meta">
-                                {meta}
-                            </span>
-                        )
-                    }
-
-                    {
-                        scheme.description && (
-                            <span className="program-structure-view__scheme-description">
-                                {scheme.description}
+                        hasMuscles && (
+                            <span
+                                className="program-structure-view__scheme-map"
+                                title="Нагружаемые мышцы: красным отмечены целевые, оранжевым — вспомогательные"
+                                aria-hidden="true"
+                            >
+                                <MuscleMap
+                                    compact
+                                    targetMuscles={muscles.target}
+                                    auxiliaryMuscles={muscles.auxiliary}
+                                />
                             </span>
                         )
                     }
@@ -110,7 +147,6 @@ export default function ProgramStructureView({
                             <details
                                 key={section.id}
                                 className="program-structure-view__section"
-                                open
                             >
                                 <summary className="program-structure-view__section-summary">
                                     <span
@@ -121,6 +157,11 @@ export default function ProgramStructureView({
                                     <h2 className="program-structure-view__section-title">
                                         {section.name}
                                     </h2>
+
+                                    <span className="program-structure-view__section-count">
+                                        {section.schemes.length}{" "}
+                                        {pluralizeRu(section.schemes.length, ["схема", "схемы", "схем"])}
+                                    </span>
                                 </summary>
 
                                 <div className="program-structure-view__section-content">

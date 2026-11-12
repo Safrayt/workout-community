@@ -11,6 +11,16 @@
     margin: 0;
 }
 
+.admin-users__count {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+}
+
+.admin-users__count strong {
+    color: var(--color-text);
+}
+
 .admin-users__controls {
     display: flex;
     flex-wrap: wrap;
