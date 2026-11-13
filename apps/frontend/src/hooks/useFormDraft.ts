@@ -41,6 +41,13 @@ export type FormDraft<T> = {
 
     /** Запись отправлена — черновик удаляется и больше не пишется. */
     markSubmitted: () => Promise<void>;
+
+    /**
+     * Подменить форму готовым значением (например, итогом пройденной
+     * схемы): форма создаётся заново с этим значением, и оно же
+     * сохраняется как черновик.
+     */
+    replace: (value: T) => void;
 };
 
 /**
@@ -165,6 +172,20 @@ export function useFormDraft<T>({
         setFormKey((current) => current + 1);
     }, []);
 
+    const replace = useCallback(
+        (value: T) => {
+            window.clearTimeout(saveTimerRef.current);
+
+            setInitialValue(value);
+            setIsRestored(false);
+            setFormKey((current) => current + 1);
+
+            pendingRef.current = value;
+            saveTimerRef.current = window.setTimeout(flush, DRAFT_SAVE_DELAY_MS);
+        },
+        [flush]
+    );
+
     const markSubmitted = useCallback(async () => {
         // Флаг — до очистки, чтобы отложенное сохранение не записало
         // черновик обратно.
@@ -182,5 +203,6 @@ export function useFormDraft<T>({
         handleChange,
         discard,
         markSubmitted,
+        replace,
     };
 }

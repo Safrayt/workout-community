@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { usePageMeta } from "../../hooks/usePageMeta";
 
 import ProgramSchemeContent from "../../components/ProgramSchemeContent/ProgramSchemeContent";
+import Button from "../../components/ui/Button/Button";
 
 import "../../styles/components/program-scheme-details.css";
 
@@ -14,12 +15,14 @@ import type {
     ProgramVersion,
 } from "../../types/program";
 
+import { useAuth } from "../../context/CurrentUserContext";
 import { useExercises } from "../../context/ExerciseContext";
 import {
     movementTypeColors,
     movementTypeLabels,
 } from "../../constants/movementTypes";
 import { downloadSchemeAsImage } from "../../utils/exportSchemeImage";
+import { getAutoSchemeProblems, isAutoScheme } from "../../utils/programAuto";
 import { getSchemeExercises } from "../../utils/programExercises";
 
 /** Схема с id schemeId и раздел, в котором она лежит. */
@@ -57,7 +60,12 @@ type LoadResult = {
  */
 export default function ProgramSchemeDetails() {
     const { id, versionId, schemeId } = useParams();
+    const location = useLocation();
     const { exercises } = useExercises();
+
+    // Страница открыта и гостям: прохождение с таймерами — только для
+    // вошедших.
+    const { user } = useAuth();
 
     // Результат загрузки помнит, для какого адреса он получен: пока он не
     // совпадает с текущим (перешли на схему другой программы или версии),
@@ -146,6 +154,17 @@ export default function ProgramSchemeDetails() {
     const backTo = isVersioned
         ? `/programs/${program.id}/versions/${version.id}`
         : `/programs/${program.id}`;
+
+    // Автоматическая схема, заполненная целиком, — можно проходить с
+    // таймерами (неполные автоматические схемы не публикуются, но
+    // историческая версия или старый черновик могли такой остаться).
+    const canRun =
+        isAutoScheme(scheme) && getAutoSchemeProblems(scheme).length === 0;
+    const runPath = `${
+        isVersioned
+            ? `/programs/${program.id}/versions/${version.id}/schemes/${scheme.id}`
+            : `/programs/${program.id}/schemes/${scheme.id}`
+    }/run`;
 
     function handleDownload() {
         const nameById = new Map(
@@ -244,6 +263,52 @@ export default function ProgramSchemeDetails() {
                             посмотреть текущую версию
                         </Link>.
                     </p>
+                )
+            }
+
+            {
+                canRun && (
+                    user ? (
+                        <div className="program-scheme-details__run">
+                            <Link to={runPath}>
+                                <Button>Начать выполнение схемы</Button>
+                            </Link>
+
+                            <p className="program-scheme-details__run-hint">
+                                Таймеры отдыха, подсказка, какое упражнение
+                                дальше, и отметка результатов после каждого
+                                подхода.
+                            </p>
+                        </div>
+                    ) : (
+                        <div
+                            className="program-scheme-details__run-callout"
+                            role="note"
+                        >
+                            <p className="program-scheme-details__run-callout-text">
+                                Эту схему можно проходить с таймерами отдыха —
+                                для этого нужно войти на сайт.
+                            </p>
+
+                            <div className="program-scheme-details__run-callout-actions">
+                                <Link
+                                    to="/login"
+                                    // После входа вернёмся на эту же схему.
+                                    state={{
+                                        from: location.pathname + location.search,
+                                    }}
+                                >
+                                    <Button>Войти</Button>
+                                </Link>
+
+                                <Link to="/register">
+                                    <Button variant="secondary">
+                                        Зарегистрироваться
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    )
                 )
             }
 

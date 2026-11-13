@@ -96,3 +96,53 @@
 .program-scheme-details__not-found {
     color: var(--color-text-secondary);
 }
+
+/* Кнопка «Начать выполнение схемы» автоматической схемы. */
+.program-scheme-details__run {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+}
+
+.program-scheme-details__run a {
+    text-decoration: none;
+}
+
+.program-scheme-details__run-hint {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* Заметный блок для гостя: схему можно проходить с таймерами, но для
+   этого нужно войти. */
+.program-scheme-details__run-callout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+
+    background: #f0fff4;
+    border: 1px solid var(--color-primary);
+    border-left-width: 4px;
+    border-radius: var(--radius-md);
+}
+
+.program-scheme-details__run-callout-text {
+    margin: 0;
+
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+.program-scheme-details__run-callout-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.program-scheme-details__run-callout-actions a {
+    text-decoration: none;
+}

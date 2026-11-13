@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import "../../styles/components/workout-entry-create.css";
 
@@ -21,6 +21,7 @@ import {
     getWorkoutDraftKey,
     isWorkoutDraftEmpty,
     normalizeWorkoutDraft,
+    parseWorkoutPrefill,
 } from "../../utils/diaryDraft";
 
 import { ApiError } from "../../api/errors";
@@ -31,6 +32,12 @@ import { ApiError } from "../../api/errors";
  * продолжить после перехода на другую страницу или закрытия браузера.
  * Черновик удаляется после успешного сохранения записи или по кнопке
  * «Начать заново».
+ *
+ * Сюда можно перейти с готовой заготовкой записи (состояние адреса
+ * workoutPrefill) — например, с итогом пройденной схемы программы
+ * (pages/ProgramSchemeRun): тогда название, описание, программа, раздел
+ * и схема уже заполнены. Если на устройстве есть несохранённый
+ * черновик, сначала спрашиваем, заменять ли его.
  */
 export default function AddWorkoutEntry() {
     const {
@@ -49,8 +56,43 @@ export default function AddWorkoutEntry() {
         isEmpty: isWorkoutDraftEmpty,
     });
 
+    const location = useLocation();
+    const prefill = useMemo(
+        () => parseWorkoutPrefill(location.state),
+        [location.state]
+    );
+    const prefillHandledRef = useRef(false);
+
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        // Ждём, пока загрузится черновик: от него зависит, спрашивать
+        // ли подтверждение.
+        if (!prefill || draft.initialValue === null || prefillHandledRef.current) {
+            return;
+        }
+
+        prefillHandledRef.current = true;
+
+        // Убираем заготовку из адреса, чтобы обновление страницы или
+        // возврат на неё не подставили её второй раз.
+        navigate(location.pathname, { replace: true, state: null });
+
+        if (
+            draft.isRestored &&
+            !window.confirm(
+                "На этом устройстве есть несохранённый черновик записи. " +
+                "Заменить его записью о выполненной схеме? " +
+                "Введённые в черновике данные и фотографии будут потеряны.\n\n" +
+                "«Отмена» — оставить черновик."
+            )
+        ) {
+            return;
+        }
+
+        draft.replace({ ...createEmptyWorkoutEntry(), ...prefill });
+    }, [prefill, draft, navigate, location.pathname]);
 
     async function handleSubmit(
         entry: NewWorkoutEntry

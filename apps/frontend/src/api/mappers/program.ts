@@ -2,8 +2,11 @@ import type {
     Program,
     ProgramBlock,
     ProgramBlockItem,
+    ProgramBlockOrder,
     ProgramDifficulty,
+    ProgramItemTarget,
     ProgramScheme,
+    ProgramSchemeMode,
     ProgramSection,
     ProgramStructure,
     ProgramVersion,
@@ -21,10 +24,20 @@ import { resolveMediaUrl } from "../media";
 // однословное. id блоков/схем/разделов генерируется на фронтенде (см.
 // types/program.ts) и просто хранится бэкендом, не пересчитывается.
 
+export type ApiProgramItemTarget = {
+    kind: "reps" | "seconds";
+    value: number;
+    with_reps?: boolean;
+    reps?: number | null;
+};
+
 export type ApiProgramBlockItem = {
     exercise_id: string | null;
     text: string | null;
     load?: string | null;
+    target?: ApiProgramItemTarget | null;
+    group_with_previous?: boolean;
+    rounds?: number | null;
 };
 
 export type ApiProgramBlock = {
@@ -38,6 +51,12 @@ export type ApiProgramBlock = {
     scheme?: string | null;
     note?: string | null;
     rest?: string | null;
+    rounds?: number | null;
+    order?: ProgramBlockOrder;
+    rest_within_set?: number | null;
+    rest_between_rounds?: number | null;
+    rest_between_sets?: number | null;
+    rest_after_block?: number | null;
 };
 
 export type ApiProgramScheme = {
@@ -47,6 +66,7 @@ export type ApiProgramScheme = {
     blocks: ApiProgramBlock[];
     note?: string | null;
     extra_materials?: string | null;
+    mode?: ProgramSchemeMode;
 };
 
 export type ApiProgramSection = {
@@ -69,6 +89,39 @@ export function generateLocalId(prefix: string): string {
     return `${prefix}-${Date.now()}-${localIdCounter}`;
 }
 
+function mapApiTargetToTarget(
+    target: ApiProgramItemTarget | null | undefined
+): ProgramItemTarget | undefined {
+    return target
+        ? {
+              kind: target.kind,
+              value: target.value,
+              withReps: target.with_reps || undefined,
+              reps: target.reps ?? undefined,
+          }
+        : undefined;
+}
+
+function mapTargetToApi(
+    target: ProgramItemTarget | undefined
+): ApiProgramItemTarget | null {
+    // Пока автор не ввёл число, цели нет: сервер не принимает «пустую»
+    // цель, а в черновике она может быть не заполнена.
+    if (!target || !target.value || target.value <= 0) {
+        return null;
+    }
+
+    // Повторения за время бывают только у упражнений на секунды.
+    const withReps = target.kind === "seconds" && target.withReps === true;
+
+    return {
+        kind: target.kind,
+        value: target.value,
+        with_reps: withReps,
+        reps: withReps && target.reps && target.reps > 0 ? target.reps : null,
+    };
+}
+
 function mapApiItemsToItems(block: ApiProgramBlock): ProgramBlockItem[] {
     // Версии, сохранённые до связи с базой упражнений, хранят строки в
     // exercises, а items у них пуст — показываем эти строки как «свои»
@@ -80,12 +133,26 @@ function mapApiItemsToItems(block: ApiProgramBlock): ProgramBlockItem[] {
 
     return block.items.flatMap((item): ProgramBlockItem[] => {
         const load = item.load || undefined;
+        const auto = {
+            target: mapApiTargetToTarget(item.target),
+            groupWithPrevious: item.group_with_previous || undefined,
+            rounds: item.rounds ?? undefined,
+        };
 
         if (item.exercise_id) {
-            return [{ kind: "exercise", exerciseId: item.exercise_id, load }];
+            return [
+                {
+                    kind: "exercise",
+                    exerciseId: item.exercise_id,
+                    load,
+                    ...auto,
+                },
+            ];
         }
 
-        return item.text ? [{ kind: "text", text: item.text, load }] : [];
+        return item.text
+            ? [{ kind: "text", text: item.text, load, ...auto }]
+            : [];
     });
 }
 
@@ -94,14 +161,26 @@ function mapItemsToApiItems(items: ProgramBlockItem[]): ApiProgramBlockItem[] {
     // сохраняем — сервер отклонил бы такой элемент.
     return items.flatMap((item): ApiProgramBlockItem[] => {
         const load = item.load?.trim() || null;
+        const auto = {
+            target: mapTargetToApi(item.target),
+            group_with_previous: item.groupWithPrevious ?? false,
+            rounds: item.rounds ?? null,
+        };
 
         if (item.kind === "exercise") {
-            return [{ exercise_id: item.exerciseId, text: null, load }];
+            return [
+                {
+                    exercise_id: item.exerciseId,
+                    text: null,
+                    load,
+                    ...auto,
+                },
+            ];
         }
 
         const text = item.text.trim();
 
-        return text ? [{ exercise_id: null, text, load }] : [];
+        return text ? [{ exercise_id: null, text, load, ...auto }] : [];
     });
 }
 
@@ -113,6 +192,12 @@ function mapApiBlockToBlock(block: ApiProgramBlock): ProgramBlock {
         scheme: block.scheme ?? undefined,
         note: block.note ?? undefined,
         rest: block.rest ?? undefined,
+        rounds: block.rounds ?? undefined,
+        order: block.order ?? undefined,
+        restWithinSet: block.rest_within_set ?? undefined,
+        restBetweenRounds: block.rest_between_rounds ?? undefined,
+        restBetweenSets: block.rest_between_sets ?? undefined,
+        restAfterBlock: block.rest_after_block ?? undefined,
     };
 }
 
@@ -131,6 +216,7 @@ function mapApiSchemeToScheme(
         blocks: scheme.blocks.map(mapApiBlockToBlock),
         note: scheme.note ?? undefined,
         extraMaterials: scheme.extra_materials ?? undefined,
+        mode: scheme.mode ?? "free",
     };
 }
 
@@ -171,6 +257,12 @@ function mapBlockToApi(block: ProgramBlock): ApiProgramBlock {
         scheme: block.scheme || null,
         note: block.note || null,
         rest: block.rest || null,
+        rounds: block.rounds ?? null,
+        order: block.order ?? "sequential",
+        rest_within_set: block.restWithinSet ?? null,
+        rest_between_rounds: block.restBetweenRounds ?? null,
+        rest_between_sets: block.restBetweenSets ?? null,
+        rest_after_block: block.restAfterBlock ?? null,
     };
 }
 
@@ -182,6 +274,7 @@ function mapSchemeToApi(scheme: ProgramScheme): ApiProgramScheme {
         blocks: scheme.blocks.map(mapBlockToApi),
         note: scheme.note || null,
         extra_materials: scheme.extraMaterials || null,
+        mode: scheme.mode ?? "free",
     };
 }
 

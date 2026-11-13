@@ -60,6 +60,7 @@ import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
 import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
 import ProgramVersionDetails from "../pages/ProgramVersionDetails/ProgramVersionDetails";
 import ProgramSchemeDetails from "../pages/ProgramSchemeDetails/ProgramSchemeDetails";
+import ProgramSchemeRun from "../pages/ProgramSchemeRun/ProgramSchemeRun";
 import ProgramVersions from "../pages/ProgramVersions/ProgramVersions";
 import RequireAdmin from "./RequireAdmin";
 import AdminUsers from "../pages/AdminUsers/AdminUsers";
@@ -380,6 +381,18 @@ export const router = createBrowserRouter([
           // для вошедших пользователей.
           path: "programs/:id/versions/:versionId/schemes/:schemeId",
           element: <ProgramSchemeDetails />,
+      },
+      {
+          // Прохождение автоматической схемы с таймерами — только для
+          // вошедших пользователей (поэтому без handle.guest).
+          path: "programs/:id/schemes/:schemeId/run",
+          element: <ProgramSchemeRun />,
+          handle: { title: "Прохождение схемы" } satisfies RouteHandle,
+      },
+      {
+          path: "programs/:id/versions/:versionId/schemes/:schemeId/run",
+          element: <ProgramSchemeRun />,
+          handle: { title: "Прохождение схемы" } satisfies RouteHandle,
       },
       {
           // База знаний: /knowledge сам по себе страницы не имеет —

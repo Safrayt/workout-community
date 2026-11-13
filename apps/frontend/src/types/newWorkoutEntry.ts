@@ -8,6 +8,22 @@ export type NewWorkoutEntryPhoto = {
 
 };
 
+/**
+ * Что можно подставить в новую запись при переходе на страницу её
+ * создания (через состояние адреса): например, итог пройденной схемы
+ * программы. Остальные поля остаются как у пустой записи.
+ */
+export type WorkoutEntryPrefill = Partial<
+    Pick<
+        NewWorkoutEntry,
+        | "title"
+        | "description"
+        | "programId"
+        | "programSection"
+        | "programScheme"
+    >
+>;
+
 export type NewWorkoutEntry = {
 
     date: string;

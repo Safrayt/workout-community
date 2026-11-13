@@ -13,6 +13,12 @@ import { muscleGroupLabels } from "../../constants/muscleGroups";
 import { movementTypeLabels } from "../../constants/movementTypes";
 import { getComplexMuscles } from "../../utils/complexMuscles";
 import { getSchemeExercises } from "../../utils/programExercises";
+import {
+    describeAutoBlock,
+    formatTarget,
+    hasSupersets,
+    isAutoScheme,
+} from "../../utils/programAuto";
 
 type ProgramSchemeContentProps = {
     scheme: ProgramScheme;
@@ -45,6 +51,11 @@ export default function ProgramSchemeContent({
     const muscles = getComplexMuscles(getSchemeExercises(scheme, exercises));
     const hasMuscles = muscles.target.length > 0 || muscles.auxiliary.length > 0;
 
+    // Автоматическая схема: вместо свободного текста («Схема», «Отдых»)
+    // показываем то, что автор задал числами, — повторения/секунды у
+    // упражнений, сколько раз повторять и отдых.
+    const isAuto = isAutoScheme(scheme);
+
     return (
         <>
             {
@@ -70,7 +81,12 @@ export default function ProgramSchemeContent({
             }
 
             {
-                scheme.blocks.map((block, blockIndex) => (
+                scheme.blocks.map((block, blockIndex) => {
+                    const autoLines = isAuto ? describeAutoBlock(block) : [];
+                    const showSets = isAuto && hasSupersets(block);
+                    let setNumber = 0;
+
+                    return (
                     <section
                         key={block.id}
                         className="program-scheme-content__section"
@@ -90,11 +106,31 @@ export default function ProgramSchemeContent({
                                                         ? exerciseById.get(item.exerciseId)
                                                         : undefined;
 
+                                                const startsSet = index === 0 || !item.groupWithPrevious;
+
+                                                if (startsSet) {
+                                                    setNumber += 1;
+                                                }
+
+                                                const details = isAuto
+                                                    ? [formatTarget(item.target), item.load]
+                                                          .filter(Boolean)
+                                                          .join(" · ")
+                                                    : item.load;
+
                                                 return (
                                                     <li
                                                         key={index}
                                                         className="program-scheme-content__item"
                                                     >
+                                                        {
+                                                            showSets && startsSet && (
+                                                                <p className="program-scheme-content__set-label">
+                                                                    Сет {setNumber}
+                                                                </p>
+                                                            )
+                                                        }
+
                                                         <div className="program-scheme-content__row">
                                                             <div className="program-scheme-content__number">
                                                                 {String(index + 1).padStart(2, "0")}
@@ -129,9 +165,9 @@ export default function ProgramSchemeContent({
                                                                 </p>
 
                                                                 {
-                                                                    item.load && (
+                                                                    details && (
                                                                         <p className="program-scheme-content__description">
-                                                                            {item.load}
+                                                                            {details}
                                                                         </p>
                                                                     )
                                                                 }
@@ -150,10 +186,25 @@ export default function ProgramSchemeContent({
                             }
 
                             {
-                                block.scheme && (
-                                    <p className="program-scheme-content__block-scheme">
-                                        {block.scheme}
-                                    </p>
+                                isAuto ? (
+                                    autoLines.map((line, lineIndex) => (
+                                        <p
+                                            key={line}
+                                            className={
+                                                lineIndex === 0
+                                                    ? "program-scheme-content__block-scheme"
+                                                    : "program-scheme-content__note"
+                                            }
+                                        >
+                                            {line}
+                                        </p>
+                                    ))
+                                ) : (
+                                    block.scheme && (
+                                        <p className="program-scheme-content__block-scheme">
+                                            {block.scheme}
+                                        </p>
+                                    )
                                 )
                             }
 
@@ -166,7 +217,7 @@ export default function ProgramSchemeContent({
                             }
 
                             {
-                                block.rest && (
+                                !isAuto && block.rest && (
                                     <p className="program-scheme-content__note">
                                         Отдых: {block.rest}
                                     </p>
@@ -174,7 +225,8 @@ export default function ProgramSchemeContent({
                             }
                         </div>
                     </section>
-                ))
+                    );
+                })
             }
 
             {

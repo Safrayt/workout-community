@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import field_validator, model_validator
+from pydantic import field_validator, model_serializer, model_validator
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
@@ -56,6 +56,102 @@ class ProgramVersionStatus(str, enum.Enum):
 MAX_BLOCK_EXERCISE_TEXT_LENGTH = 200
 MAX_BLOCK_EXERCISE_LOAD_LENGTH = 100
 
+# --- Автоматические схемы -------------------------------------------------
+#
+# Схема может быть «свободной» (всё текстом, как раньше — система ничего
+# не разбирает) или «автоматической»: автор вводит числа (повторения или
+# секунды, число кругов, отдых в секундах), и по такой схеме можно
+# проходить тренировку с таймерами. Свободные схемы выглядят в данных
+# ровно как раньше: новые поля при сохранении опускаются, пока они
+# равны значениям по умолчанию (см. _drop_defaults).
+#
+# Сеты и круги. Комплекс (ProgramBlock) состоит из упражнений по
+# порядку; подряд идущие упражнения объединяются в «сет», если у
+# следующего group_with_previous=True (суперсет); иначе каждое упражнение
+# — отдельный сет. Сколько раз повторять:
+#   sequential — «по очереди»: сет 1 свои подходы, затем сет 2 свои
+#     (у каждого сета своё число — rounds у его первого упражнения; если
+#     оно не задано, берётся ProgramBlock.rounds);
+#   interleaved — «по кругу»: сет 1, сет 2, … и так ProgramBlock.rounds
+#     кругов подряд.
+# Если сет в комплексе один, число повторений — ProgramBlock.rounds.
+# Отдых (секунды): rest_within_set — между упражнениями внутри сета;
+# rest_between_rounds — между подходами/кругами; rest_between_sets —
+# между сетами; rest_after_block — после комплекса, перед следующим.
+
+MAX_ROUNDS = 50
+MAX_REST_SECONDS = 3600
+MAX_TARGET_REPS = 999
+MAX_TARGET_SECONDS = 3600
+
+
+class ProgramSchemeMode(str, enum.Enum):
+    free = "free"
+    auto = "auto"
+
+
+class ProgramTargetKind(str, enum.Enum):
+    reps = "reps"
+    seconds = "seconds"
+
+
+class ProgramBlockOrder(str, enum.Enum):
+    sequential = "sequential"
+    interleaved = "interleaved"
+
+
+def _drop_defaults(data: dict, defaults: dict) -> dict:
+    """Убирает из словаря поля, равные значениям по умолчанию — так
+    данные свободных схем остаются такими же, как до автоматических."""
+    for key, default in defaults.items():
+        if key in data and data[key] == default:
+            del data[key]
+
+    return data
+
+
+class ProgramItemTarget(SQLModel):
+    """
+    Ориентир для упражнения в автоматической схеме: повторения или
+    секунды. Это рекомендация, фактический результат пользователь
+    указывает сам.
+    """
+
+    kind: ProgramTargetKind
+    value: int
+    # Только для упражнений на время: считать ли ещё и повторения,
+    # которые человек сделает за это время (например, подтягивания за
+    # 30 секунд), и сколько их ожидается. Ориентир повторений во время
+    # выполнения не показывается — он нужен как значение по умолчанию,
+    # когда человек после подхода отмечает, сколько сделал.
+    with_reps: bool = False
+    reps: Optional[int] = Field(default=None, ge=1, le=MAX_TARGET_REPS)
+
+    @model_validator(mode="after")
+    def _check_value(self) -> "ProgramItemTarget":
+        limit = (
+            MAX_TARGET_REPS
+            if self.kind == ProgramTargetKind.reps
+            else MAX_TARGET_SECONDS
+        )
+
+        if not 1 <= self.value <= limit:
+            raise ValueError(
+                f"Цель упражнения должна быть от 1 до {limit}"
+            )
+
+        # Повторения «за время» бывают только у упражнений на время;
+        # ориентир без отметки «считать повторения» не нужен.
+        if self.kind != ProgramTargetKind.seconds or not self.with_reps:
+            self.with_reps = False
+            self.reps = None
+
+        return self
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler):
+        return _drop_defaults(handler(self), {"with_reps": False, "reps": None})
+
 
 class ProgramBlockExercise(SQLModel):
     """
@@ -76,6 +172,21 @@ class ProgramBlockExercise(SQLModel):
     exercise_id: Optional[str] = None
     text: Optional[str] = None
     load: Optional[str] = None
+    # Только для автоматических схем: ориентир (повторения/секунды) и
+    # объединение с предыдущим упражнением в один сет.
+    target: Optional[ProgramItemTarget] = None
+    group_with_previous: bool = False
+    # Число подходов сета — задаётся у первого упражнения сета (у
+    # остальных упражнений сета не учитывается). Только для порядка
+    # «по очереди» при нескольких сетах.
+    rounds: Optional[int] = Field(default=None, ge=1, le=MAX_ROUNDS)
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler):
+        return _drop_defaults(
+            handler(self),
+            {"target": None, "group_with_previous": False, "rounds": None},
+        )
 
     @field_validator("exercise_id", "text", "load")
     @classmethod
@@ -180,6 +291,36 @@ class ProgramBlock(SQLModel):
     # (например, "60-90 секунд" или "полное восстановление"), система
     # не пытается парсить это как число секунд.
     rest: Optional[str] = None
+    # Только для автоматических схем (см. описание выше): сколько раз
+    # повторяется комплекс/сет, порядок сетов и отдых в секундах.
+    rounds: Optional[int] = Field(default=None, ge=1, le=MAX_ROUNDS)
+    order: ProgramBlockOrder = ProgramBlockOrder.sequential
+    rest_within_set: Optional[int] = Field(
+        default=None, ge=0, le=MAX_REST_SECONDS
+    )
+    rest_between_rounds: Optional[int] = Field(
+        default=None, ge=0, le=MAX_REST_SECONDS
+    )
+    rest_between_sets: Optional[int] = Field(
+        default=None, ge=0, le=MAX_REST_SECONDS
+    )
+    rest_after_block: Optional[int] = Field(
+        default=None, ge=0, le=MAX_REST_SECONDS
+    )
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler):
+        return _drop_defaults(
+            handler(self),
+            {
+                "rounds": None,
+                "order": ProgramBlockOrder.sequential.value,
+                "rest_within_set": None,
+                "rest_between_rounds": None,
+                "rest_between_sets": None,
+                "rest_after_block": None,
+            },
+        )
 
 
 class ProgramScheme(SQLModel):
@@ -193,6 +334,15 @@ class ProgramScheme(SQLModel):
     # "Дополнительные материалы" (п.11) — необязательная ссылка/текст
     # (например, ссылка на видео с пояснением схемы).
     extra_materials: Optional[str] = None
+    # «Свободная» (как раньше, всё текстом) или «автоматическая» (с
+    # числами для прохождения с таймерами).
+    mode: ProgramSchemeMode = ProgramSchemeMode.free
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler):
+        return _drop_defaults(
+            handler(self), {"mode": ProgramSchemeMode.free.value}
+        )
 
 
 class ProgramSection(SQLModel):
@@ -218,6 +368,105 @@ class ProgramStructure(SQLModel):
 
 def empty_structure() -> dict:
     return ProgramStructure().model_dump(mode="json")
+
+
+def auto_scheme_problems(structure: Optional[dict]) -> List[str]:
+    """
+    Что не заполнено в автоматических схемах структуры (сырой JSON).
+    Пустой список — все автоматические схемы готовы к прохождению.
+    Черновик можно сохранять неполным, а публикуется версия только
+    когда этот список пуст. Свободные схемы не проверяются.
+
+    Те же правила, что в utils/programAuto.ts на фронтенде (там по ним
+    редактор показывает, чего не хватает) — менять только вместе.
+    """
+    problems: List[str] = []
+
+    for section in (structure or {}).get("sections") or []:
+        for scheme_index, scheme in enumerate(section.get("schemes") or []):
+            if scheme.get("mode") != ProgramSchemeMode.auto.value:
+                continue
+
+            name = (scheme.get("name") or "").strip() or (
+                f"Схема {scheme_index + 1}"
+            )
+            blocks = scheme.get("blocks") or []
+
+            if not any(block.get("items") for block in blocks):
+                problems.append(
+                    f"Схема «{name}»: добавьте хотя бы один комплекс с "
+                    "упражнениями"
+                )
+                continue
+
+            for block_index, block in enumerate(blocks):
+                title = (block.get("title") or "").strip() or (
+                    f"Комплекс {block_index + 1}"
+                )
+                where = f"Схема «{name}», {title}"
+                items = block.get("items") or []
+
+                if not items:
+                    problems.append(f"{where}: нет упражнений")
+                    continue
+
+                if any(not (item or {}).get("target") for item in items):
+                    problems.append(
+                        f"{where}: у каждого упражнения нужно указать "
+                        "повторения или секунды"
+                    )
+
+                if any(
+                    ((item or {}).get("target") or {}).get("with_reps")
+                    and not ((item or {}).get("target") or {}).get("reps")
+                    for item in items
+                ):
+                    problems.append(
+                        f"{where}: у упражнения с подсчётом повторений "
+                        "укажите их ориентировочное число"
+                    )
+
+                set_starts = [
+                    item or {}
+                    for index, item in enumerate(items)
+                    if index == 0 or not (item or {}).get("group_with_previous")
+                ]
+                sets_count = len(set_starts)
+
+                # Число повторений каждого сета: при нескольких сетах «по
+                # очереди» — своё у каждого (по умолчанию как у комплекса),
+                # иначе одно на комплекс.
+                per_set = (
+                    sets_count > 1
+                    and block.get("order") != ProgramBlockOrder.interleaved.value
+                )
+                rounds_per_set = [
+                    (first.get("rounds") or block.get("rounds"))
+                    if per_set
+                    else block.get("rounds")
+                    for first in set_starts
+                ]
+
+                if not all(rounds_per_set):
+                    problems.append(
+                        f"{where}: укажите число подходов или кругов"
+                    )
+
+                if (
+                    max((rounds or 1) for rounds in rounds_per_set) > 1
+                    and block.get("rest_between_rounds") is None
+                ):
+                    problems.append(
+                        f"{where}: укажите отдых между подходами или кругами "
+                        "(можно 0)"
+                    )
+
+                if sets_count > 1 and block.get("rest_between_sets") is None:
+                    problems.append(
+                        f"{where}: укажите отдых между сетами (можно 0)"
+                    )
+
+    return problems
 
 
 # --- Программа (постоянная сущность, п.2) ---------------------------------

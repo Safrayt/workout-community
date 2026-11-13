@@ -29,6 +29,7 @@ import type { NewProgram } from "../../types/newProgram";
 
 import { usePrograms } from "../../context/ProgramContext";
 import { useCurrentUser } from "../../context/CurrentUserContext";
+import { ApiError } from "../../api/errors";
 
 /**
  * Рабочая страница автора программы — три независимых действия
@@ -213,7 +214,13 @@ export default function ProgramEdit() {
             );
         } catch (error: unknown) {
             console.error("Не удалось опубликовать версию:", error);
-            window.alert("Не удалось опубликовать версию. Попробуйте ещё раз.");
+            // Сервер не публикует версию с неполной автоматической схемой
+            // и объясняет, чего не хватает, — показываем его сообщение.
+            window.alert(
+                error instanceof ApiError && error.status === 422
+                    ? error.message
+                    : "Не удалось опубликовать версию. Попробуйте ещё раз."
+            );
         } finally {
             setIsPublishing(false);
         }

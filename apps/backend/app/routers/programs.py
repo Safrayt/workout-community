@@ -32,6 +32,7 @@ from app.models_program import (
     ProgramVersionStatus,
     ProgramVersionSummary,
     bump_version_number,
+    auto_scheme_problems,
     empty_structure,
     structure_exercise_ids,
 )
@@ -581,6 +582,24 @@ def publish_draft(
         raise HTTPException(
             status_code=404,
             detail="У программы сейчас нет редактируемого черновика",
+        )
+
+    # Автоматические схемы публикуются только заполненными целиком: по
+    # ним пользователи проходят тренировку с таймерами, и неполная схема
+    # не сработает. Черновик при этом можно сохранять неполным.
+    problems = auto_scheme_problems(draft.structure)
+
+    if problems:
+        shown = "; ".join(problems[:5])
+        rest = len(problems) - 5
+        suffix = f" … и ещё {rest}" if rest > 0 else ""
+
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Автоматические схемы заполнены не полностью, "
+                f"опубликовать нельзя. {shown}{suffix}"
+            ),
         )
 
     is_first_publish = not program.is_published

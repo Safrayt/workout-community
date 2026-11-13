@@ -1,5 +1,8 @@
 import type { NewDiaryNote } from "../types/newDiaryNote";
-import type { NewWorkoutEntry } from "../types/newWorkoutEntry";
+import type {
+    NewWorkoutEntry,
+    WorkoutEntryPrefill,
+} from "../types/newWorkoutEntry";
 
 import { MAX_WORKOUT_ENTRY_PHOTOS } from "../constants/workoutEntryPhotos";
 import { getTodayDateString } from "./today";
@@ -35,6 +38,43 @@ export function createEmptyWorkoutEntry(): NewWorkoutEntry {
         hideFromFeed: false,
         isPrivate: false,
     };
+}
+
+const PREFILL_FIELDS = [
+    "title",
+    "description",
+    "programId",
+    "programSection",
+    "programScheme",
+] as const;
+
+/**
+ * Заготовка записи из состояния адреса (location.state): состояние
+ * может оказаться чем угодно, поэтому берём только известные строковые
+ * поля. null — подставлять нечего.
+ */
+export function parseWorkoutPrefill(state: unknown): WorkoutEntryPrefill | null {
+    if (!state || typeof state !== "object") {
+        return null;
+    }
+
+    const raw = (state as { workoutPrefill?: unknown }).workoutPrefill;
+
+    if (!raw || typeof raw !== "object") {
+        return null;
+    }
+
+    const prefill: WorkoutEntryPrefill = {};
+
+    for (const field of PREFILL_FIELDS) {
+        const value = (raw as Record<string, unknown>)[field];
+
+        if (typeof value === "string") {
+            prefill[field] = value;
+        }
+    }
+
+    return Object.keys(prefill).length > 0 ? prefill : null;
 }
 
 export function createEmptyDiaryNote(): NewDiaryNote {

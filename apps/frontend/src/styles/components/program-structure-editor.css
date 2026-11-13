@@ -192,3 +192,125 @@
     font-size: var(--font-size-sm);
     min-width: 1.5em;
 }
+
+/* --- Автоматические схемы ------------------------------------------- */
+
+/* Компактные числовые поля (повторения, секунды, минуты). Селектор с
+   .program-structure-editor — чтобы перебить ширину общих полей ввода. */
+.program-structure-editor .program-structure-editor__number {
+    width: 6rem;
+    flex: none;
+    padding: var(--space-2) var(--space-3);
+}
+
+.program-structure-editor .program-structure-editor__target-kind {
+    width: auto;
+    flex: none;
+    padding: var(--space-2) var(--space-3);
+}
+
+/* Что задано в упражнении (повторения/секунды) и число — в одну строку. */
+.program-structure-editor__target {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.program-structure-editor__check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+/* Подпись «Сет N» над группой упражнений и отступ у упражнений, которые
+   входят в один сет с предыдущим. */
+.program-structure-editor__set-label {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
+
+.program-structure-editor__exercise-row--grouped {
+    margin-left: var(--space-4);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--color-border);
+}
+
+/* Числа комплекса: сколько раз повторять и отдых. */
+.program-structure-editor__auto-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.program-structure-editor__duration {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.program-structure-editor__duration-inputs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Чего не хватает схеме / схема готова. */
+.program-structure-editor__problems {
+    padding: var(--space-3);
+    border-left: 4px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: #fffaf0;
+    font-size: var(--font-size-sm);
+}
+
+.program-structure-editor__problems p {
+    margin: 0;
+}
+
+.program-structure-editor__problems ul {
+    margin: var(--space-2) 0;
+    padding-left: var(--space-5);
+}
+
+.program-structure-editor__ready {
+    margin: 0;
+    padding: var(--space-3);
+    border-left: 4px solid var(--color-success);
+    border-radius: var(--radius-sm);
+    background: #f0fff4;
+    font-size: var(--font-size-sm);
+}
+
+/* Цель упражнения и число подходов его сета — в одну строку. */
+.program-structure-editor__auto-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.program-structure-editor__rounds {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+/* «Считать повторения» недоступно, пока выбраны повторения. */
+.program-structure-editor__check--disabled {
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
+}
+
+.program-structure-editor__target-reps {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}

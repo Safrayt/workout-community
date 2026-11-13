@@ -146,3 +146,11 @@
         flex-basis: 56px;
     }
 }
+
+/* Подпись «Сет N» над группой упражнений автоматической схемы. */
+.program-scheme-content__set-label {
+    margin: 0 0 var(--space-1);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text-secondary);
+}
