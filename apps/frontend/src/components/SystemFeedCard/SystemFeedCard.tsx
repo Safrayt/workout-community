@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { MouseEvent } from "react";
 
 import type { SystemFeedItem } from "../../types/homeFeedRecord";
@@ -51,13 +51,17 @@ const MAX_FEED_TITLE_LENGTH = 50;
  * Карточки дневника (HomeFeedCard) в общей ленте пока оформлены
  * по-старому — там ещё расхождение даты события с датой публикации,
  * время суток и счётчик комментариев, которых в этом макете не было.
+ *
+ * Как и записи дневника, мероприятие или площадка открываются в новой
+ * вкладке — лента остаётся на месте. Карточка — не настоящая ссылка
+ * (внутри неё есть другие ссылки), поэтому вкладку открываем вручную,
+ * в том числе по клику средней кнопкой мыши.
  */
 export default function SystemFeedCard({
     feedRecord,
     playgrounds,
 }: SystemFeedCardProps) {
     const { record, author } = feedRecord;
-    const navigate = useNavigate();
 
     const isEvent = record.type === "event_created";
 
@@ -80,7 +84,7 @@ export default function SystemFeedCard({
     );
 
     function goToRecord() {
-        navigate(recordUrl);
+        window.open(recordUrl, "_blank", "noopener,noreferrer");
     }
 
     function stopBubbling(event: MouseEvent) {
@@ -91,10 +95,23 @@ export default function SystemFeedCard({
         <article
             className="workout-entry-card home-feed-card home-feed-card--system"
             onClick={goToRecord}
+            onAuxClick={(event) => {
+                // Средний клик по вложенной ссылке (автор, площадка)
+                // браузер обрабатывает сам — карточку открывать не нужно.
+                const insideLink = (event.target as HTMLElement).closest("a");
+
+                if (event.button === 1 && !insideLink) {
+                    event.preventDefault();
+                    goToRecord();
+                }
+            }}
             role="link"
             tabIndex={0}
             onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                // Enter на вложенной ссылке (автор, площадка) — её
+                // собственное действие, а не открытие карточки: иначе
+                // открылись бы обе страницы сразу.
+                if (event.key === "Enter" && event.target === event.currentTarget) {
                     goToRecord();
                 }
             }}

@@ -1,3 +1,4 @@
+import logging
 import re
 import zipfile
 from datetime import datetime, timedelta, timezone
@@ -20,6 +21,7 @@ from app.notifications import notify_mentions, notify_new_comment
 from app.models_program import ProgramDB, ProgramVersionDB
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
 from app.routers.programs import resolve_program_link
+from app.workout_weather import temperature_for_entry
 from app.models_diary import (
     ActivityMapMarker,
     Comment,
@@ -46,6 +48,8 @@ from app.models_diary import (
 )
 
 router = APIRouter(prefix="/diary", tags=["diary"])
+
+logger = logging.getLogger(__name__)
 
 # Значения продублированы с фронтенда (см. utils/workoutTags.ts,
 # constants/personalTags.ts, constants/workoutEntryPhotos.ts,
@@ -133,6 +137,31 @@ def _validate_tags(tags: List[str]) -> None:
 # Записи тренировок
 # =====================================================================
 
+def _lookup_entry_temperature(
+    playground_id: Optional[int], entry_date, session: Session
+) -> Optional[float]:
+    """
+    Температура воздуха на площадке записи (см. app/workout_weather.py)
+    или None: площадки нет, погоду не удалось определить или дата
+    записи не сегодняшняя. Сбой здесь не должен мешать сохранить запись.
+    """
+    if playground_id is None:
+        return None
+
+    playground = session.get(Playground, playground_id)
+
+    if playground is None:
+        return None
+
+    try:
+        return temperature_for_entry(
+            playground.latitude, playground.longitude, entry_date
+        )
+    except Exception:
+        logger.exception("Не удалось определить температуру для записи")
+        return None
+
+
 @router.post("/entries", response_model=WorkoutEntryRead)
 def create_workout_entry(
     data: WorkoutEntryCreate,
@@ -153,6 +182,12 @@ def create_workout_entry(
         entry_data["program_version_id"] = version.id if version else None
 
     entry = WorkoutEntry(**entry_data, user_id=current_user.id)
+
+    # Температуру воздуха смотрим один раз — при создании записи с
+    # площадкой — и сохраняем в записи.
+    entry.temperature_c = _lookup_entry_temperature(
+        entry.playground_id, entry.date, session
+    )
 
     session.add(entry)
     _sync_personal_tags(current_user.id, data.tags, session)
@@ -411,8 +446,27 @@ def update_workout_entry(
             version = resolve_program_link(updates["program_id"], session)
             entry.program_version_id = version.id if version else None
 
+    previous_playground_id = entry.playground_id
+    previous_date = entry.date
+
     for field_name, value in updates.items():
         setattr(entry, field_name, value)
+
+    # Температура принадлежит площадке и дате записи: убрали площадку —
+    # убираем и температуру; сменили площадку или дату — определяем
+    # заново. Если запись не менялась в этом смысле, а температуры нет
+    # (при создании сервис погоды не ответил), пробуем ещё раз: для
+    # несегодняшней даты это бесплатно — запрос к сервису не делается.
+    if entry.playground_id is None:
+        entry.temperature_c = None
+    elif (
+        entry.playground_id != previous_playground_id
+        or entry.date != previous_date
+        or entry.temperature_c is None
+    ):
+        entry.temperature_c = _lookup_entry_temperature(
+            entry.playground_id, entry.date, session
+        )
 
     session.add(entry)
     session.commit()

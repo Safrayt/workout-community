@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
-from app.auth import create_access_token, hash_password, verify_password
+from app.auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from app.database import get_session
 from app.models import AccountRecovery, User, UserCreate, UserRead
 from app.rate_limit import RateLimiter
@@ -153,6 +158,25 @@ def login(
     )
 
     return TokenResponse(access_token=access_token)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(
+    current_user: User = Depends(get_current_user),
+) -> TokenResponse:
+    """
+    Продлевает сессию: по ещё действующему токену выдаёт новый с полным
+    сроком жизни. Клиент вызывает это при заходе на сайт и раз в
+    несколько часов, пока вкладка открыта, — поэтому человека не
+    выбрасывает на экран входа, пока он пользуется сайтом. Токен,
+    отозванный сменой пароля, или просроченный сюда не пройдёт (401).
+    """
+    return TokenResponse(
+        access_token=create_access_token(
+            user_id=current_user.id,
+            token_version=current_user.token_version,
+        )
+    )
 
 
 @router.post(

@@ -13,10 +13,18 @@ import {
     login as apiLogin,
     logout as apiLogout,
     recoverAccount as apiRecoverAccount,
+    refreshSession,
     register as apiRegister,
     updateCurrentUser,
     type RegisterData,
 } from "../api/auth";
+import { ApiError } from "../api/errors";
+import {
+    AUTH_EXPIRED_EVENT,
+    isTokenRefreshDue,
+    markSessionExpired,
+    type AuthExpiredDetail,
+} from "../api/token";
 
 import { getToken } from "../api/token";
 
@@ -61,6 +69,14 @@ type AuthContextValue = {
 const AuthContext =
     createContext<AuthContextValue | undefined>(undefined);
 
+/** Паузы между повторными попытками восстановить сессию при заходе на
+ *  сайт, если сервер не ответил (но не 401). */
+const RESTORE_RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+/** Как часто проверять, не пора ли продлить сессию, пока сайт открыт
+ *  (сам токен меняется реже — см. isTokenRefreshDue). */
+const SESSION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 export function CurrentUserProvider({
     children,
 }: {
@@ -78,23 +94,168 @@ export function CurrentUserProvider({
 
     // При загрузке приложения — если в localStorage уже есть токен
     // с прошлого раза, пробуем восстановить сессию молча, без
-    // повторного ввода логина/пароля. Если токен протух или невалиден,
-    // сервер ответит 401 — тогда просто остаёмся в состоянии "гость".
+    // повторного ввода логина/пароля.
+    //
+    // Из аккаунта выходим ТОЛЬКО на 401 — токен точно недействителен
+    // (истёк или отозван). Любая другая ошибка (нет сети, сервер
+    // перезапускается, 502/503 при обновлении, лимит запросов) не
+    // значит, что токен плохой: раньше здесь выходили из аккаунта при
+    // любой ошибке, и людей разлогинивало из-за слабой связи. Теперь
+    // пробуем ещё несколько раз, а если не вышло — остаёмся без
+    // пользователя, но токен сохраняем: сессия вернётся при следующей
+    // попытке (см. эффект ниже) или при следующем заходе на сайт.
     useEffect(() => {
-        const token = getToken();
-
-        if (!token) {
+        if (!getToken()) {
             return;
         }
 
-        fetchCurrentUser()
-            .then(setUser)
-            .catch(() => {
-                apiLogout();
-                setUser(null);
-            })
-            .finally(() => setIsLoading(false));
+        let cancelled = false;
+        let retryTimer: number | undefined;
+        let attempt = 0;
+
+        function load() {
+            fetchCurrentUser()
+                .then((loadedUser) => {
+                    if (cancelled) return;
+
+                    setUser(loadedUser);
+                    setIsLoading(false);
+                })
+                .catch((error: unknown) => {
+                    if (cancelled) return;
+
+                    if (error instanceof ApiError && error.status === 401) {
+                        markSessionExpired();
+                        apiLogout();
+                        setUser(null);
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    if (attempt < RESTORE_RETRY_DELAYS_MS.length) {
+                        retryTimer = window.setTimeout(
+                            load,
+                            RESTORE_RETRY_DELAYS_MS[attempt]
+                        );
+                        attempt += 1;
+                        return;
+                    }
+
+                    setIsLoading(false);
+                });
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(retryTimer);
+        };
     }, []);
+
+    // Не удалось восстановить сессию из-за связи — токен остался в
+    // браузере. Как только связь вернулась или человек снова открыл
+    // вкладку, пробуем ещё раз.
+    useEffect(() => {
+        if (user || isLoading || !getToken()) {
+            return;
+        }
+
+        let cancelled = false;
+
+        function retry() {
+            if (cancelled || document.visibilityState === "hidden") {
+                return;
+            }
+
+            fetchCurrentUser()
+                .then((loadedUser) => {
+                    if (!cancelled) setUser(loadedUser);
+                })
+                .catch((error: unknown) => {
+                    if (
+                        !cancelled &&
+                        error instanceof ApiError &&
+                        error.status === 401
+                    ) {
+                        markSessionExpired();
+                        apiLogout();
+                    }
+                });
+        }
+
+        window.addEventListener("online", retry);
+        document.addEventListener("visibilitychange", retry);
+
+        return () => {
+            cancelled = true;
+            window.removeEventListener("online", retry);
+            document.removeEventListener("visibilitychange", retry);
+        };
+    }, [user, isLoading]);
+
+    // Токен истёк или отозван посреди работы (сервер ответил 401 на
+    // запрос с токеном): выходим, чтобы приложение показало вход, а не
+    // страницы, на которых ничего не загружается. Если токен за это
+    // время уже сменился (человек вошёл заново), ответ относится к
+    // старому запросу — игнорируем.
+    useEffect(() => {
+        function handleExpired(event: Event) {
+            const usedToken = (event as CustomEvent<AuthExpiredDetail>).detail
+                ?.token;
+
+            if (!usedToken || usedToken !== getToken()) {
+                return;
+            }
+
+            markSessionExpired();
+            apiLogout();
+            setUser(null);
+        }
+
+        window.addEventListener(AUTH_EXPIRED_EVENT, handleExpired);
+
+        return () =>
+            window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpired);
+    }, []);
+
+    // Скользящая сессия: пока человек пользуется сайтом, раз в
+    // несколько часов меняем токен на новый (срок отсчитывается от
+    // последнего визита, а не от входа). При заходе на сайт — сразу,
+    // если пора; дальше проверяем раз в час и при возвращении на
+    // вкладку. Не вышло из-за связи — просто повторим позже, а 401 уже
+    // обработан выше.
+    const userId = user?.id;
+
+    useEffect(() => {
+        if (userId === undefined) {
+            return;
+        }
+
+        function refreshIfDue() {
+            if (!isTokenRefreshDue()) {
+                return;
+            }
+
+            refreshSession().catch(() => undefined);
+        }
+
+        function handleVisibility() {
+            if (document.visibilityState === "visible") {
+                refreshIfDue();
+            }
+        }
+
+        refreshIfDue();
+
+        const timer = window.setInterval(refreshIfDue, SESSION_CHECK_INTERVAL_MS);
+        document.addEventListener("visibilitychange", handleVisibility);
+
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener("visibilitychange", handleVisibility);
+        };
+    }, [userId]);
 
     async function login(nickname: string, password: string) {
         const loggedInUser = await apiLogin(nickname, password);

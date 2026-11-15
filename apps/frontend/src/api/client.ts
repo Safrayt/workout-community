@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
-import { getToken } from "./token";
+import { AUTH_EXPIRED_EVENT, getToken, type AuthExpiredDetail } from "./token";
 
 type RequestOptions = {
     method?: "GET" | "POST" | "PUT" | "DELETE";
@@ -46,6 +46,22 @@ async function extractErrorMessage(
 }
 
 /**
+ * 401 на запрос, отправленный с токеном, значит, что токен истёк или
+ * отозван: сообщаем об этом приложению (CurrentUserContext выйдет из
+ * аккаунта), а не оставляем человека на странице, где ничего не
+ * загружается. Запросы без токена (вход, регистрация) не в счёт.
+ */
+function notifyIfSessionExpired(response: Response, token: string | null) {
+    if (response.status === 401 && token) {
+        window.dispatchEvent(
+            new CustomEvent<AuthExpiredDetail>(AUTH_EXPIRED_EVENT, {
+                detail: { token },
+            })
+        );
+    }
+}
+
+/**
  * Универсальный запрос к API. T — тип ожидаемого тела ответа.
  * Для ответов 204 No Content возвращает undefined as T — вызывающий
  * код в этом случае и не ждёт тело (см. DELETE-запросы во всех
@@ -64,12 +80,10 @@ export async function apiFetch<T>(
         headers["Content-Type"] = "application/json";
     }
 
-    if (!skipAuth) {
-        const token = getToken();
+    const token = skipAuth ? null : getToken();
 
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-        }
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -84,6 +98,8 @@ export async function apiFetch<T>(
     });
 
     if (!response.ok) {
+        notifyIfSessionExpired(response, token);
+
         throw new ApiError(
             response.status,
             await extractErrorMessage(response)
@@ -114,6 +130,8 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}${path}`, { headers });
 
     if (!response.ok) {
+        notifyIfSessionExpired(response, token);
+
         throw new ApiError(response.status, await extractErrorMessage(response));
     }
 

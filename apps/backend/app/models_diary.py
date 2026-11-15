@@ -91,6 +91,12 @@ class WorkoutEntry(WorkoutEntryBase, table=True):
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
 
+    # Температура воздуха на площадке записи, °C. Клиент её не передаёт:
+    # сервер один раз смотрит погоду по координатам площадки при
+    # создании записи (см. app/workout_weather.py) и сохраняет число.
+    # Нет площадки или погоду не удалось определить — None.
+    temperature_c: Optional[float] = None
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -159,6 +165,7 @@ class WorkoutEntryRead(WorkoutEntryBase):
     program_version_id: Optional[int] = None
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
+    temperature_c: Optional[float] = None
     created_at: UtcDatetime
     photos: List[WorkoutEntryPhotoRead] = []
 

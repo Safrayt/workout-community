@@ -174,6 +174,19 @@ export function logout(): void {
     clearToken();
 }
 
+/**
+ * Продление сессии: меняет ещё действующий токен на новый с полным
+ * сроком жизни. Вызывается при заходе на сайт и раз в несколько часов,
+ * пока он открыт, — пока сайтом пользуются, сессия не заканчивается.
+ */
+export async function refreshSession(): Promise<void> {
+    const response = await apiFetch<TokenResponse>("/auth/refresh", {
+        method: "POST",
+    });
+
+    setToken(response.access_token);
+}
+
 export async function fetchCurrentUser(): Promise<User> {
     const apiUser = await apiFetch<ApiUser>("/users/me");
 

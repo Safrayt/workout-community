@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { MouseEvent } from "react";
 
 import type { HomeFeedRecord } from "../../types/homeFeedRecord";
@@ -52,6 +52,13 @@ const MAX_FEED_DESCRIPTION_LENGTH = 100;
  * комментариев — самостоятельные ссылки: клик по ним не должен
  * также срабатывать как клик по карточке (§24).
  *
+ * Запись открывается в новой вкладке: так лента (с выбранной
+ * вкладкой, подгруженными записями и положением прокрутки) остаётся
+ * на месте, и можно открыть несколько записей подряд. Поскольку
+ * карточка — не настоящая ссылка (внутри неё есть другие ссылки,
+ * вкладывать их нельзя), новую вкладку открываем вручную, в том числе
+ * по клику средней кнопкой мыши.
+ *
  * Пометка "Скрыто приватностью" показывается, если у автора
  * diary_visible=false — специального флага "это вкладка
  * Администрирование" сюда прокидывать не нужно: в обычных вкладках
@@ -64,7 +71,6 @@ export default function HomeFeedCard({
     feedRecord,
 }: HomeFeedCardProps) {
     const { record, author, playground, commentsCount } = feedRecord;
-    const navigate = useNavigate();
 
     const recordUrl = getDiaryRecordUrl(record, author.nickname);
 
@@ -98,7 +104,7 @@ export default function HomeFeedCard({
     );
 
     function goToRecord() {
-        navigate(recordUrl);
+        window.open(recordUrl, "_blank", "noopener,noreferrer");
     }
 
     function stopBubbling(event: MouseEvent) {
@@ -109,10 +115,26 @@ export default function HomeFeedCard({
         <article
             className="workout-entry-card home-feed-card"
             onClick={goToRecord}
+            // Средняя кнопка мыши — как у обычной ссылки: открыть в
+            // новой вкладке (у настоящих ссылок внутри карточки — автор,
+            // площадка — это работает само, их клик сюда не доходит).
+            onAuxClick={(event) => {
+                // Средний клик по вложенной ссылке (автор, площадка)
+                // браузер обрабатывает сам — карточку открывать не нужно.
+                const insideLink = (event.target as HTMLElement).closest("a");
+
+                if (event.button === 1 && !insideLink) {
+                    event.preventDefault();
+                    goToRecord();
+                }
+            }}
             role="link"
             tabIndex={0}
             onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                // Enter на вложенной ссылке или кнопке (автор, площадка,
+                // комментарии) — их собственное действие, а не открытие
+                // карточки: иначе открылись бы обе страницы сразу.
+                if (event.key === "Enter" && event.target === event.currentTarget) {
                     goToRecord();
                 }
             }}

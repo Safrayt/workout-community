@@ -39,6 +39,7 @@ export type ApiWorkoutEntry = {
     title: string;
     description: string;
     tags: string[];
+    temperature_c?: number | null;
     created_at: string;
     photos: ApiPhoto[];
     hide_from_feed: boolean;
@@ -73,6 +74,7 @@ export function mapApiWorkoutEntryToEntry(
         photos: apiEntry.photos.length > 0
             ? apiEntry.photos.map(mapApiPhoto)
             : undefined,
+        temperatureC: apiEntry.temperature_c ?? undefined,
         createdAt: apiEntry.created_at,
         hideFromFeed: apiEntry.hide_from_feed,
         isPrivate: apiEntry.is_private,

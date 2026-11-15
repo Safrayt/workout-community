@@ -86,6 +86,17 @@ def client_fixture(session: Session):
 
 
 @pytest.fixture(autouse=True)
+def _no_external_weather(monkeypatch):
+    """
+    При создании записи с площадкой сервер смотрит температуру в MET
+    Norway (app/workout_weather.py). Тесты не должны ходить в сеть:
+    по умолчанию сервис «не отвечает» (пустой ряд прогноза), а тесты,
+    которым нужна температура, подменяют нужную функцию сами.
+    """
+    monkeypatch.setattr("app.workout_weather._load_points_sync", lambda *_: [])
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limiters():
     """
     RateLimiter (app/rate_limit.py) хранит счётчики попыток в памяти

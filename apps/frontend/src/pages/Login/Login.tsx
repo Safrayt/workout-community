@@ -8,7 +8,12 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 
 import { useAuth } from "../../context/CurrentUserContext";
 import { ApiError } from "../../api/errors";
-import { clearAccountDeletedMark, wasAccountDeleted } from "../../api/token";
+import {
+    clearAccountDeletedMark,
+    clearSessionExpiredMark,
+    wasAccountDeleted,
+    wasSessionExpired,
+} from "../../api/token";
 
 import "../../styles/components/auth-form.css";
 
@@ -30,8 +35,15 @@ export default function Login() {
     // дважды).
     const [isAccountDeleted] = useState(wasAccountDeleted);
 
+    // Сессия закончилась не по воле человека (токен недействителен,
+    // например, после смены пароля на другом устройстве или долгого
+    // перерыва) — объясняем, почему показали вход. Тоже одноразовая
+    // отметка.
+    const [isSessionExpired] = useState(wasSessionExpired);
+
     useEffect(() => {
         clearAccountDeletedMark();
+        clearSessionExpiredMark();
     }, []);
 
     // Если ProtectedLayout перенаправил сюда с какой-то конкретной
@@ -75,6 +87,12 @@ export default function Login() {
                 {isAccountDeleted && (
                     <p className="auth-form__success" role="status">
                         Аккаунт удалён вместе со всеми данными.
+                    </p>
+                )}
+
+                {isSessionExpired && !isAccountDeleted && (
+                    <p className="auth-form__notice" role="status">
+                        Сессия закончилась — войдите снова.
                     </p>
                 )}
 
