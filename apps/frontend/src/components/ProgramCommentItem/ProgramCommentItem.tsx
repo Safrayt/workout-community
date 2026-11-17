@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import Textarea from "../ui/Textarea/Textarea";
+import CommentLikeButton from "../CommentLikeButton/CommentLikeButton";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import Avatar from "../ui/Avatar/Avatar";
@@ -148,6 +149,12 @@ export default function ProgramCommentItem({ comment, onReply }: Props) {
                             {
                                 isOwnComment ? (
                                     <div className="program-comments__owner-actions">
+                                        <CommentLikeButton
+                                            kind="program"
+                                            commentId={comment.id}
+                                            authorId={comment.userId}
+                                        />
+
                                         <button
                                             type="button"
                                             className="program-comments__action"
@@ -166,6 +173,12 @@ export default function ProgramCommentItem({ comment, onReply }: Props) {
                                     </div>
                                 ) : user ? (
                                     <div className="program-comments__owner-actions">
+                                        <CommentLikeButton
+                                            kind="program"
+                                            commentId={comment.id}
+                                            authorId={comment.userId}
+                                        />
+
                                         <button
                                             type="button"
                                             className="program-comments__action"

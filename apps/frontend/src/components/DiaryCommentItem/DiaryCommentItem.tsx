@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import Textarea from "../ui/Textarea/Textarea";
+import CommentLikeButton from "../CommentLikeButton/CommentLikeButton";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import Avatar from "../ui/Avatar/Avatar";
@@ -18,7 +19,7 @@ import { useUserDirectory } from "../../hooks/useUserDirectory";
 
 import UserLink from "../UserLink/UserLink";
 
-import { linkifyText } from "../../utils/linkifyText";
+import { renderCommentText } from "../../utils/commentText";
 
 import { formatDate } from "../../utils/formatDate";
 
@@ -147,12 +148,18 @@ export default function DiaryCommentItem({
                     ) : (
                         <>
                             <p className="diary-comments__text">
-                                {linkifyText(comment.text)}
+                                {renderCommentText(comment.text)}
                             </p>
 
                             {
                                 isOwnComment ? (
                                     <div className="diary-comments__owner-actions">
+                                        <CommentLikeButton
+                                            kind="diary"
+                                            commentId={comment.id}
+                                            authorId={comment.userId}
+                                        />
+
                                         <button
                                             type="button"
                                             className="diary-comments__action"
@@ -171,6 +178,12 @@ export default function DiaryCommentItem({
                                     </div>
                                 ) : (
                                     <div className="diary-comments__owner-actions">
+                                        <CommentLikeButton
+                                            kind="diary"
+                                            commentId={comment.id}
+                                            authorId={comment.userId}
+                                        />
+
                                         <button
                                             type="button"
                                             className="diary-comments__action"

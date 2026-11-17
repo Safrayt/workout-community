@@ -1,0 +1,38 @@
+/* Лайк на комментарии: сердечко и число в строке действий комментария
+   (рядом с «Ответить», «Редактировать»). Размер и цвет текста — как у
+   остальных действий. */
+.comment-like {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0;
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.comment-like:hover {
+    color: var(--color-primary);
+}
+
+.comment-like--liked {
+    color: var(--color-primary);
+}
+
+/* Только число: гостю и автору комментария нажимать нечего. */
+.comment-like--static {
+    cursor: default;
+}
+
+.comment-like--static:hover {
+    color: var(--color-text-secondary);
+}
+
+.comment-like__icon {
+    flex: none;
+}

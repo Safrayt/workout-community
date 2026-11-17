@@ -112,6 +112,7 @@ def _reset_rate_limiters():
         _recover_rate_limit,
         _register_rate_limit,
     )
+    from app.routers.comment_likes import _like_rate_limit
     from app.routers.users import _password_check_rate_limit
 
     _login_rate_limit._hits.clear()
@@ -119,6 +120,7 @@ def _reset_rate_limiters():
     _recover_rate_limit._hits.clear()
     _recover_nickname_limit._hits.clear()
     _password_check_rate_limit._hits.clear()
+    _like_rate_limit._hits.clear()
 
     yield
 

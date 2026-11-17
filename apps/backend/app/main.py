@@ -10,6 +10,7 @@ from app.routers import (
     achievements,
     articles,
     auth,
+    comment_likes,
     complexes,
     diary,
     events,
@@ -86,6 +87,7 @@ app.include_router(diary.router)
 app.include_router(reviews.router)
 app.include_router(achievements.router)
 app.include_router(social.router)
+app.include_router(comment_likes.router)
 app.include_router(complexes.router)
 app.include_router(exercises.router)
 app.include_router(articles.router)

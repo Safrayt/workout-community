@@ -113,6 +113,10 @@ export function formatTarget(target: ProgramItemTarget | undefined): string {
         return "";
     }
 
+    if (target.kind === "max") {
+        return "Максимум";
+    }
+
     if (target.kind === "reps") {
         return `${target.value} ${pluralizeRu(target.value, ["повторение", "повторения", "повторений"])}`;
     }
@@ -223,7 +227,7 @@ export function getAutoSchemeProblems(scheme: ProgramScheme): string[] {
 
         if (block.items.some((item) => !item.target?.value)) {
             problems.push(
-                `${title}: у каждого упражнения нужно указать повторения или секунды`
+                `${title}: у каждого упражнения нужно указать повторения, секунды или максимум`
             );
         }
 

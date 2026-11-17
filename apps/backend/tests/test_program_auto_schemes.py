@@ -146,6 +146,32 @@ def test_automatic_scheme_keeps_all_its_fields(client, author):
     assert "group_with_previous" not in saved["items"][0]
 
 
+def test_max_target_is_saved_with_approximate_reps(client, author):
+    program = _create_program(client, author["token"])
+    block = _complete_block(
+        items=[
+            _item(PULLUPS, {"kind": "max", "value": 12}),
+            _item(DIPS, {"kind": "seconds", "value": 60}),
+        ]
+    )
+
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    assert response.status_code == 200, response.text
+
+    scheme = _draft_scheme(client, author["token"], program["id"])
+
+    assert scheme["blocks"][0]["items"][0]["target"] == {
+        "kind": "max",
+        "value": 12,
+    }
+
+
 @pytest.mark.parametrize(
     "bad_fields",
     [
@@ -174,6 +200,8 @@ def test_out_of_range_block_values_are_rejected(client, author, bad_fields):
     [
         {"kind": "reps", "value": 0},
         {"kind": "reps", "value": 1000},
+        {"kind": "max", "value": 0},
+        {"kind": "max", "value": 1000},
         {"kind": "seconds", "value": 3601},
         {"kind": "minutes", "value": 5},
     ],

@@ -25,7 +25,7 @@ from app.models_notification import Notification
 from app.models_playground import Playground, PlaygroundHistoryEntry
 from app.models_program import ProgramComment, ProgramDB, ProgramFavorite
 from app.models_review import PlaygroundReview
-from app.models_social import PlaygroundFavorite, Subscription
+from app.models_social import CommentLike, PlaygroundFavorite, Subscription
 from app.routers.diary import delete_diary_note, delete_workout_entry
 from app.routers.events import delete_event
 from app.routers.playgrounds import delete_playground
@@ -146,6 +146,10 @@ def delete_user_completely(
     _delete_all(ComplexComment, ComplexComment.user_id)
     _delete_all(EventComment, EventComment.user_id)
     _delete_all(ProgramComment, ProgramComment.user_id)
+    # Лайки, поставленные самим пользователем (внешний ключ на него не
+    # даст его удалить); лайки на его комментариях остаются «осиротевшими»
+    # и нигде не показываются — см. CommentLike.
+    _delete_all(CommentLike, CommentLike.user_id)
     _delete_all(ProgramFavorite, ProgramFavorite.user_id)
     _delete_all(PersonalTag, PersonalTag.user_id)
 

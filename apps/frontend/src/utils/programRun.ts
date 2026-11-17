@@ -394,9 +394,10 @@ export function formatClock(totalSeconds: number): string {
 }
 
 export function resultUnit(kind: ProgramTargetKind, value: number): string {
-    return kind === "reps"
-        ? pluralizeRu(value, ["повторение", "повторения", "повторений"])
-        : pluralizeRu(value, ["секунда", "секунды", "секунд"]);
+    // «Максимум» — это тоже повторения: результат отмечается числом.
+    return kind === "seconds"
+        ? pluralizeRu(value, ["секунда", "секунды", "секунд"])
+        : pluralizeRu(value, ["повторение", "повторения", "повторений"]);
 }
 
 /** Сколько всего отдыха в схеме (для обзора перед стартом). */

@@ -93,6 +93,9 @@ class ProgramSchemeMode(str, enum.Enum):
 class ProgramTargetKind(str, enum.Enum):
     reps = "reps"
     seconds = "seconds"
+    # «Максимум»: человек делает сколько сможет; value — ориентировочное
+    # число повторений, с которого он начнёт отмечать результат.
+    max = "max"
 
 
 class ProgramBlockOrder(str, enum.Enum):
@@ -112,9 +115,10 @@ def _drop_defaults(data: dict, defaults: dict) -> dict:
 
 class ProgramItemTarget(SQLModel):
     """
-    Ориентир для упражнения в автоматической схеме: повторения или
-    секунды. Это рекомендация, фактический результат пользователь
-    указывает сам.
+    Ориентир для упражнения в автоматической схеме: повторения, секунды
+    или максимум (для него value — примерное число повторений, с
+    которого человек начнёт отмечать свой результат). Это рекомендация,
+    фактический результат пользователь указывает сам.
     """
 
     kind: ProgramTargetKind
@@ -131,7 +135,7 @@ class ProgramItemTarget(SQLModel):
     def _check_value(self) -> "ProgramItemTarget":
         limit = (
             MAX_TARGET_REPS
-            if self.kind == ProgramTargetKind.reps
+            if self.kind != ProgramTargetKind.seconds
             else MAX_TARGET_SECONDS
         )
 
@@ -413,7 +417,7 @@ def auto_scheme_problems(structure: Optional[dict]) -> List[str]:
                 if any(not (item or {}).get("target") for item in items):
                     problems.append(
                         f"{where}: у каждого упражнения нужно указать "
-                        "повторения или секунды"
+                        "повторения, секунды или максимум"
                     )
 
                 if any(

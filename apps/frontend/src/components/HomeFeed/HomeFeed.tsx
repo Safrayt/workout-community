@@ -23,7 +23,11 @@ import {
 } from "../../utils/homeFeed";
 import { buildDiaryRecords } from "../../utils/diaryRecords";
 import { listDiaryNotes, listWorkoutEntries } from "../../api/diary";
-import { HOME_FEED_PAGE_SIZE } from "../../constants/home";
+import {
+    HOME_FEED_DESKTOP_INITIAL_SIZE,
+    HOME_FEED_DESKTOP_MEDIA_QUERY,
+    HOME_FEED_PAGE_SIZE,
+} from "../../constants/home";
 import { useSimulatedLoad } from "../../hooks/useSimulatedLoad";
 
 import "../../styles/components/home-feed.css";
@@ -39,6 +43,21 @@ type HomeFeedProps = {
     /** Показывать ли вкладку "Администрирование". */
     isAdmin: boolean;
 };
+
+/**
+ * Сколько записей показать сразу: на десктопе в два раза больше
+ * обычной страницы (см. HOME_FEED_DESKTOP_INITIAL_SIZE). Ширина
+ * проверяется в момент открытия ленты и смены вкладки, а не следит за
+ * изменением размера окна: уже показанные карточки из-за поворота
+ * экрана или изменения окна не должны пропадать.
+ */
+function getInitialVisibleCount(): number {
+    const isDesktop =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia(HOME_FEED_DESKTOP_MEDIA_QUERY).matches;
+
+    return isDesktop ? HOME_FEED_DESKTOP_INITIAL_SIZE : HOME_FEED_PAGE_SIZE;
+}
 
 /**
  * Социальная лента Главной — основной контент страницы (UX-HOME §12,
@@ -66,7 +85,7 @@ export default function HomeFeed({
     isAdmin,
 }: HomeFeedProps) {
     const [mode, setMode] = useState<HomeFeedMode>("all");
-    const [visibleCount, setVisibleCount] = useState(HOME_FEED_PAGE_SIZE);
+    const [visibleCount, setVisibleCount] = useState(getInitialVisibleCount);
 
     const { status, retry, reload } = useSimulatedLoad();
 
@@ -116,7 +135,7 @@ export default function HomeFeed({
 
     function handleModeChange(nextMode: HomeFeedMode) {
         setMode(nextMode);
-        setVisibleCount(HOME_FEED_PAGE_SIZE);
+        setVisibleCount(getInitialVisibleCount());
         reload();
     }
 

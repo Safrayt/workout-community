@@ -246,7 +246,9 @@ function DurationField({
 }
 
 /**
- * Цель упражнения: повторения или секунды и число. Для секунд можно
+ * Цель упражнения: повторения, секунды или «максимум» и число (у
+ * «максимума» это примерный результат, с которого начнётся отметка
+ * повторений после подхода). Для секунд можно
  * включить «Считать повторения» — когда за время выполняются повторения
  * (подтягивания за 30 секунд), а не статическое удержание; тогда
  * задаётся ориентир повторений. Человеку во время выполнения он не
@@ -263,7 +265,7 @@ function TargetField({
     onChange: (target: ProgramItemTarget) => void;
 }) {
     const kind: ProgramTargetKind = target?.kind ?? "reps";
-    const max = kind === "reps" ? MAX_TARGET_REPS : MAX_TARGET_SECONDS;
+    const max = kind === "seconds" ? MAX_TARGET_SECONDS : MAX_TARGET_REPS;
     const withReps = kind === "seconds" && target?.withReps === true;
 
     return (
@@ -287,6 +289,7 @@ function TargetField({
             >
                 <option value="reps">Повторения</option>
                 <option value="seconds">Секунды</option>
+                <option value="max">Максимум</option>
             </select>
 
             <input
@@ -296,11 +299,19 @@ function TargetField({
                 max={max}
                 className="input__field program-structure-editor__number"
                 aria-label={
-                    kind === "reps"
-                        ? `Число повторений в упражнении ${index + 1}`
-                        : `Число секунд в упражнении ${index + 1}`
+                    kind === "seconds"
+                        ? `Число секунд в упражнении ${index + 1}`
+                        : kind === "max"
+                          ? `Примерное число повторений в максимуме, упражнение ${index + 1}`
+                          : `Число повторений в упражнении ${index + 1}`
                 }
-                placeholder={kind === "reps" ? "Повторений" : "Секунд"}
+                placeholder={
+                    kind === "seconds"
+                        ? "Секунд"
+                        : kind === "max"
+                          ? "Примерно повторений"
+                          : "Повторений"
+                }
                 value={target?.value ?? ""}
                 onChange={(event) =>
                     onChange({
@@ -333,6 +344,16 @@ function TargetField({
                 />
                 Считать повторения
             </label>
+
+            {
+                kind === "max" && (
+                    <span className="program-structure-editor__hint">
+                        Человеку во время выполнения покажется слово
+                        «Максимум». Число — примерный результат: после
+                        подхода отметка повторений начнётся с него.
+                    </span>
+                )
+            }
 
             {
                 withReps && (

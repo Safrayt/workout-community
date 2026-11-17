@@ -25,7 +25,7 @@ import { resolveMediaUrl } from "../media";
 // types/program.ts) и просто хранится бэкендом, не пересчитывается.
 
 export type ApiProgramItemTarget = {
-    kind: "reps" | "seconds";
+    kind: "reps" | "seconds" | "max";
     value: number;
     with_reps?: boolean;
     reps?: number | null;

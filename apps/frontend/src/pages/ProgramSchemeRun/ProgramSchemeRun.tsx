@@ -187,9 +187,9 @@ function ResultField({
             <Stepper
                 value={value}
                 ariaLabel={
-                    step.targetKind === "reps"
-                        ? "Сколько повторений сделано"
-                        : "Сколько секунд выполнялось"
+                    step.targetKind === "seconds"
+                        ? "Сколько секунд выполнялось"
+                        : "Сколько повторений сделано"
                 }
                 onChange={onChange}
             />
@@ -419,7 +419,11 @@ function WorkScreen({
                         </p>
 
                         <p className="program-scheme-run__target-note">
-                            Ориентир — сделайте столько, сколько получится
+                            {
+                                step.targetKind === "max"
+                                    ? "Сделайте свой максимум"
+                                    : "Ориентир — сделайте столько, сколько получится"
+                            }
                         </p>
                     </div>
                 )

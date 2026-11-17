@@ -10,6 +10,16 @@ export const HOME_FEED_DAILY_USER_LIMIT = 3;
 /** Размер одной "страницы" ленты при нажатии "Загрузить ещё" (UX-HOME §25). */
 export const HOME_FEED_PAGE_SIZE = 10;
 
+/**
+ * Сколько записей показано в ленте сразу, пока не нажали "Загрузить
+ * ещё", на десктопе — в два раза больше обычной страницы: в три колонки
+ * десять карточек — это всего три-четыре ряда. Десктоп — ширина от
+ * 1200px (три колонки, как в home-feed.css); на планшете и телефоне
+ * лента сразу показывает обычную страницу.
+ */
+export const HOME_FEED_DESKTOP_INITIAL_SIZE = HOME_FEED_PAGE_SIZE * 2;
+export const HOME_FEED_DESKTOP_MEDIA_QUERY = "(min-width: 1200px)";
+
 /** localStorage-ключ состояния сворачивания карты (UX-HOME §10). */
 export const HOME_ACTIVITY_MAP_COLLAPSED_KEY = "home.activityMap.collapsed";
 
