@@ -104,6 +104,7 @@ def test_free_scheme_is_stored_without_automatic_fields(client, author):
     block = scheme["blocks"][0]
     assert "rounds" not in block
     assert "order" not in block
+    assert "emom_together" not in block
     assert "rest_between_rounds" not in block
     assert block["items"][0] == {
         "exercise_id": PULLUPS,
@@ -202,6 +203,10 @@ def test_out_of_range_block_values_are_rejected(client, author, bad_fields):
         {"kind": "reps", "value": 1000},
         {"kind": "max", "value": 0},
         {"kind": "max", "value": 1000},
+        {"kind": "amrap", "value": 3601},
+        {"kind": "amrap", "value": 0},
+        {"kind": "emom", "value": 3601},
+        {"kind": "emom", "value": 0},
         {"kind": "seconds", "value": 3601},
         {"kind": "minutes", "value": 5},
     ],
@@ -487,6 +492,162 @@ def test_timed_exercise_can_also_count_reps(client, author):
     assert items[1]["target"] == {"kind": "seconds", "value": 60}
 
     assert _publish(client, author["token"], program["id"]).status_code == 200
+
+
+def test_amrap_always_counts_reps_and_is_saved_with_timer_seconds(
+    client, author
+):
+    program = _create_program(client, author["token"])
+    block = _complete_block(
+        items=[
+            # with_reps не передан — у AMRAP повторения считаются всегда.
+            _item(PULLUPS, {"kind": "amrap", "value": 180, "reps": 15}),
+            _item(DIPS, {"kind": "seconds", "value": 60}),
+        ],
+    )
+
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    assert response.status_code == 200, response.text
+
+    items = _draft_scheme(client, author["token"], program["id"])["blocks"][0][
+        "items"
+    ]
+    assert items[0]["target"] == {
+        "kind": "amrap",
+        "value": 180,
+        "with_reps": True,
+        "reps": 15,
+    }
+
+    assert _publish(client, author["token"], program["id"]).status_code == 200
+
+
+def test_emom_always_counts_reps_and_is_saved_with_interval_seconds(
+    client, author
+):
+    program = _create_program(client, author["token"])
+    block = _complete_block(
+        items=[
+            _item(PULLUPS, {"kind": "emom", "value": 40, "reps": 10}),
+            _item(DIPS, {"kind": "seconds", "value": 60}),
+        ],
+        rounds=5,
+        rest_between_rounds=0,
+    )
+
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    assert response.status_code == 200, response.text
+
+    items = _draft_scheme(client, author["token"], program["id"])["blocks"][0][
+        "items"
+    ]
+    assert items[0]["target"] == {
+        "kind": "emom",
+        "value": 40,
+        "with_reps": True,
+        "reps": 10,
+    }
+
+    assert _publish(client, author["token"], program["id"]).status_code == 200
+
+
+def test_emom_together_flag_is_saved_only_when_enabled(client, author):
+    program = _create_program(client, author["token"])
+    emom_items = [
+        _item(PULLUPS, {"kind": "emom", "value": 60, "reps": 10}),
+        {
+            **_item(DIPS, {"kind": "emom", "value": 60, "reps": 15}),
+            "group_with_previous": True,
+        },
+    ]
+
+    enabled = _complete_block(
+        items=emom_items,
+        rounds=5,
+        rest_between_rounds=0,
+        emom_together=True,
+    )
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([enabled], mode="auto"),
+    )
+
+    assert response.status_code == 200, response.text
+    saved = _draft_scheme(client, author["token"], program["id"])["blocks"][0]
+    assert saved["emom_together"] is True
+
+    disabled = _complete_block(
+        items=emom_items,
+        rounds=5,
+        rest_between_rounds=0,
+        emom_together=False,
+    )
+    _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([disabled], mode="auto"),
+    )
+    saved = _draft_scheme(client, author["token"], program["id"])["blocks"][0]
+    assert "emom_together" not in saved
+
+
+def test_emom_without_approximate_reps_cannot_be_published(client, author):
+    program = _create_program(client, author["token"])
+    block = _complete_block(
+        items=[
+            _item(PULLUPS, {"kind": "emom", "value": 40}),
+            _item(DIPS, {"kind": "seconds", "value": 60}),
+        ],
+    )
+
+    _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    response = _publish(client, author["token"], program["id"])
+
+    assert response.status_code == 422
+    assert "подсчётом повторений" in response.json()["detail"]
+
+
+def test_amrap_without_approximate_reps_cannot_be_published(client, author):
+    program = _create_program(client, author["token"])
+    block = _complete_block(
+        items=[
+            _item(PULLUPS, {"kind": "amrap", "value": 180}),
+            _item(DIPS, {"kind": "seconds", "value": 60}),
+        ],
+    )
+
+    _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    response = _publish(client, author["token"], program["id"])
+
+    assert response.status_code == 422
+    assert "подсчётом повторений" in response.json()["detail"]
 
 
 def test_reps_for_timed_exercise_are_required_when_counted(client, author):

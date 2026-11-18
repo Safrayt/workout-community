@@ -96,6 +96,15 @@ class ProgramTargetKind(str, enum.Enum):
     # «Максимум»: человек делает сколько сможет; value — ориентировочное
     # число повторений, с которого он начнёт отмечать результат.
     max = "max"
+    # AMRAP: как можно больше повторений за отведённое время. value —
+    # секунды таймера, повторения всегда считаются (reps — примерный
+    # результат, с которого человек начнёт отмечать свой).
+    amrap = "amrap"
+    # EMOM: каждый подход — отсчёт таймера на value секунд, после нуля он
+    # сам запускается заново, пока не пройдены все подходы (число подходов
+    # — как у комплекса). Повторения считаются всегда (reps — примерное
+    # число повторений за интервал).
+    emom = "emom"
 
 
 class ProgramBlockOrder(str, enum.Enum):
@@ -115,10 +124,13 @@ def _drop_defaults(data: dict, defaults: dict) -> dict:
 
 class ProgramItemTarget(SQLModel):
     """
-    Ориентир для упражнения в автоматической схеме: повторения, секунды
-    или максимум (для него value — примерное число повторений, с
-    которого человек начнёт отмечать свой результат). Это рекомендация,
-    фактический результат пользователь указывает сам.
+    Ориентир для упражнения в автоматической схеме: повторения, секунды,
+    максимум (для него value — примерное число повторений, с которого
+    человек начнёт отмечать свой результат), AMRAP (value — секунды
+    таймера, повторения за это время считаются всегда) или EMOM (value —
+    секунды одного интервала, таймер сам перезапускается на каждый
+    подход, повторения считаются всегда). Это рекомендация, фактический
+    результат пользователь указывает сам.
     """
 
     kind: ProgramTargetKind
@@ -135,7 +147,7 @@ class ProgramItemTarget(SQLModel):
     def _check_value(self) -> "ProgramItemTarget":
         limit = (
             MAX_TARGET_REPS
-            if self.kind != ProgramTargetKind.seconds
+            if self.kind in (ProgramTargetKind.reps, ProgramTargetKind.max)
             else MAX_TARGET_SECONDS
         )
 
@@ -144,10 +156,16 @@ class ProgramItemTarget(SQLModel):
                 f"Цель упражнения должна быть от 1 до {limit}"
             )
 
-        # Повторения «за время» бывают только у упражнений на время;
-        # ориентир без отметки «считать повторения» не нужен.
-        if self.kind != ProgramTargetKind.seconds or not self.with_reps:
-            self.with_reps = False
+        # Повторения «за время» бывают только у упражнений на время, у
+        # AMRAP и EMOM (там они считаются всегда); ориентир без отметки «считать
+        # повторения» не нужен.
+        counts_reps = self.kind in (
+            ProgramTargetKind.amrap,
+            ProgramTargetKind.emom,
+        ) or (self.kind == ProgramTargetKind.seconds and self.with_reps)
+        self.with_reps = counts_reps
+
+        if not counts_reps:
             self.reps = None
 
         return self
@@ -311,12 +329,18 @@ class ProgramBlock(SQLModel):
     rest_after_block: Optional[int] = Field(
         default=None, ge=0, le=MAX_REST_SECONDS
     )
+    # EMOM: упражнения сета, где все цели — EMOM, выполняются не по
+    # очереди (у каждого свой интервал), а все вместе за один интервал.
+    # Секунды интервала — у первого упражнения сета (у остальных то же
+    # число). По умолчанию выключено.
+    emom_together: bool = False
 
     @model_serializer(mode="wrap")
     def _serialize(self, handler):
         return _drop_defaults(
             handler(self),
             {
+                "emom_together": False,
                 "rounds": None,
                 "order": ProgramBlockOrder.sequential.value,
                 "rest_within_set": None,
@@ -417,7 +441,7 @@ def auto_scheme_problems(structure: Optional[dict]) -> List[str]:
                 if any(not (item or {}).get("target") for item in items):
                     problems.append(
                         f"{where}: у каждого упражнения нужно указать "
-                        "повторения, секунды или максимум"
+                        "повторения, секунды, максимум, AMRAP или EMOM"
                     )
 
                 if any(

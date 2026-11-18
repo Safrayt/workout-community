@@ -25,7 +25,7 @@ import { resolveMediaUrl } from "../media";
 // types/program.ts) и просто хранится бэкендом, не пересчитывается.
 
 export type ApiProgramItemTarget = {
-    kind: "reps" | "seconds" | "max";
+    kind: "reps" | "seconds" | "max" | "amrap" | "emom";
     value: number;
     with_reps?: boolean;
     reps?: number | null;
@@ -57,6 +57,7 @@ export type ApiProgramBlock = {
     rest_between_rounds?: number | null;
     rest_between_sets?: number | null;
     rest_after_block?: number | null;
+    emom_together?: boolean;
 };
 
 export type ApiProgramScheme = {
@@ -111,8 +112,12 @@ function mapTargetToApi(
         return null;
     }
 
-    // Повторения за время бывают только у упражнений на секунды.
-    const withReps = target.kind === "seconds" && target.withReps === true;
+    // Повторения за время бывают у упражнений на секунды, AMRAP и EMOM.
+    // У AMRAP и EMOM повторения считаются всегда.
+    const withReps =
+        target.kind === "amrap" ||
+        target.kind === "emom" ||
+        (target.kind === "seconds" && target.withReps === true);
 
     return {
         kind: target.kind,
@@ -198,6 +203,7 @@ function mapApiBlockToBlock(block: ApiProgramBlock): ProgramBlock {
         restBetweenRounds: block.rest_between_rounds ?? undefined,
         restBetweenSets: block.rest_between_sets ?? undefined,
         restAfterBlock: block.rest_after_block ?? undefined,
+        emomTogether: block.emom_together === true ? true : undefined,
     };
 }
 
@@ -263,6 +269,7 @@ function mapBlockToApi(block: ProgramBlock): ApiProgramBlock {
         rest_between_rounds: block.restBetweenRounds ?? null,
         rest_between_sets: block.restBetweenSets ?? null,
         rest_after_block: block.restAfterBlock ?? null,
+        emom_together: block.emomTogether === true,
     };
 }
 

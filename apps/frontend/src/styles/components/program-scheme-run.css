@@ -308,3 +308,41 @@
     border-radius: var(--radius-md);
     white-space: pre-wrap;
 }
+
+.program-scheme-run__emom-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3);
+
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+}
+
+/* Упражнение, которое выполняется сейчас, — подкрашенный фон. */
+.program-scheme-run__emom-row--current {
+    background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+    border-color: var(--color-primary);
+}
+
+/* Остальные упражнения сета приглушены. */
+.program-scheme-run__emom-row--dim {
+    opacity: 0.6;
+}
+
+.program-scheme-run__emom-name {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.program-scheme-run__media-caption {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}

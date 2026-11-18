@@ -5,9 +5,11 @@ import type {
 } from "../types/program";
 
 import {
+    formatDuration,
     getBlockSets,
     getSetRounds,
     hasSupersets,
+    isEmomTogetherSet,
     roundsAreCircles,
 } from "./programAuto";
 import { pluralizeRu } from "./pluralize";
@@ -59,12 +61,37 @@ export type RunStep = {
     /** Ключ упражнения в комплексе — один и тот же во всех подходах. */
     groupKey: string;
 
+    /** EMOM «все вместе»: все упражнения сета, выполняемые в одном
+     *  интервале (item и groupKey шага — у первого из них). Нет у
+     *  остальных шагов. */
+    together?: RunTogetherEntry[];
+
     /** Отдых после шага, секунды; у последнего шага — null. */
     restAfter: number | null;
     restKind: RunRestKind | null;
 };
 
+/** Упражнение интервала EMOM «все вместе». */
+export type RunTogetherEntry = {
+    item: ProgramBlockItem;
+    groupKey: string;
+
+    /** Ориентир автора для числа повторений. */
+    reps: number;
+};
+
 type SetRun = { setIndex: number; round: number };
+
+/** Упражнения, которые выполняются по таймеру: секунды, AMRAP, EMOM. */
+export function isTimedKind(kind: ProgramTargetKind): boolean {
+    return kind === "seconds" || kind === "amrap" || kind === "emom";
+}
+
+/** Виды, где человек отмечает только повторения за время (секунды
+ *  известны по таймеру): AMRAP и EMOM. */
+export function isRepsOnlyTimedKind(kind: ProgramTargetKind): boolean {
+    return kind === "amrap" || kind === "emom";
+}
 
 export function buildRunSteps(scheme: ProgramScheme): RunStep[] {
     const steps: RunStep[] = [];
@@ -100,11 +127,14 @@ export function buildRunSteps(scheme: ProgramScheme): RunStep[] {
             const set = sets[run.setIndex];
             const nextRun = runs[runIndex + 1];
 
-            set.forEach((item, itemIndex) => {
+            // «Все вместе»: весь сет — один шаг, один интервал.
+            const together = isEmomTogetherSet(block, set);
+
+            (together ? [set[0]] : set).forEach((item, itemIndex) => {
                 let restAfter: number;
                 let restKind: RunRestKind;
 
-                if (itemIndex < set.length - 1) {
+                if (!together && itemIndex < set.length - 1) {
                     restAfter = block.restWithinSet ?? 0;
                     restKind = "within-set";
                 } else if (nextRun) {
@@ -142,10 +172,21 @@ export function buildRunSteps(scheme: ProgramScheme): RunStep[] {
                     targetKind: item.target?.kind ?? "reps",
                     targetValue: item.target?.value ?? 0,
                     trackReps:
-                        item.target?.kind === "seconds" &&
-                        item.target.withReps === true,
+                        item.target?.kind === "amrap" ||
+                        item.target?.kind === "emom" ||
+                        (item.target?.kind === "seconds" &&
+                            item.target.withReps === true),
                     targetReps: item.target?.reps ?? 0,
                     groupKey: `${blockIndex}:${run.setIndex}:${itemIndex}`,
+                    ...(together
+                        ? {
+                              together: set.map((entry, entryIndex) => ({
+                                  item: entry,
+                                  groupKey: `${blockIndex}:${run.setIndex}:${entryIndex}`,
+                                  reps: entry.target?.reps ?? 0,
+                              })),
+                          }
+                        : {}),
                     restAfter,
                     restKind,
                 });
@@ -198,6 +239,15 @@ export type RunState = RunIds & {
 
     /** Повторения, сделанные за время, — только у шагов с trackReps. */
     repsResults: Record<number, number>;
+
+    /** EMOM: сколько повторений человек указал сейчас для упражнения
+     *  (ключ — groupKey). Меняется в любой момент, а на нуле таймера
+     *  значение записывается как результат подхода. */
+    emomReps?: Record<string, number>;
+
+    /** EMOM «все вместе»: повторения каждого упражнения в каждом
+     *  интервале — индекс шага → ключ упражнения → повторения. */
+    togetherReps?: Record<number, Record<string, number>>;
 };
 
 export const MAX_RESULT = 9999;
@@ -263,6 +313,15 @@ export function parseRunState(
             typeof state.repsResults === "object" && state.repsResults !== null
                 ? state.repsResults
                 : {},
+        emomReps:
+            typeof state.emomReps === "object" && state.emomReps !== null
+                ? state.emomReps
+                : {},
+        togetherReps:
+            typeof state.togetherReps === "object" &&
+            state.togetherReps !== null
+                ? state.togetherReps
+                : {},
     };
 }
 
@@ -271,6 +330,160 @@ export function startTimedWork(state: RunState, now: number): RunState {
     return state.workStartedAt === undefined
         ? { ...state, workStartedAt: now }
         : state;
+}
+
+/** Сколько повторений сейчас указано для EMOM-упражнения: то, что
+ *  человек вписал, а пока он не менял — ориентир автора. */
+export function emomRepsOf(state: RunState, step: RunStep): number {
+    return emomRepsFor(state, step.groupKey, step.targetReps);
+}
+
+export function emomRepsFor(
+    state: RunState,
+    groupKey: string,
+    fallback: number
+): number {
+    return state.emomReps?.[groupKey] ?? fallback;
+}
+
+export function setEmomReps(
+    state: RunState,
+    groupKey: string,
+    value: number
+): RunState {
+    const safe = Math.min(MAX_RESULT, Math.max(0, Math.floor(value)));
+
+    return {
+        ...state,
+        emomReps: { ...state.emomReps, [groupKey]: safe },
+    };
+}
+
+/**
+ * EMOM: следующий шаг начинается сам, если он тоже EMOM из того же сета
+ * комплекса (то же упражнение в следующем подходе или следующее
+ * упражнение сета) и между ними нет отдыха. Другие сеты и комплексы
+ * автоматически не запускаются: там человека ждёт свой экран.
+ */
+export function emomContinues(
+    step: RunStep,
+    next: RunStep | undefined
+): boolean {
+    return (
+        step.targetKind === "emom" &&
+        next !== undefined &&
+        next.targetKind === "emom" &&
+        next.blockIndex === step.blockIndex &&
+        next.setNumber === step.setNumber &&
+        step.restAfter === 0
+    );
+}
+
+/** Упражнение в окошках повторений EMOM. */
+export type EmomPanelEntry = {
+    groupKey: string;
+    item: ProgramBlockItem;
+
+    /** Ориентир автора. */
+    reps: number;
+};
+
+/** Упражнения EMOM-сета для окошек повторений: каждое по одному разу, в
+ *  порядке сета. У EMOM из одного упражнения — только оно, у «все
+ *  вместе» — все упражнения интервала. */
+export function emomPanel(steps: RunStep[], step: RunStep): EmomPanelEntry[] {
+    if (step.together) {
+        return step.together;
+    }
+
+    const seen = new Set<string>();
+    const entries: EmomPanelEntry[] = [];
+
+    steps.forEach((item) => {
+        if (
+            item.targetKind !== "emom" ||
+            item.blockIndex !== step.blockIndex ||
+            item.setNumber !== step.setNumber ||
+            seen.has(item.groupKey)
+        ) {
+            return;
+        }
+
+        seen.add(item.groupKey);
+        entries.push({
+            groupKey: item.groupKey,
+            item: item.item,
+            reps: item.targetReps,
+        });
+    });
+
+    return entries;
+}
+
+/** Как называть шаг: у «все вместе» — все упражнения интервала. */
+export function describeStepName(
+    step: RunStep,
+    nameOf: (item: ProgramBlockItem) => string
+): string {
+    return step.together
+        ? step.together.map((entry) => nameOf(entry.item)).join(" + ")
+        : nameOf(step.item);
+}
+
+/**
+ * EMOM: когда таймер дошёл до нуля, подход закончен — повторения
+ * записываются по значению в окошке на этот момент. Если следом идёт
+ * следующий EMOM этого же сета без отдыха, он начинается сам, с
+ * момента нуля (а не «сейчас»: так время не накапливает погрешность),
+ * иначе — обычное завершение (отдых или конец схемы). Если вкладка
+ * какое-то время не работала, пройденные за это время интервалы
+ * закрываются по очереди. Если ничего не изменилось, возвращает тот же
+ * объект.
+ */
+export function advanceEmom(
+    state: RunState,
+    steps: RunStep[],
+    now: number
+): RunState {
+    let current = state;
+
+    for (let guard = 0; guard <= steps.length; guard += 1) {
+        const step = steps[current.stepIndex];
+
+        if (
+            !step ||
+            step.targetKind !== "emom" ||
+            current.phase !== "work" ||
+            current.workStartedAt === undefined
+        ) {
+            return current;
+        }
+
+        const endsAt = current.workStartedAt + step.targetValue * 1000;
+
+        if (now < endsAt) {
+            return current;
+        }
+
+        const next = steps[current.stepIndex + 1];
+        const continues = emomContinues(step, next);
+
+        const done = completeWork(current, steps, endsAt);
+
+        if (!continues) {
+            return done;
+        }
+
+        current = {
+            ...done,
+            stepIndex: current.stepIndex + 1,
+            phase: "work",
+            workStartedAt: endsAt,
+            restEndsAt: undefined,
+        };
+    }
+
+    return current;
 }
 
 /**
@@ -286,10 +499,16 @@ export function completeWork(
 ): RunState {
     const step = steps[state.stepIndex];
 
+    // У AMRAP и EMOM время ограничено таймером: больше отведённого не
+    // бывает.
+    const timedLimit = isRepsOnlyTimedKind(step.targetKind)
+        ? step.targetValue
+        : MAX_RESULT;
+
     const result =
-        step.targetKind === "seconds" && state.workStartedAt !== undefined
+        isTimedKind(step.targetKind) && state.workStartedAt !== undefined
             ? Math.min(
-                  MAX_RESULT,
+                  timedLimit,
                   Math.max(1, Math.round((now - state.workStartedAt) / 1000))
               )
             : step.targetValue;
@@ -298,9 +517,30 @@ export function completeWork(
 
     // Повторения за время предлагаем по ориентиру автора — человек
     // поправит.
+    // У EMOM — то, что указано в окошке на этот момент.
     const repsResults = step.trackReps
-        ? { ...state.repsResults, [state.stepIndex]: step.targetReps }
+        ? {
+              ...state.repsResults,
+              [state.stepIndex]:
+                  step.targetKind === "emom"
+                      ? emomRepsOf(state, step)
+                      : step.targetReps,
+          }
         : state.repsResults;
+
+    // «Все вместе»: повторения каждого упражнения интервала на этот
+    // момент.
+    const togetherReps = step.together
+        ? {
+              ...state.togetherReps,
+              [state.stepIndex]: Object.fromEntries(
+                  step.together.map((entry) => [
+                      entry.groupKey,
+                      emomRepsFor(state, entry.groupKey, entry.reps),
+                  ])
+              ),
+          }
+        : state.togetherReps;
 
     if (step.restAfter === null) {
         return {
@@ -308,6 +548,7 @@ export function completeWork(
             phase: "finished",
             results,
             repsResults,
+            togetherReps,
             workStartedAt: undefined,
             restEndsAt: undefined,
         };
@@ -318,6 +559,7 @@ export function completeWork(
         phase: "rest",
         results,
         repsResults,
+        togetherReps,
         workStartedAt: undefined,
         restEndsAt: step.restAfter > 0 ? now + step.restAfter * 1000 : undefined,
     };
@@ -344,6 +586,27 @@ export function setStepReps(
     return {
         ...state,
         repsResults: { ...state.repsResults, [stepIndex]: safe },
+    };
+}
+
+/** EMOM «все вместе»: поправить повторения упражнения в интервале. */
+export function setTogetherReps(
+    state: RunState,
+    stepIndex: number,
+    groupKey: string,
+    value: number
+): RunState {
+    const safe = Math.min(MAX_RESULT, Math.max(0, Math.floor(value)));
+
+    return {
+        ...state,
+        togetherReps: {
+            ...state.togetherReps,
+            [stepIndex]: {
+                ...state.togetherReps?.[stepIndex],
+                [groupKey]: safe,
+            },
+        },
     };
 }
 
@@ -394,8 +657,8 @@ export function formatClock(totalSeconds: number): string {
 }
 
 export function resultUnit(kind: ProgramTargetKind, value: number): string {
-    // «Максимум» — это тоже повторения: результат отмечается числом.
-    return kind === "seconds"
+    // «Максимум» — это повторения: результат отмечается числом.
+    return isTimedKind(kind)
         ? pluralizeRu(value, ["секунда", "секунды", "секунд"])
         : pluralizeRu(value, ["повторение", "повторения", "повторений"]);
 }
@@ -440,11 +703,17 @@ export function buildRunSummaryBlocks(
     steps: RunStep[],
     results: Record<number, number>,
     nameOf: (item: ProgramBlockItem) => string,
-    repsResults: Record<number, number> = {}
+    repsResults: Record<number, number> = {},
+    togetherReps: Record<number, Record<string, number>> = {}
 ): RunSummaryBlock[] {
     const groups = new Map<
         string,
-        { step: RunStep; values: number[]; reps: number[] }
+        {
+            step: RunStep;
+            item: ProgramBlockItem;
+            values: number[];
+            reps: number[];
+        }
     >();
 
     steps.forEach((step) => {
@@ -454,20 +723,42 @@ export function buildRunSummaryBlocks(
             return;
         }
 
-        const reps = repsResults[step.index] ?? step.targetReps;
-        const group = groups.get(step.groupKey);
+        // «Все вместе»: в одном интервале несколько упражнений, у
+        // каждого свои повторения.
+        const entries = step.together
+            ? step.together.map((entry) => ({
+                  groupKey: entry.groupKey,
+                  item: entry.item,
+                  reps: togetherReps[step.index]?.[entry.groupKey] ?? entry.reps,
+              }))
+            : [
+                  {
+                      groupKey: step.groupKey,
+                      item: step.item,
+                      reps: repsResults[step.index] ?? step.targetReps,
+                  },
+              ];
 
-        if (group) {
-            group.values.push(value);
-            group.reps.push(reps);
-        } else {
-            groups.set(step.groupKey, { step, values: [value], reps: [reps] });
-        }
+        entries.forEach(({ groupKey, item, reps }) => {
+            const group = groups.get(groupKey);
+
+            if (group) {
+                group.values.push(value);
+                group.reps.push(reps);
+            } else {
+                groups.set(groupKey, {
+                    step,
+                    item,
+                    values: [value],
+                    reps: [reps],
+                });
+            }
+        });
     });
 
     const blocks: RunSummaryBlock[] = [];
 
-    groups.forEach(({ step, values, reps }) => {
+    groups.forEach(({ step, item, values, reps }) => {
         let block = blocks.find((item) => item.blockIndex === step.blockIndex);
 
         if (!block) {
@@ -501,9 +792,14 @@ export function buildRunSummaryBlocks(
             ? ` (повторений: ${reps.join(", ")})`
             : "";
 
+        // EMOM: главное — повторения по подходам, «10, 8, 5 повторений
+        // (EMOM, 40 секунд)»; секунды у всех подходов одинаковые.
         set.entries.push({
-            name: nameOf(step.item),
-            results: `${values.join(", ")} ${resultUnit(step.targetKind, last)}${repsNote}`,
+            name: nameOf(item),
+            results:
+                step.targetKind === "emom"
+                    ? `${reps.join(", ")} ${resultUnit("reps", reps[reps.length - 1])} (EMOM, ${formatDuration(step.targetValue)})`
+                    : `${values.join(", ")} ${resultUnit(step.targetKind, last)}${repsNote}`,
         });
     });
 
@@ -535,6 +831,9 @@ export type RunDescriptionInput = {
 
     /** Повторения за время (см. RunState.repsResults). */
     repsResults?: Record<number, number>;
+
+    /** EMOM «все вместе» (см. RunState.togetherReps). */
+    togetherReps?: Record<number, Record<string, number>>;
     nameOf: (item: ProgramBlockItem) => string;
 
     /** Сколько минут длилась тренировка. */
@@ -578,7 +877,8 @@ export function buildRunDescription(input: RunDescriptionInput): string {
         input.steps,
         input.results,
         input.nameOf,
-        input.repsResults
+        input.repsResults,
+        input.togetherReps
     );
 
     const body = blocks

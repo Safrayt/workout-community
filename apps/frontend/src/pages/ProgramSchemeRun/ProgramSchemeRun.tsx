@@ -28,6 +28,16 @@ import {
     setStepReps,
     setStepResult,
     startTimedWork,
+    isTimedKind,
+    isRepsOnlyTimedKind,
+    advanceEmom,
+    emomContinues,
+    emomPanel,
+    emomRepsFor,
+    describeStepName,
+    setTogetherReps,
+    setEmomReps,
+    type EmomPanelEntry,
     totalRestSeconds,
     type RunIds,
     type RunState,
@@ -160,6 +170,8 @@ function Stepper({
     );
 }
 
+type TogetherRows = { groupKey: string; name: string; value: number }[];
+
 /**
  * Результат подхода: сколько повторений или секунд. У упражнения на
  * время, где автор включил «Считать повторения», — ещё и сколько
@@ -172,6 +184,8 @@ function ResultField({
     label,
     onChange,
     onRepsChange,
+    togetherRows,
+    onTogetherRepsChange,
 }: {
     step: RunStep;
     value: number;
@@ -179,31 +193,85 @@ function ResultField({
     label: string;
     onChange: (value: number) => void;
     onRepsChange: (value: number) => void;
+
+    /** EMOM «все вместе»: повторения каждого упражнения интервала. */
+    togetherRows?: { groupKey: string; name: string; value: number }[];
+    onTogetherRepsChange?: (groupKey: string, value: number) => void;
 }) {
+    // У AMRAP и EMOM время известно (таймер) — спрашиваем только
+    // повторения.
+    const isAmrap = isRepsOnlyTimedKind(step.targetKind);
+
     return (
         <div className="program-scheme-run__result">
             <p className="program-scheme-run__result-label">{label}</p>
 
-            <Stepper
-                value={value}
-                ariaLabel={
-                    step.targetKind === "seconds"
-                        ? "Сколько секунд выполнялось"
-                        : "Сколько повторений сделано"
-                }
-                onChange={onChange}
-            />
+            {
+                // У AMRAP время известно (таймер) — спрашиваем только
+                // повторения.
+                !isAmrap && (
+                    <>
+                        <Stepper
+                            value={value}
+                            ariaLabel={
+                                isTimedKind(step.targetKind)
+                                    ? "Сколько секунд выполнялось"
+                                    : "Сколько повторений сделано"
+                            }
+                            onChange={onChange}
+                        />
 
-            <p className="program-scheme-run__result-unit">
-                {resultUnit(step.targetKind, value)}
-            </p>
+                        <p className="program-scheme-run__result-unit">
+                            {resultUnit(step.targetKind, value)}
+                        </p>
+                    </>
+                )
+            }
 
             {
-                step.trackReps && (
+                togetherRows && onTogetherRepsChange && (
                     <>
-                        <p className="program-scheme-run__result-label">
-                            Сколько повторений сделали за это время
-                        </p>
+                        {
+                            togetherRows.map((row) => (
+                                <div
+                                    key={row.groupKey}
+                                    className="program-scheme-run__emom-row"
+                                >
+                                    <p className="program-scheme-run__emom-name">
+                                        {row.name}
+                                    </p>
+
+                                    <Stepper
+                                        value={row.value}
+                                        ariaLabel={`Сколько повторений: ${row.name}`}
+                                        onChange={(next) =>
+                                            onTogetherRepsChange(
+                                                row.groupKey,
+                                                next
+                                            )
+                                        }
+                                    />
+
+                                    <p className="program-scheme-run__result-unit">
+                                        {resultUnit("reps", row.value)}
+                                    </p>
+                                </div>
+                            ))
+                        }
+                    </>
+                )
+            }
+
+            {
+                step.trackReps && !togetherRows && (
+                    <>
+                        {
+                            !isAmrap && (
+                                <p className="program-scheme-run__result-label">
+                                    Сколько повторений сделали за это время
+                                </p>
+                            )
+                        }
 
                         <Stepper
                             value={repsValue}
@@ -321,29 +389,135 @@ function IntroScreen({
 // Рабочий экран: упражнение, цель, секундомер
 // =====================================================================
 
+/** Сколько секунд показывается фото, если упражнений несколько. */
+const PHOTO_SECONDS = 5;
+
+/**
+ * Видео или фото упражнения. Если упражнений несколько (EMOM «все
+ * вместе»), они сменяют друг друга по кругу: видео — когда доиграло,
+ * фото — через PHOTO_SECONDS секунд. У одного упражнения видео
+ * проигрывается по кругу, как и раньше.
+ */
+function ExerciseMedia({ exercises }: { exercises: Exercise[] }) {
+    const withMedia = exercises.filter(
+        (exercise) => exercise.videoUrl || exercise.photoUrl
+    );
+    const several = withMedia.length > 1;
+
+    const [index, setIndex] = useState(0);
+
+    // Номер, на котором видео не загрузилось: ведём себя как с фото —
+    // показываем паузу и идём дальше.
+    const [failedIndex, setFailedIndex] = useState<number | null>(null);
+
+    const current = withMedia.length > 0
+        ? withMedia[index % withMedia.length]
+        : undefined;
+
+    const showsPhoto =
+        current !== undefined &&
+        (!current.videoUrl || failedIndex === index);
+
+    useEffect(() => {
+        if (!several || !showsPhoto) {
+            return;
+        }
+
+        const timer = window.setTimeout(
+            () => setIndex((value) => value + 1),
+            PHOTO_SECONDS * 1000
+        );
+
+        return () => window.clearTimeout(timer);
+    }, [several, showsPhoto, index]);
+
+    if (!current) {
+        return null;
+    }
+
+    return (
+        <>
+            {
+                current.videoUrl && failedIndex !== index ? (
+                    <video
+                        // key — при смене упражнения плеер создаётся заново.
+                        key={`${index}:${current.videoUrl}`}
+                        className="program-scheme-run__media"
+                        src={`${current.videoUrl}#t=0.1`}
+                        poster={current.photoUrl}
+                        autoPlay
+                        muted
+                        loop={!several}
+                        playsInline
+                        preload="auto"
+                        aria-label={`Видео: ${current.name}`}
+                        onEnded={
+                            several
+                                ? () => setIndex((value) => value + 1)
+                                : undefined
+                        }
+                        onError={
+                            several ? () => setFailedIndex(index) : undefined
+                        }
+                    />
+                ) : (
+                    current.photoUrl && (
+                        <img
+                            className="program-scheme-run__media"
+                            src={current.photoUrl}
+                            alt={current.name}
+                        />
+                    )
+                )
+            }
+
+            {
+                several && (
+                    <p className="program-scheme-run__media-caption">
+                        {current.name}
+                    </p>
+                )
+            }
+        </>
+    );
+}
+
 function WorkScreen({
     step,
     nextStep,
     name,
-    exercise,
+    exercises,
     state,
     now,
     nameOf,
     onStartTimer,
+    onEmomReps,
     onDone,
+    emomEntries,
 }: {
     step: RunStep;
     nextStep: RunStep | undefined;
     name: string;
-    exercise: Exercise | undefined;
+    /** Упражнения шага: у EMOM «все вместе» их несколько. */
+    exercises: Exercise[];
     state: RunState;
     now: number;
     nameOf: (item: ProgramBlockItem) => string;
     onStartTimer: () => void;
+    onEmomReps: (groupKey: string, value: number) => void;
     onDone: () => void;
+
+    /** Упражнения EMOM-сета для окошек повторений. */
+    emomEntries: EmomPanelEntry[];
 }) {
     const position = describePosition(step);
-    const isTimed = step.targetKind === "seconds";
+    const isTimed = isTimedKind(step.targetKind);
+    const isAmrap = step.targetKind === "amrap";
+    const isEmom = step.targetKind === "emom";
+
+    // EMOM: следующий подход (или следующее упражнение сета) начнётся
+    // сам.
+    const continuesToNext = emomContinues(step, nextStep);
     const timerStarted = state.workStartedAt !== undefined;
     const elapsed = timerStarted
         ? Math.max(0, Math.floor((now - state.workStartedAt!) / 1000))
@@ -360,31 +534,7 @@ function WorkScreen({
 
             <h1 className="program-scheme-run__exercise">{name}</h1>
 
-            {
-                exercise?.videoUrl ? (
-                    <video
-                        // key — при смене упражнения плеер создаётся заново.
-                        key={exercise.videoUrl}
-                        className="program-scheme-run__media"
-                        src={`${exercise.videoUrl}#t=0.1`}
-                        poster={exercise.photoUrl}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        aria-label={`Видео: ${name}`}
-                    />
-                ) : (
-                    exercise?.photoUrl && (
-                        <img
-                            className="program-scheme-run__media"
-                            src={exercise.photoUrl}
-                            alt={name}
-                        />
-                    )
-                )
-            }
+            <ExerciseMedia key={step.index} exercises={exercises} />
 
             {
                 isTimed && timerStarted ? (
@@ -400,15 +550,27 @@ function WorkScreen({
                             {
                                 remaining > 0
                                     ? formatClock(remaining)
-                                    : `+${formatClock(-remaining)}`
+                                    : isAmrap || isEmom
+                                      ? formatClock(0)
+                                      : `+${formatClock(-remaining)}`
                             }
                         </p>
 
                         <p className="program-scheme-run__target-note">
                             {
-                                remaining > 0
-                                    ? `Цель: ${formatTarget(step.item.target)}`
-                                    : "Цель выполнена — можно продолжать дольше"
+                                isEmom
+                                    ? continuesToNext && nextStep
+                                        ? nextStep.groupKey === step.groupKey
+                                            ? "Когда таймер дойдёт до нуля, следующий подход начнётся сам"
+                                            : `Когда таймер дойдёт до нуля, начнётся: ${describeStepName(nextStep, nameOf)}`
+                                        : "Это последний интервал: на нуле таймера он закончится"
+                                    : isAmrap
+                                      ? remaining > 0
+                                          ? "Сделайте как можно больше повторений"
+                                          : "Время вышло — нажмите «Готово»"
+                                      : remaining > 0
+                                      ? `Цель: ${formatTarget(step.item.target)}`
+                                      : "Цель выполнена — можно продолжать дольше"
                             }
                         </p>
                     </div>
@@ -422,9 +584,93 @@ function WorkScreen({
                             {
                                 step.targetKind === "max"
                                     ? "Сделайте свой максимум"
-                                    : "Ориентир — сделайте столько, сколько получится"
+                                    : isEmom
+                                      ? "Каждый подход — отсчёт с этого времени, таймер перезапускается сам"
+                                      : isAmrap
+                                        ? "Сделайте как можно больше повторений за это время"
+                                        : "Ориентир — сделайте столько, сколько получится"
                             }
                         </p>
+                    </div>
+                )
+            }
+
+            {
+                // EMOM: окошки с повторениями — и до старта, и во время
+                // выполнения; по одному на каждое упражнение сета. На
+                // нуле таймера значение упражнения запоминается как
+                // результат его подхода.
+                isEmom && (
+                    <div className="program-scheme-run__result">
+                        <p className="program-scheme-run__result-label">
+                            {
+                                timerStarted
+                                    ? "Повторения — запомнятся на нуле таймера"
+                                    : step.together
+                                      ? "Сколько повторений каждого упражнения вы планируете сделать за интервал"
+                                      : emomEntries.length > 1
+                                      ? "Сколько повторений вы планируете делать в каждом упражнении"
+                                      : "Сколько повторений вы планируете делать в каждом подходе"
+                            }
+                        </p>
+
+                        {
+                            emomEntries.map((emomEntry) => {
+                                const reps = emomRepsFor(
+                                    state,
+                                    emomEntry.groupKey,
+                                    emomEntry.reps
+                                );
+
+                                // «Все вместе» — делаются сразу все.
+                                const current =
+                                    !step.together &&
+                                    emomEntry.groupKey === step.groupKey;
+                                const exerciseName = nameOf(emomEntry.item);
+
+                                return (
+                                    <div
+                                        key={emomEntry.groupKey}
+                                        className={
+                                            current
+                                                ? "program-scheme-run__emom-row program-scheme-run__emom-row--current"
+                                                : step.together
+                                                  ? "program-scheme-run__emom-row"
+                                                  : "program-scheme-run__emom-row program-scheme-run__emom-row--dim"
+                                        }
+                                        aria-current={current ? "true" : undefined}
+                                    >
+                                        {
+                                            emomEntries.length > 1 && (
+                                                <p className="program-scheme-run__emom-name">
+                                                    {exerciseName}
+                                                    {
+                                                        current && timerStarted
+                                                            ? " — сейчас"
+                                                            : ""
+                                                    }
+                                                </p>
+                                            )
+                                        }
+
+                                        <Stepper
+                                            value={reps}
+                                            ariaLabel={`Сколько повторений: ${exerciseName}`}
+                                            onChange={(value) =>
+                                                onEmomReps(
+                                                    emomEntry.groupKey,
+                                                    value
+                                                )
+                                            }
+                                        />
+
+                                        <p className="program-scheme-run__result-unit">
+                                            {resultUnit("reps", reps)}
+                                        </p>
+                                    </div>
+                                );
+                            })
+                        }
                     </div>
                 )
             }
@@ -443,6 +689,12 @@ function WorkScreen({
                     >
                         Старт
                     </Button>
+                ) : isEmom ? (
+                    // Подходы EMOM заканчиваются сами; кнопка — на случай,
+                    // если нужно остановиться раньше.
+                    <Button variant="secondary" onClick={onDone}>
+                        Закончить досрочно
+                    </Button>
                 ) : (
                     <Button
                         className="program-scheme-run__big-button"
@@ -456,7 +708,7 @@ function WorkScreen({
             <p className="program-scheme-run__next">
                 {
                     nextStep
-                        ? `Дальше: ${nameOf(nextStep.item)}, ${formatTarget(nextStep.item.target)}`
+                        ? `Дальше: ${describeStepName(nextStep, nameOf)}, ${formatTarget(nextStep.item.target)}`
                         : "Это последний подход"
                 }
             </p>
@@ -477,6 +729,8 @@ function RestScreen({
     nameOf,
     onResult,
     onReps,
+    togetherRows,
+    onTogetherReps,
     onExtend,
     onNext,
 }: {
@@ -488,6 +742,8 @@ function RestScreen({
     nameOf: (item: ProgramBlockItem) => string;
     onResult: (value: number) => void;
     onReps: (value: number) => void;
+    togetherRows?: TogetherRows;
+    onTogetherReps: (groupKey: string, value: number) => void;
     onExtend: () => void;
     onNext: () => void;
 }) {
@@ -538,12 +794,14 @@ function RestScreen({
                 label={`Сколько вы сделали: ${resultLabel}`}
                 onChange={onResult}
                 onRepsChange={onReps}
+                togetherRows={togetherRows}
+                onTogetherRepsChange={onTogetherReps}
             />
 
             <div className="program-scheme-run__next-card">
                 <p className="program-scheme-run__next-label">Дальше</p>
                 <p className="program-scheme-run__next-name">
-                    {nameOf(nextStep.item)}
+                    {describeStepName(nextStep, nameOf)}
                 </p>
                 <p className="program-scheme-run__next-meta">
                     {
@@ -594,6 +852,8 @@ function FinishScreen({
     backTo,
     onResult,
     onReps,
+    togetherRows,
+    onTogetherReps,
     onCreateEntry,
     onRestart,
     onClose,
@@ -601,6 +861,8 @@ function FinishScreen({
     steps: RunStep[];
     state: RunState;
     name: string;
+    togetherRows?: TogetherRows;
+    onTogetherReps: (groupKey: string, value: number) => void;
 
     /** Текст итога — он же попадёт в запись дневника. */
     description: string;
@@ -625,6 +887,8 @@ function FinishScreen({
                 label={`Последний подход — сколько вы сделали: ${name}`}
                 onChange={onResult}
                 onRepsChange={onReps}
+                togetherRows={togetherRows}
+                onTogetherRepsChange={onTogetherReps}
             />
 
             <h2 className="program-scheme-run__subtitle">Итог тренировки</h2>
@@ -716,6 +980,18 @@ function RunScreen({
             : undefined;
     }
 
+    // EMOM «все вместе»: повторения каждого упражнения интервала —
+    // для правки на экране отдыха и в конце.
+    function togetherRowsOf(target: RunStep): TogetherRows | undefined {
+        return target.together?.map((entry) => ({
+            groupKey: entry.groupKey,
+            name: nameOf(entry.item),
+            value:
+                state?.togetherReps?.[target.index]?.[entry.groupKey] ??
+                entry.reps,
+        }));
+    }
+
     function nameOf(item: ProgramBlockItem): string {
         return item.kind === "exercise"
             ? exerciseById.get(item.exerciseId)?.name ?? "Упражнение"
@@ -732,7 +1008,9 @@ function RunScreen({
 
     const timedOver =
         state?.phase === "work" &&
-        step?.targetKind === "seconds" &&
+        step !== undefined &&
+        isTimedKind(step.targetKind) &&
+        step.targetKind !== "emom" &&
         state.workStartedAt !== undefined &&
         (now - state.workStartedAt) / 1000 >= step.targetValue;
 
@@ -748,6 +1026,21 @@ function RunScreen({
             playSignal();
         }
     }, [state, restOver, timedOver]);
+
+    // EMOM: на нуле таймера подход записывается, и следующий начинается
+    // сам (или упражнение заканчивается). Сигнал — на каждом нуле.
+    useEffect(() => {
+        if (!state || state.phase !== "work") {
+            return;
+        }
+
+        const advanced = advanceEmom(state, steps, now);
+
+        if (advanced !== state) {
+            playSignal();
+            setState(advanced);
+        }
+    }, [now, state, steps]);
 
     function update(change: (current: RunState) => RunState) {
         setState((current) => (current ? change(current) : current));
@@ -771,7 +1064,16 @@ function RunScreen({
         // Если отдых успел закончиться, пока вкладка была закрыта, —
         // сигнал для него уже не нужен.
         signalledRef.current = `${saved.stepIndex}:${saved.phase}`;
-        setState(saved);
+
+        // EMOM нельзя «догонять»: пока вкладка была закрыта, интервалы
+        // не выполнялись — подход начнётся заново по «Старту».
+        const resumed =
+            saved.phase === "work" &&
+            steps[saved.stepIndex]?.targetKind === "emom"
+                ? { ...saved, workStartedAt: undefined }
+                : saved;
+
+        setState(resumed);
         setSaved(null);
     }
 
@@ -818,6 +1120,7 @@ function RunScreen({
                 steps,
                 results: state.results,
                 repsResults: state.repsResults,
+                togetherReps: state.togetherReps,
                 nameOf,
                 minutes,
             }),
@@ -895,8 +1198,16 @@ function RunScreen({
                     <WorkScreen
                         step={step}
                         nextStep={nextStep}
-                        name={nameOf(step.item)}
-                        exercise={exerciseOf(step.item)}
+                        name={describeStepName(step, nameOf)}
+                        exercises={(step.together
+                            ? step.together.map((entry) =>
+                                  exerciseOf(entry.item)
+                              )
+                            : [exerciseOf(step.item)]
+                        ).filter(
+                            (exercise): exercise is Exercise =>
+                                exercise !== undefined
+                        )}
                         state={state}
                         now={now}
                         nameOf={nameOf}
@@ -906,6 +1217,12 @@ function RunScreen({
                                 startTimedWork(current, Date.now())
                             );
                         }}
+                        emomEntries={emomPanel(steps, step)}
+                        onEmomReps={(groupKey, value) =>
+                            update((current) =>
+                                setEmomReps(current, groupKey, value)
+                            )
+                        }
                         onDone={() => {
                             unlockSignal();
                             update((current) =>
@@ -921,7 +1238,7 @@ function RunScreen({
                     <RestScreen
                         step={step}
                         nextStep={nextStep}
-                        name={nameOf(step.item)}
+                        name={describeStepName(step, nameOf)}
                         state={state}
                         now={now}
                         nameOf={nameOf}
@@ -933,6 +1250,17 @@ function RunScreen({
                         onReps={(value) =>
                             update((current) =>
                                 setStepReps(current, step.index, value)
+                            )
+                        }
+                        togetherRows={togetherRowsOf(step)}
+                        onTogetherReps={(groupKey, value) =>
+                            update((current) =>
+                                setTogetherReps(
+                                    current,
+                                    step.index,
+                                    groupKey,
+                                    value
+                                )
                             )
                         }
                         onExtend={() =>
@@ -952,7 +1280,7 @@ function RunScreen({
                     <FinishScreen
                         steps={steps}
                         state={state}
-                        name={nameOf(step.item)}
+                        name={describeStepName(step, nameOf)}
                         description={buildRunDescription({
                             programTitle,
                             sectionName,
@@ -960,6 +1288,7 @@ function RunScreen({
                             steps,
                             results: state.results,
                             repsResults: state.repsResults,
+                            togetherReps: state.togetherReps,
                             nameOf,
                             minutes: Math.max(
                                 1,
@@ -975,6 +1304,17 @@ function RunScreen({
                         onReps={(value) =>
                             update((current) =>
                                 setStepReps(current, step.index, value)
+                            )
+                        }
+                        togetherRows={togetherRowsOf(step)}
+                        onTogetherReps={(groupKey, value) =>
+                            update((current) =>
+                                setTogetherReps(
+                                    current,
+                                    step.index,
+                                    groupKey,
+                                    value
+                                )
                             )
                         }
                         onCreateEntry={handleCreateEntry}

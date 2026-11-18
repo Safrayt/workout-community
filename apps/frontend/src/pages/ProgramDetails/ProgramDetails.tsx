@@ -148,16 +148,6 @@ export default function ProgramDetails() {
                 ← Программы
             </Link>
 
-            {
-                program.coverUrl && (
-                    <img
-                        src={program.coverUrl}
-                        alt=""
-                        className="program-details__cover"
-                    />
-                )
-            }
-
             <div className="program-details__header">
                 <h1 className="program-details__title">{program.title}</h1>
 

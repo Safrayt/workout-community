@@ -11,13 +11,6 @@
     font-size: var(--font-size-sm);
 }
 
-.program-details__cover {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    border-radius: var(--radius-md);
-}
-
 .program-details__header {
     display: flex;
     align-items: center;

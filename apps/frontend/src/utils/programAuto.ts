@@ -47,6 +47,66 @@ export function getBlockSets(block: ProgramBlock): ProgramBlockItem[][] {
     return sets;
 }
 
+/** Сет из нескольких упражнений, где все цели — EMOM: такие
+ *  упражнения можно выполнять вместе за один интервал. */
+export function isEmomSet(set: ProgramBlockItem[]): boolean {
+    return set.length > 1 && set.every((item) => item.target?.kind === "emom");
+}
+
+/** Есть ли в комплексе сет, к которому применим выбор «по очереди /
+ *  все вместе» для EMOM. */
+export function hasEmomSet(block: ProgramBlock): boolean {
+    return getBlockSets(block).some(isEmomSet);
+}
+
+/** Сет выполняется «все вместе за один интервал». */
+export function isEmomTogetherSet(
+    block: ProgramBlock,
+    set: ProgramBlockItem[]
+): boolean {
+    return block.emomTogether === true && isEmomSet(set);
+}
+
+/**
+ * «Все вместе»: секунды интервала задаются один раз — у первого
+ * упражнения сета; у остальных подставляется то же число, чтобы в схеме
+ * не оставалось расходящихся значений. Если менять нечего, возвращает
+ * тот же объект.
+ */
+export function syncEmomTogether(block: ProgramBlock): ProgramBlock {
+    if (block.emomTogether !== true) {
+        return block;
+    }
+
+    const replacements = new Map<ProgramBlockItem, ProgramBlockItem>();
+
+    getBlockSets(block).forEach((set) => {
+        if (!isEmomSet(set)) {
+            return;
+        }
+
+        const seconds = set[0].target?.value;
+
+        set.slice(1).forEach((item) => {
+            if (item.target && item.target.value !== seconds) {
+                replacements.set(item, {
+                    ...item,
+                    target: { ...item.target, value: seconds },
+                });
+            }
+        });
+    });
+
+    if (replacements.size === 0) {
+        return block;
+    }
+
+    return {
+        ...block,
+        items: block.items.map((item) => replacements.get(item) ?? item),
+    };
+}
+
 export function hasSupersets(block: ProgramBlock): boolean {
     return getBlockSets(block).some((set) => set.length > 1);
 }
@@ -115,6 +175,14 @@ export function formatTarget(target: ProgramItemTarget | undefined): string {
 
     if (target.kind === "max") {
         return "Максимум";
+    }
+
+    if (target.kind === "amrap") {
+        return `AMRAP: ${formatDuration(target.value)}`;
+    }
+
+    if (target.kind === "emom") {
+        return `EMOM: ${formatDuration(target.value)}`;
     }
 
     if (target.kind === "reps") {
@@ -189,6 +257,10 @@ export function describeAutoBlock(block: ProgramBlock): string[] {
         rests.push(`внутри сета — ${formatDuration(block.restWithinSet)}`);
     }
 
+    if (sets.some((set) => isEmomTogetherSet(block, set))) {
+        lines.push("EMOM: упражнения сета выполняются вместе за один интервал");
+    }
+
     if (block.restAfterBlock) {
         rests.push(`после комплекса — ${formatDuration(block.restAfterBlock)}`);
     }
@@ -227,13 +299,17 @@ export function getAutoSchemeProblems(scheme: ProgramScheme): string[] {
 
         if (block.items.some((item) => !item.target?.value)) {
             problems.push(
-                `${title}: у каждого упражнения нужно указать повторения, секунды или максимум`
+                `${title}: у каждого упражнения нужно указать повторения, секунды, максимум, AMRAP или EMOM`
             );
         }
 
         if (
             block.items.some(
-                (item) => item.target?.withReps && !item.target.reps
+                (item) =>
+                    (item.target?.withReps ||
+                        item.target?.kind === "amrap" ||
+                        item.target?.kind === "emom") &&
+                    !item.target.reps
             )
         ) {
             problems.push(

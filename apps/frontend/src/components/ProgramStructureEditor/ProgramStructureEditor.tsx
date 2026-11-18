@@ -28,8 +28,11 @@ import {
     getAutoSchemeProblems,
     getBlockSets,
     getSetRounds,
+    hasEmomSet,
     hasPerSetRounds,
     hasSupersets,
+    isEmomSet,
+    syncEmomTogether,
 } from "../../utils/programAuto";
 
 // =====================================================================
@@ -246,10 +249,12 @@ function DurationField({
 }
 
 /**
- * Цель упражнения: повторения, секунды или «максимум» и число (у
- * «максимума» это примерный результат, с которого начнётся отметка
- * повторений после подхода). Для секунд можно
- * включить «Считать повторения» — когда за время выполняются повторения
+ * Цель упражнения: повторения, секунды, «максимум», AMRAP или EMOM и
+ * число. У «максимума» это примерный результат, с которого начнётся
+ * отметка повторений после подхода. У AMRAP — секунды таймера, у EMOM —
+ * секунды одного подхода; повторения за это время у обоих считаются
+ * всегда, ориентир их числа задаётся рядом. Для секунд можно включить
+ * «Считать повторения» — когда за время выполняются повторения
  * (подтягивания за 30 секунд), а не статическое удержание; тогда
  * задаётся ориентир повторений. Человеку во время выполнения он не
  * показывается: после подхода он отмечает и секунды, и повторения, а
@@ -259,14 +264,26 @@ function TargetField({
     index,
     target,
     onChange,
+    secondsFrom,
 }: {
     index: number;
     target: ProgramItemTarget | undefined;
     onChange: (target: ProgramItemTarget) => void;
+
+    /** EMOM «все вместе»: секунды интервала задаются у первого
+     *  упражнения сета — здесь показываются его секунды без правки. */
+    secondsFrom?: { value: number | undefined };
 }) {
     const kind: ProgramTargetKind = target?.kind ?? "reps";
-    const max = kind === "seconds" ? MAX_TARGET_SECONDS : MAX_TARGET_REPS;
-    const withReps = kind === "seconds" && target?.withReps === true;
+    const secondsLocked = secondsFrom !== undefined && kind === "emom";
+    const alwaysCountsReps = kind === "amrap" || kind === "emom";
+    const isTimer = kind === "seconds" || alwaysCountsReps;
+    const max = isTimer ? MAX_TARGET_SECONDS : MAX_TARGET_REPS;
+
+    // У AMRAP и EMOM повторения считаются всегда: чекбокс отмечен и не
+    // меняется.
+    const withReps =
+        alwaysCountsReps || (kind === "seconds" && target?.withReps === true);
 
     return (
         <div className="program-structure-editor__target">
@@ -277,19 +294,34 @@ function TargetField({
                 onChange={(event) => {
                     const nextKind = event.target.value as ProgramTargetKind;
 
-                    // Повторения за время бывают только у секунд.
+                    // Повторения за время бывают только у секунд, AMRAP и
+                    // EMOM (у AMRAP и EMOM они считаются всегда).
                     onChange({
                         kind: nextKind,
                         value: target?.value,
-                        ...(nextKind === "seconds"
-                            ? { withReps: target?.withReps, reps: target?.reps }
-                            : {}),
+                        ...(nextKind === "amrap" || nextKind === "emom"
+                            ? { withReps: true, reps: target?.reps }
+                            : nextKind === "seconds"
+                              ? {
+                                    withReps:
+                                        target?.kind === "seconds"
+                                            ? target.withReps
+                                            : false,
+                                    reps:
+                                        target?.kind === "seconds" &&
+                                        target.withReps
+                                            ? target.reps
+                                            : undefined,
+                                }
+                              : {}),
                     });
                 }}
             >
                 <option value="reps">Повторения</option>
                 <option value="seconds">Секунды</option>
                 <option value="max">Максимум</option>
+                <option value="amrap">AMRAP</option>
+                <option value="emom">EMOM</option>
             </select>
 
             <input
@@ -299,20 +331,27 @@ function TargetField({
                 max={max}
                 className="input__field program-structure-editor__number"
                 aria-label={
-                    kind === "seconds"
-                        ? `Число секунд в упражнении ${index + 1}`
-                        : kind === "max"
+                    kind === "amrap"
+                        ? `Секунды таймера AMRAP в упражнении ${index + 1}`
+                        : kind === "emom"
+                          ? `Секунды одного подхода EMOM в упражнении ${index + 1}`
+                          : kind === "seconds"
+                          ? `Число секунд в упражнении ${index + 1}`
+                          : kind === "max"
                           ? `Примерное число повторений в максимуме, упражнение ${index + 1}`
                           : `Число повторений в упражнении ${index + 1}`
                 }
                 placeholder={
-                    kind === "seconds"
+                    isTimer
                         ? "Секунд"
                         : kind === "max"
                           ? "Примерно повторений"
                           : "Повторений"
                 }
-                value={target?.value ?? ""}
+                value={
+                    secondsLocked ? (secondsFrom.value ?? "") : (target?.value ?? "")
+                }
+                disabled={secondsLocked}
                 onChange={(event) =>
                     onChange({
                         ...target,
@@ -381,9 +420,13 @@ function TargetField({
                         />
 
                         <span className="program-structure-editor__hint">
-                            Ориентир, человеку во время выполнения не
-                            показывается: после подхода он отметит и секунды,
-                            и сколько повторений сделал.
+                            {
+                                kind === "amrap"
+                                    ? "Примерный результат. Человек увидит таймер, а после подхода отметит, сколько повторений сделал, — отметка начнётся с этого числа."
+                                    : kind === "emom"
+                                      ? "Примерное число повторений за один подход. Перед стартом человек может его изменить, а во время выполнения — менять от подхода к подходу. Число подходов задаётся в настройках комплекса, отдых между подходами поставьте 0 — тогда таймер сам перезапускается. Несколько EMOM-упражнений в одном сете по умолчанию сменяют друг друга: у каждого свой интервал и свои повторения. Режим «все вместе» выбирается в настройках комплекса ниже: тогда все упражнения сета делаются в одном интервале, а секунды задаются у первого упражнения."
+                                      : "Ориентир, человеку во время выполнения не показывается: после подхода он отметит и секунды, и сколько повторений сделал."
+                            }
                         </span>
                     </div>
                 )
@@ -418,10 +461,15 @@ function ExerciseListEditor({
     isAuto,
     perSetRounds,
     defaultRounds,
+    emomTogether,
     onChange,
 }: {
     items: ProgramBlockItem[];
     isAuto: boolean;
+
+    /** EMOM «все вместе»: у не первых упражнений EMOM-сетов секунды
+     *  берутся у первого упражнения. */
+    emomTogether: boolean;
 
     /** У каждого сета своё число подходов (несколько сетов «по очереди»). */
     perSetRounds: boolean;
@@ -475,6 +523,30 @@ function ExerciseListEditor({
 
     // Номера сетов — только когда в комплексе есть суперсеты: иначе
     // каждое упражнение и есть сет, и подписи «Сет 1…» только мешали бы.
+    // Индекс упражнения → индекс первого упражнения его EMOM-сета, если
+    // секунды у упражнения не свои, а общие на интервал.
+    const sharedSecondsFrom = new Map<number, number>();
+
+    if (emomTogether) {
+        const setIndexes: number[][] = [];
+
+        items.forEach((item, index) => {
+            if (index === 0 || !item.groupWithPrevious) {
+                setIndexes.push([index]);
+            } else {
+                setIndexes[setIndexes.length - 1].push(index);
+            }
+        });
+
+        setIndexes.forEach((indexes) => {
+            if (isEmomSet(indexes.map((index) => items[index]))) {
+                indexes.slice(1).forEach((index) => {
+                    sharedSecondsFrom.set(index, indexes[0]);
+                });
+            }
+        });
+    }
+
     const showSets = isAuto && items.some(
         (item, index) => index > 0 && item.groupWithPrevious
     );
@@ -554,6 +626,17 @@ function ExerciseListEditor({
                                                 target={item.target}
                                                 onChange={(target) =>
                                                     updateTarget(index, target)
+                                                }
+                                                secondsFrom={
+                                                    sharedSecondsFrom.has(index)
+                                                        ? {
+                                                              value: items[
+                                                                  sharedSecondsFrom.get(
+                                                                      index
+                                                                  )!
+                                                              ].target?.value,
+                                                          }
+                                                        : undefined
                                                 }
                                             />
 
@@ -700,6 +783,17 @@ const ORDER_OPTIONS: { value: ProgramBlockOrder; label: string }[] = [
     },
 ];
 
+const EMOM_MODE_OPTIONS = [
+    {
+        value: "sequence",
+        label: "По очереди — у каждого упражнения свой интервал",
+    },
+    {
+        value: "together",
+        label: "Все вместе — все упражнения за один интервал",
+    },
+];
+
 /** Числа комплекса автоматической схемы: сколько раз повторять и отдых. */
 function AutoBlockFields({
     block,
@@ -744,6 +838,24 @@ function AutoBlockFields({
                                 ...block,
                                 rounds: parseWholeNumber(event.target.value, 1, MAX_ROUNDS),
                             })
+                        }
+                    />
+                )
+            }
+
+            {
+                hasEmomSet(block) && (
+                    <LabeledSelect
+                        label="EMOM-упражнения в сете"
+                        value={block.emomTogether ? "together" : "sequence"}
+                        options={EMOM_MODE_OPTIONS}
+                        onChange={(value) =>
+                            onChange(
+                                syncEmomTogether({
+                                    ...block,
+                                    emomTogether: value === "together",
+                                })
+                            )
                         }
                     />
                 )
@@ -834,7 +946,10 @@ function BlockEditor({
                 isAuto={isAuto}
                 perSetRounds={isAuto && hasPerSetRounds(block)}
                 defaultRounds={block.rounds}
-                onChange={(items) => onChange({ ...block, items })}
+                emomTogether={block.emomTogether === true}
+                onChange={(items) =>
+                    onChange(syncEmomTogether({ ...block, items }))
+                }
             />
 
             {
