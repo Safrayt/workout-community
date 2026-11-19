@@ -46,10 +46,11 @@
     margin: 0;
 }
 
+/* Описание оформлено как текст статьи (.markdown): основной цвет текста,
+   а не приглушённый — так его легче читать. */
 .program-details__description {
-    color: var(--color-text-secondary);
+    color: var(--color-text);
     margin: 0;
-    white-space: pre-line;
 }
 
 .program-details__actions {

@@ -43,8 +43,19 @@ type MarkdownEditorProps = {
     /**
      * Загружает картинку на сервер и возвращает её адрес, который
      * редактор вставит в текст (см. uploadArticleImage в api/articles.ts).
+     * Нет функции — кнопок «Картинка» и «Карусель» нет (например, у
+     * программы, которой ещё не существует: картинки привязаны к ней).
      */
-    onUploadImage: (file: File) => Promise<string>;
+    onUploadImage?: (file: File) => Promise<string>;
+
+    /** Что написать вместо кнопок картинок, если загружать их нельзя. */
+    imagesUnavailableHint?: string;
+
+    /** Чьё это описание: влияет на подсказки и вид предпросмотра. */
+    kind?: "article" | "program";
+
+    /** Предел длины текста (по умолчанию как у статьи). */
+    maxLength?: number;
 
     error?: string;
     rows?: number;
@@ -95,9 +106,13 @@ export default function MarkdownEditor({
     value,
     onChange,
     onUploadImage,
+    imagesUnavailableHint,
+    kind = "article",
+    maxLength = MAX_ARTICLE_BODY_LENGTH,
     error,
     rows = 22,
 }: MarkdownEditorProps) {
+    const isProgram = kind === "program";
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const carouselInputRef = useRef<HTMLInputElement>(null);
@@ -161,6 +176,10 @@ export default function MarkdownEditor({
             return;
         }
 
+        if (!onUploadImage) {
+            return;
+        }
+
         setUploadError(null);
         setIsUploading(true);
 
@@ -200,7 +219,7 @@ export default function MarkdownEditor({
         // Сброс позволяет выбрать те же файлы ещё раз.
         event.target.value = "";
 
-        if (picked.length === 0) {
+        if (picked.length === 0 || !onUploadImage) {
             return;
         }
 
@@ -261,16 +280,21 @@ export default function MarkdownEditor({
         setIsUploading(false);
     }
 
-    const isNearLimit = value.length > MAX_ARTICLE_BODY_LENGTH * 0.9;
+    const isNearLimit = value.length > maxLength * 0.9;
 
     // Подсказка про Markdown для тех, кто видит его впервые.
     const cheatSheet = (
         <CollapsibleSection title="Подсказка по разметке">
             <div className="markdown-editor__help">
                 <p>
-                    Название статьи вводится отдельным полем, поэтому в тексте
-                    начинайте с заголовков второго уровня (<code>##</code>).
-                    Абзацы разделяются пустой строкой.
+                    {isProgram ? "Название программы" : "Название статьи"}{" "}
+                    вводится отдельным полем, поэтому в тексте начинайте с
+                    заголовков второго уровня (<code>##</code>).{" "}
+                    {
+                        isProgram
+                            ? "Новая строка — это перенос строки, пустая строка — новый абзац."
+                            : "Абзацы разделяются пустой строкой."
+                    }
                 </p>
 
                 <pre>{`## Заголовок раздела
@@ -296,24 +320,33 @@ export default function MarkdownEditor({
                     — она откроется в новой вкладке.
                 </p>
 
-                <p>
-                    <strong>Картинки</strong> добавляются кнопкой «Картинка»:
-                    файл загружается на сайт, а в текст вставляется ссылка на
-                    него. Картинки с других сайтов вставить нельзя.
-                </p>
+                {
+                    onUploadImage && (
+                        <>
+                            <p>
+                                <strong>Картинки</strong> добавляются кнопкой
+                                «Картинка»: файл загружается на сайт, а в текст
+                                вставляется ссылка на него. Картинки с других
+                                сайтов вставить нельзя.
+                            </p>
 
-                <p>
-                    <strong>Карусель</strong> — кнопка «Карусель»: выберите
-                    сразу несколько файлов (до {MAX_CAROUSEL_IMAGES}), и в
-                    текст вставится блок, который читатели листают. Порядок
-                    слайдов — порядок строк в блоке; строки можно менять
-                    местами, удалять или добавлять новые картинки внутрь.
-                </p>
+                            <p>
+                                <strong>Карусель</strong> — кнопка «Карусель»:
+                                выберите сразу несколько файлов (до{" "}
+                                {MAX_CAROUSEL_IMAGES}), и в текст вставится блок,
+                                который читатели листают. Порядок слайдов —
+                                порядок строк в блоке; строки можно менять
+                                местами, удалять или добавлять новые картинки
+                                внутрь.
+                            </p>
 
-                <pre>{`\`\`\`carousel
+                            <pre>{`\`\`\`carousel
 ![описание](…)
 ![описание](…)
 \`\`\``}</pre>
+                        </>
+                    )
+                }
             </div>
         </CollapsibleSection>
     );
@@ -422,39 +455,53 @@ export default function MarkdownEditor({
                         Ссылка
                     </ToolbarButton>
 
-                    <ToolbarButton
-                        title="Вставить картинку"
-                        disabled={isUploading}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        {isUploading ? "Загрузка…" : "Картинка"}
-                    </ToolbarButton>
+                    {
+                        onUploadImage && (
+                            <>
+                                <ToolbarButton
+                                    title="Вставить картинку"
+                                    disabled={isUploading}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    {isUploading ? "Загрузка…" : "Картинка"}
+                                </ToolbarButton>
 
-                    <ToolbarButton
-                        title="Вставить карусель из нескольких картинок"
-                        disabled={isUploading}
-                        onClick={() => carouselInputRef.current?.click()}
-                    >
-                        {isUploading ? "Загрузка…" : "Карусель"}
-                    </ToolbarButton>
+                                <ToolbarButton
+                                    title="Вставить карусель из нескольких картинок"
+                                    disabled={isUploading}
+                                    onClick={() => carouselInputRef.current?.click()}
+                                >
+                                    {isUploading ? "Загрузка…" : "Карусель"}
+                                </ToolbarButton>
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="markdown-editor__file-input"
-                        onChange={handleImagePicked}
-                    />
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="markdown-editor__file-input"
+                                    onChange={handleImagePicked}
+                                />
 
-                    <input
-                        ref={carouselInputRef}
-                        type="file"
-                        multiple
-                        accept="image/jpeg,image/png,image/webp"
-                        className="markdown-editor__file-input"
-                        onChange={handleCarouselPicked}
-                    />
+                                <input
+                                    ref={carouselInputRef}
+                                    type="file"
+                                    multiple
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="markdown-editor__file-input"
+                                    onChange={handleCarouselPicked}
+                                />
+                            </>
+                        )
+                    }
                 </div>
+
+                {
+                    !onUploadImage && imagesUnavailableHint && (
+                        <small className="markdown-editor__hint">
+                            {imagesUnavailableHint}
+                        </small>
+                    )
+                }
 
                 <textarea
                     id={id}
@@ -474,11 +521,17 @@ export default function MarkdownEditor({
             {mode === "preview" && (
                 <div className="markdown-editor__preview">
                     {value.trim() ? (
-                        <LazyMarkdownContent source={value} />
+                        <LazyMarkdownContent
+                            source={value}
+                            preserveLineBreaks={isProgram}
+                        />
                     ) : (
                         <p className="markdown-editor__preview-empty">
-                            Здесь появится текст статьи, каким его увидят
-                            читатели.
+                            {
+                                isProgram
+                                    ? "Здесь появится описание программы, каким его увидят читатели."
+                                    : "Здесь появится текст статьи, каким его увидят читатели."
+                            }
                         </p>
                     )}
                 </div>
@@ -501,7 +554,7 @@ export default function MarkdownEditor({
                             : "")
                     }
                 >
-                    {`${value.length.toLocaleString("ru-RU")} / ${MAX_ARTICLE_BODY_LENGTH.toLocaleString("ru-RU")}`}
+                    {`${value.length.toLocaleString("ru-RU")} / ${maxLength.toLocaleString("ru-RU")}`}
                 </small>
             </div>
 

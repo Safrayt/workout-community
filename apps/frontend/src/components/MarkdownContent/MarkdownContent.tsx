@@ -14,12 +14,14 @@ import {
 import "../../styles/components/markdown-content.css";
 
 /**
- * Картинки статей — только загруженные через редактор (тот же шаблон
- * имени проверяет бэкенд, см. ARTICLE_IMAGE_URL_RE в
- * app/models_article.py). Чужие картинки не показываем: это и пиксели
+ * Картинки статей и описаний программ — только загруженные через
+ * редактор (тот же шаблон имени проверяет бэкенд, см.
+ * ARTICLE_IMAGE_URL_RE в app/models_article.py и PROGRAM_IMAGE_URL_RE в
+ * app/models_program.py). Чужие картинки не показываем: это и пиксели
  * слежения за читателями, и файлы, которые однажды пропадут.
  */
-const ARTICLE_IMAGE_PATH = /^\/uploads\/articles\/[0-9a-f]{32}\.(?:jpg|png|webp)$/;
+const ARTICLE_IMAGE_PATH =
+    /^\/uploads\/(?:articles|program-descriptions)\/[0-9a-f]{32}\.(?:jpg|png|webp)$/;
 
 /**
  * Если внутри <pre> лежит блок "carousel" (см. utils/articleCarousel.ts),
@@ -172,8 +174,15 @@ const components: Components = {
 };
 
 type MarkdownContentProps = {
-    /** Текст статьи в Markdown. */
+    /** Текст в Markdown (статья, описание программы). */
     source: string;
+
+    /**
+     * Одиночный перенос строки внутри абзаца показывается переносом (а не
+     * пробелом, как в обычном Markdown). Нужно описаниям программ: их
+     * писали простым текстом, где перенос строки значил именно перенос.
+     */
+    preserveLineBreaks?: boolean;
 };
 
 /**
@@ -185,9 +194,16 @@ type MarkdownContentProps = {
  * Подключается через LazyMarkdownContent — библиотека разбора
  * Markdown довольно тяжёлая и нужна только на страницах статей.
  */
-export default function MarkdownContent({ source }: MarkdownContentProps) {
+export default function MarkdownContent({
+    source,
+    preserveLineBreaks = false,
+}: MarkdownContentProps) {
     return (
-        <div className="markdown">
+        <div
+            className={
+                preserveLineBreaks ? "markdown markdown--keep-breaks" : "markdown"
+            }
+        >
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
                 {source}
             </ReactMarkdown>

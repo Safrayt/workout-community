@@ -18,6 +18,7 @@ import {
     listProgramVersions,
     publishProgramDraft,
     updateProgramDraft,
+    uploadProgramImage,
 } from "../../api/programs";
 import type {
     Program,
@@ -271,6 +272,9 @@ export default function ProgramEdit() {
                         difficulty: program.difficulty,
                     }}
                     submitLabel="Сохранить информацию"
+                    onUploadDescriptionImage={(file) =>
+                        uploadProgramImage(String(id), file)
+                    }
                     onSubmit={handleUpdateInfo}
                     onCancel={() => navigate(`/programs/${id}`)}
                 />

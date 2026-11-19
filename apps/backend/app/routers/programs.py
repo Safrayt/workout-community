@@ -16,6 +16,9 @@ from app.models_diary import WorkoutEntry
 from app.models_exercise import ExerciseDB
 from app.notifications import notify_mentions
 from app.models_program import (
+    PROGRAM_IMAGE_SUBFOLDER,
+    ProgramImageRead,
+    program_description_images,
     ProgramComment,
     ProgramCommentCreate,
     ProgramCommentRead,
@@ -223,6 +226,23 @@ def get_program(
     return _to_program_read(program, session, viewer)
 
 
+def _delete_unreferenced_description_images(
+    session: Session, urls: set[str]
+) -> None:
+    """
+    Удаляет файлы картинок, на которые после сохранения не ссылается ни
+    одна программа. Проверка по всем программам нужна на случай, если
+    один и тот же адрес вставили в описания двух программ.
+    """
+    for url in urls:
+        still_used = session.exec(
+            select(ProgramDB.id).where(ProgramDB.description.contains(url)).limit(1)
+        ).first()
+
+        if still_used is None:
+            delete_image(url)
+
+
 @router.post("/", response_model=ProgramRead)
 def create_program(
     data: ProgramCreate,
@@ -258,6 +278,8 @@ def update_program(
     program = _get_program_or_404(program_id, session)
     _ensure_is_author(program, current_user)
 
+    images_before = program_description_images(program.description)
+
     updates = data.model_dump(exclude_unset=True)
 
     for field_name, value in updates.items():
@@ -268,6 +290,13 @@ def update_program(
     session.add(program)
     session.commit()
     session.refresh(program)
+
+    # Картинки, которых в тексте больше нет, удаляем с диска — уже после
+    # коммита: иначе при сбое программа осталась бы со ссылками на
+    # удалённые файлы.
+    _delete_unreferenced_description_images(
+        session, images_before - program_description_images(program.description)
+    )
 
     return _to_program_read(program, session, current_user)
 
@@ -356,8 +385,38 @@ def delete_program(
 
     session.flush()
 
+    description_images = program_description_images(program.description)
+
     session.delete(program)
     session.commit()
+
+    _delete_unreferenced_description_images(session, description_images)
+
+
+# --- Картинки описания программы -------------------------------------------
+
+@router.post(
+    "/{program_id}/images",
+    response_model=ProgramImageRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_program_image(
+    program_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ProgramImageRead:
+    """
+    Картинка для текста описания (редактор вставляет её адрес в текст).
+    Загружает автор программы — поэтому только для уже созданной
+    программы. Файлы, которые так и не попали в сохранённое описание,
+    остаются на диске; ненужные после правки или удаления программы
+    удаляются сами (см. _delete_unreferenced_description_images).
+    """
+    program = _get_program_or_404(program_id, session)
+    _ensure_is_author(program, current_user)
+
+    return ProgramImageRead(url=await save_image(file, PROGRAM_IMAGE_SUBFOLDER))
 
 
 # --- Обложка программы (п.2 документа) -------------------------------------

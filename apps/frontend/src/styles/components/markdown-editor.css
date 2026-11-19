@@ -146,3 +146,9 @@
     border: 1px solid var(--color-border);
     border-radius: 4px;
 }
+
+.markdown-editor__hint {
+    display: block;
+    margin: var(--space-2) 0;
+    color: var(--color-text-secondary);
+}

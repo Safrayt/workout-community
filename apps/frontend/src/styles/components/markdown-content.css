@@ -162,3 +162,8 @@
 .markdown__loading {
     color: var(--color-text-secondary);
 }
+
+/* Перенос строки внутри абзаца остаётся переносом (описания программ). */
+.markdown--keep-breaks p {
+    white-space: pre-line;
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { makeDescription } from "../../utils/pageMeta";
+import { markdownToPlainText } from "../../utils/markdownPlain";
 
 import Badge from "../../components/ui/Badge/Badge";
 import Button from "../../components/ui/Button/Button";
@@ -10,6 +11,7 @@ import ProgramQuickFacts from "../../components/ProgramQuickFacts/ProgramQuickFa
 import ProgramStructureView from "../../components/ProgramStructureView/ProgramStructureView";
 import ProgramVersionHistory from "../../components/ProgramVersionHistory/ProgramVersionHistory";
 import ProgramComments from "../../components/ProgramComments/ProgramComments";
+import LazyMarkdownContent from "../../components/MarkdownContent/LazyMarkdownContent";
 
 import "../../styles/components/program-details.css";
 
@@ -121,7 +123,7 @@ export default function ProgramDetails() {
     usePageMeta(
         program?.title,
         program
-            ? makeDescription(program.description) ||
+            ? makeDescription(markdownToPlainText(program.description)) ||
                   `Программа тренировок «${program.title}».`
             : undefined
     );
@@ -193,10 +195,17 @@ export default function ProgramDetails() {
             }
 
             {
+                // Описание — Markdown, как текст статьи: заголовки,
+                // выделение, ссылки, картинки, карусели. Старые описания
+                // простым текстом показываются как раньше (переносы
+                // строк сохраняются).
                 program.description && (
-                    <p className="program-details__description">
-                        {program.description}
-                    </p>
+                    <div className="program-details__description">
+                        <LazyMarkdownContent
+                            source={program.description}
+                            preserveLineBreaks
+                        />
+                    </div>
                 )
             }
 

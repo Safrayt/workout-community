@@ -27,6 +27,27 @@ import type { ProgramComment } from "../types/programComment";
 // Каталог
 // =====================================================================
 
+/**
+ * Загружает картинку для описания программы и возвращает её адрес,
+ * который редактор вставит в текст (как uploadArticleImage у статей).
+ * Загружать может только автор уже созданной программы.
+ */
+export async function uploadProgramImage(
+    programId: string,
+    file: File
+): Promise<string> {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await apiFetch<{ url: string }>(
+        `/programs/${programId}/images`,
+        { method: "POST", body: formData }
+    );
+
+    return response.url;
+}
+
 export async function listPrograms(
     difficulty?: ProgramDifficulty
 ): Promise<Program[]> {

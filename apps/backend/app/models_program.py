@@ -1,4 +1,5 @@
 import enum
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -500,6 +501,59 @@ def auto_scheme_problems(structure: Optional[dict]) -> List[str]:
 # --- Программа (постоянная сущность, п.2) ---------------------------------
 
 
+# Описание программы — Markdown, как текст статьи: заголовки, выделение,
+# ссылки, картинки и карусели. Картинки загружаются автором в
+# uploads/program-descriptions/ (POST /programs/{id}/images) и имеют имя,
+# которое выдал save_image. Любой другой адрес картинки в тексте — не наш
+# файл: это и пиксели слежения за читателями, и файлы, которые однажды
+# пропадут (то же правило, что у статей, см. models_article.py).
+MAX_DESCRIPTION_LENGTH = 30_000
+
+PROGRAM_IMAGE_SUBFOLDER = "program-descriptions"
+PROGRAM_IMAGE_URL_RE = re.compile(
+    r"/uploads/program-descriptions/[0-9a-f]{32}\.(?:jpg|png|webp)"
+)
+
+# Картинка в Markdown: ![описание](адрес "подсказка"). Берём только адрес.
+_MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(\s*<?([^)\s>]+)")
+
+
+def program_description_images(description: Optional[str]) -> set[str]:
+    """Все картинки программ, на которые ссылается текст описания."""
+    return {
+        match.group(0)
+        for match in PROGRAM_IMAGE_URL_RE.finditer(description or "")
+    }
+
+
+def _validate_description_text(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+
+    # Символ NUL PostgreSQL в текстовых полях не принимает вовсе.
+    value = value.replace("\x00", "").strip()
+
+    if len(value) > MAX_DESCRIPTION_LENGTH:
+        raise ValueError(
+            f"Описание не длиннее {MAX_DESCRIPTION_LENGTH} символов"
+        )
+
+    for url in _MARKDOWN_IMAGE_RE.findall(value):
+        if not PROGRAM_IMAGE_URL_RE.fullmatch(url):
+            raise ValueError(
+                "В описании можно использовать только картинки, "
+                "загруженные через редактор"
+            )
+
+    return value
+
+
+class ProgramImageRead(SQLModel):
+    """Ответ на загрузку картинки для описания: адрес для текста."""
+
+    url: str
+
+
 class ProgramBase(SQLModel):
     title: str
     description: str = ""
@@ -540,7 +594,12 @@ class ProgramCreate(ProgramBase):
     сценарию из п.20 документа ("Создание программы → Черновик").
     """
 
-    pass
+    # Проверки — только на входе (создание и правка): описания,
+    # написанные до появления разметки, читаются как есть.
+    @field_validator("description")
+    @classmethod
+    def _validate_description(cls, value: str) -> str:
+        return _validate_description_text(value) or ""
 
 
 class ProgramUpdate(SQLModel):
@@ -554,6 +613,11 @@ class ProgramUpdate(SQLModel):
     description: Optional[str] = None
     cover_url: Optional[str] = None
     difficulty: Optional[ProgramDifficulty] = None
+
+    @field_validator("description")
+    @classmethod
+    def _validate_description(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_description_text(value)
 
 
 class ProgramRead(ProgramBase):

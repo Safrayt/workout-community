@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import FormSection from "../ui/FormSection/FormSection";
 import Input from "../ui/Input/Input";
-import Textarea from "../ui/Textarea/Textarea";
+import MarkdownEditor from "../MarkdownEditor/MarkdownEditor";
 import Select from "../ui/Select/Select";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
@@ -11,7 +11,10 @@ import ProgramCoverUpload from "../ProgramCoverUpload/ProgramCoverUpload";
 import "../../styles/components/program-form.css";
 
 import type { ValidationError } from "../../validation";
-import { validateProgram } from "../../validation/program";
+import {
+    MAX_PROGRAM_DESCRIPTION_LENGTH,
+    validateProgram,
+} from "../../validation/program";
 import { getFieldError } from "../../utils/validation";
 
 import { programDifficultyFilterOptions } from "../../constants/programTypes";
@@ -26,6 +29,12 @@ type ProgramFormProps = {
     onSubmit: (program: NewProgram) => void;
 
     onCancel: () => void;
+
+    /**
+     * Загрузка картинки для описания (картинки привязаны к программе, а
+     * у новой программы её ещё нет — тогда кнопок картинок нет).
+     */
+    onUploadDescriptionImage?: (file: File) => Promise<string>;
 };
 
 /**
@@ -39,6 +48,7 @@ export default function ProgramForm({
     submitLabel,
     onSubmit,
     onCancel,
+    onUploadDescriptionImage,
 }: ProgramFormProps) {
     const [errors, setErrors] = useState<ValidationError[]>([]);
     const [program, setProgram] = useState<NewProgram>(initialValue);
@@ -78,14 +88,19 @@ export default function ProgramForm({
                     error={getFieldError(errors, "title")}
                 />
 
-                <Textarea
+                <MarkdownEditor
                     id="program-description"
                     label="Описание (необязательно)"
+                    kind="program"
                     value={program.description}
-                    onChange={(event) =>
-                        updateField("description", event.target.value)
+                    error={getFieldError(errors, "description")}
+                    onChange={(description) =>
+                        updateField("description", description)
                     }
-                    rows={4}
+                    onUploadImage={onUploadDescriptionImage}
+                    imagesUnavailableHint="Картинки и карусели можно добавить после создания программы — на странице её редактирования."
+                    maxLength={MAX_PROGRAM_DESCRIPTION_LENGTH}
+                    rows={12}
                 />
 
                 <Select

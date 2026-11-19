@@ -10,12 +10,15 @@ import "../../styles/components/program-card.css";
 import type { Program } from "../../types/program";
 
 import { programDifficultyLabels } from "../../constants/programTypes";
+import { markdownToPlainText } from "../../utils/markdownPlain";
 
 type ProgramCardProps = {
     program: Program;
 };
 
 export default function ProgramCard({ program }: ProgramCardProps) {
+    const plainDescription = markdownToPlainText(program.description);
+
     return (
         <Card className="program-card">
             {
@@ -50,9 +53,10 @@ export default function ProgramCard({ program }: ProgramCardProps) {
             </div>
 
             {
-                program.description && (
+                // Описание — Markdown: в карточке только его текст.
+                plainDescription && (
                     <p className="program-card__description">
-                        {program.description}
+                        {plainDescription}
                     </p>
                 )
             }

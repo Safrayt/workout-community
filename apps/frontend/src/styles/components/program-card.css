@@ -36,7 +36,6 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     margin: 0;
-    white-space: pre-line;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;

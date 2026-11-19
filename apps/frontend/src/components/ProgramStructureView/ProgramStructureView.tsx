@@ -94,6 +94,10 @@ export default function ProgramStructureView({
                 <Link
                     key={scheme.id}
                     to={`${schemeLinkBase}/schemes/${scheme.id}`}
+                    // Схема открывается в новой вкладке: страница программы
+                    // (и её положение прокрутки) остаётся на месте.
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="program-structure-view__scheme"
                 >
                     <span className="program-structure-view__scheme-text">
