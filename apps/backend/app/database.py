@@ -399,6 +399,16 @@ def _run_migrations() -> None:
                 connection, "user", "token_version", "INTEGER NOT NULL DEFAULT 0"
             )
 
+        # Выполнение комплекса, внесённое из помощника (см.
+        # ComplexCompletionBase.via_assistant).
+        if "complexcompletion" in existing_tables:
+            _add_column_if_missing(
+                connection,
+                "complexcompletion",
+                "via_assistant",
+                boolean_default_false,
+            )
+
         # Приватность отдельной записи (см. UX-обсуждение "Не
         # публиковать в общую ленту" / "Запись видна только мне"):
         # hide_from_feed прячет запись из вкладки "Все записи" на
@@ -471,6 +481,9 @@ def _run_migrations() -> None:
                 "JSON DEFAULT '[]'" if IS_SQLITE else "JSON NOT NULL DEFAULT '[]'",
             )
             _add_column_if_missing(connection, "complex", "scheme_note", "TEXT")
+
+            # Схема в формате схем программ (см. Complex.auto_scheme).
+            _add_column_if_missing(connection, "complex", "auto_scheme", "JSON")
 
             if "exercise" in existing_tables:
                 _link_seed_complexes_to_exercises(connection)

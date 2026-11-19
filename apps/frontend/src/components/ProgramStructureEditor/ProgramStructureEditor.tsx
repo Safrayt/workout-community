@@ -1398,6 +1398,59 @@ function SectionItem({
     );
 }
 
+/**
+ * Конструктор одной автоматической схемы без названия, режима и
+ * примечаний — для комплексов каталога (ComplexForm): название, описание
+ * и примечание у комплекса свои. Те же комплексы-блоки, упражнения,
+ * цели (повторения, секунды, максимум, AMRAP, EMOM), сеты и отдых, что у
+ * схем программ. Что не заполнено — показывает списком.
+ */
+export function AutoSchemeEditor({
+    scheme,
+    onChange,
+}: {
+    scheme: ProgramScheme;
+    onChange: (scheme: ProgramScheme) => void;
+}) {
+    const problems = getAutoSchemeProblems(scheme);
+
+    return (
+        <div className="program-structure-editor__scheme">
+            {
+                problems.length > 0 ? (
+                    <div className="program-structure-editor__problems">
+                        <p>
+                            Чтобы по комплексу можно было тренироваться с
+                            помощником и таймерами, заполните:
+                        </p>
+
+                        <ul>
+                            {
+                                problems.map((problem) => (
+                                    <li key={problem}>{problem}</li>
+                                ))
+                            }
+                        </ul>
+
+                        <p>Комплекс с неполной схемой сохранить нельзя.</p>
+                    </div>
+                ) : (
+                    <p className="program-structure-editor__ready">
+                        Схема заполнена полностью — по ней можно тренироваться
+                        с помощником и таймерами.
+                    </p>
+                )
+            }
+
+            <BlockListEditor
+                blocks={scheme.blocks}
+                isAuto
+                onChange={(blocks) => onChange({ ...scheme, blocks })}
+            />
+        </div>
+    );
+}
+
 type ProgramStructureEditorProps = {
     value: ProgramStructure;
     onChange: (value: ProgramStructure) => void;

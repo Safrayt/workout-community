@@ -20,4 +20,8 @@ export type NewComplexCompletion = {
 
     completedDate: string;
 
+    /** Результат внесён из помощника (прохождение комплекса с
+     *  таймерами). Ставится только при создании. */
+    viaAssistant?: boolean;
+
 };

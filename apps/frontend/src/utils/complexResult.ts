@@ -7,6 +7,10 @@ import type { NewComplexCompletion } from "../types/newComplexCompletion";
 
 const TIME_LIKE_METRICS: MetricType[] = ["time", "duration"];
 
+/**
+ * Значения показателей в секундах («время», «продолжительность»):
+ * показываются как «04:52». Кто лучше — решает getRankingMetric.
+ */
 export function isTimeBasedComplex(complexDef: Complex): boolean {
     return complexDef.resultMetrics.some((metric) =>
         TIME_LIKE_METRICS.includes(metric)
@@ -114,9 +118,32 @@ export function formatCompletionResult(
 }
 
 /**
- * Лучший результат пользователя по правилам п.21 документа: меньшее
- * время для временных комплексов и большее значение основного
- * показателя для объёмных.
+ * Показатель, по которому определяют лучший результат, и направление
+ * (как на сервере, ranking_metric): «Время» — меньше лучше и главнее
+ * всего; «Продолжительность» — больше лучше; иначе первый показатель
+ * результата, больше лучше.
+ */
+export function getRankingMetric(complexDef: Complex): {
+    metric: MetricType | undefined;
+    higherIsBetter: boolean;
+} {
+    const metrics = complexDef.resultMetrics;
+
+    if (metrics.includes("time")) {
+        return { metric: "time", higherIsBetter: false };
+    }
+
+    if (metrics.includes("duration")) {
+        return { metric: "duration", higherIsBetter: true };
+    }
+
+    return { metric: metrics[0], higherIsBetter: true };
+}
+
+/**
+ * Лучший результат пользователя по правилам п.21 документа: у «Времени»
+ * меньшее значение, у остальных показателей — большее (см.
+ * getRankingMetric).
  */
 export function findBestCompletion(
     complexDef: Complex,
@@ -126,22 +153,16 @@ export function findBestCompletion(
         return undefined;
     }
 
-    const timeBased = isTimeBasedComplex(complexDef);
+    const { metric, higherIsBetter } = getRankingMetric(complexDef);
 
     function score(completion: ComplexCompletion): number {
-        if (timeBased) {
-            const metric = complexDef.resultMetrics.includes("time")
-                ? "time"
-                : "duration";
-            const value = getMetricValue(completion, metric);
-
-            return value === undefined ? Number.NEGATIVE_INFINITY : -value;
-        }
-
-        const metric = complexDef.resultMetrics[0];
         const value = metric ? getMetricValue(completion, metric) : undefined;
 
-        return value === undefined ? Number.NEGATIVE_INFINITY : value;
+        if (value === undefined) {
+            return Number.NEGATIVE_INFINITY;
+        }
+
+        return higherIsBetter ? value : -value;
     }
 
     return completions.reduce((best, current) =>

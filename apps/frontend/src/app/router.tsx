@@ -61,6 +61,7 @@ import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
 import ProgramVersionDetails from "../pages/ProgramVersionDetails/ProgramVersionDetails";
 import ProgramSchemeDetails from "../pages/ProgramSchemeDetails/ProgramSchemeDetails";
 import ProgramSchemeRun from "../pages/ProgramSchemeRun/ProgramSchemeRun";
+import ComplexRun from "../pages/ComplexRun/ComplexRun";
 import ProgramVersions from "../pages/ProgramVersions/ProgramVersions";
 import RequireAdmin from "./RequireAdmin";
 import AdminUsers from "../pages/AdminUsers/AdminUsers";
@@ -312,6 +313,13 @@ export const router = createBrowserRouter([
           path: "complexes/:id",
           element: <ComplexDetails />,
           handle: { guest: ["complex"] } satisfies RouteHandle,
+      },
+      {
+          // Прохождение комплекса с помощником — только для вошедших
+          // (нет guest в handle).
+          path: "complexes/:id/run",
+          element: <ComplexRun />,
+          handle: { title: "Прохождение комплекса" } satisfies RouteHandle,
       },
       {
           // «Все результаты» — рейтинг по всем пользователям. Открыт

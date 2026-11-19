@@ -1,5 +1,6 @@
 import type { ComplexType, MetricType } from "./complex";
-import { createEmptySchemeBlock, type SchemeBlock } from "./complexScheme";
+import type { SchemeBlock } from "./complexScheme";
+import type { ProgramScheme } from "./program";
 
 /**
  * Форма создания/редактирования комплекса (доступно только
@@ -18,6 +19,14 @@ export type NewComplex = {
      */
     scheme: SchemeBlock[];
 
+    /**
+     * Схема в новом формате (как у схем программ, с помощником и
+     * таймерами). Если задана, форма показывает конструктор из программ,
+     * а старая схема (scheme) не отправляется. Нет — комплекс со старой
+     * схемой: показывается прежний конструктор.
+     */
+    autoScheme?: ProgramScheme;
+
     /** Пояснение к схеме целиком (необязательно). */
     schemeNote: string;
 
@@ -31,8 +40,9 @@ export const EMPTY_NEW_COMPLEX: NewComplex = {
     name: "",
     types: [],
     description: "",
-    // Один пустой блок, чтобы форма сразу была готова к вводу.
-    scheme: [createEmptySchemeBlock()],
+    // Новые комплексы собираются в конструкторе из программ.
+    scheme: [],
+    autoScheme: { id: "complex-scheme", name: "", mode: "auto", blocks: [] },
     schemeNote: "",
     resultMetrics: [],
     instructions: "",

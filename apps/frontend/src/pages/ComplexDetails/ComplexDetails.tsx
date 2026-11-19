@@ -4,6 +4,8 @@ import { usePageMeta } from "../../hooks/usePageMeta";
 import { makeDescription } from "../../utils/pageMeta";
 
 import ComplexScheme from "../../components/ComplexScheme/ComplexScheme";
+import ProgramSchemeContent from "../../components/ProgramSchemeContent/ProgramSchemeContent";
+import Button from "../../components/ui/Button/Button";
 import ComplexSchemeView from "../../components/ComplexSchemeView/ComplexSchemeView";
 import ComplexLeaderboard from "../../components/ComplexLeaderboard/ComplexLeaderboard";
 import ComplexBestResult from "../../components/ComplexBestResult/ComplexBestResult";
@@ -293,7 +295,64 @@ export default function ComplexDetails() {
             }
 
             {
-                complexDef.scheme.length > 0 ? (
+                // Схема в новом формате (как у программ) — с помощником.
+                complexDef.autoScheme && (
+                    <>
+                        <section className="complex-details__section">
+                            <h2 className="complex-details__section-title">
+                                Тренировка с помощником
+                            </h2>
+
+                            <div className="complex-details__panel">
+                                {
+                                    user ? (
+                                        <>
+                                            <p className="complex-details__description">
+                                                Помощник проведёт по схеме:
+                                                покажет упражнение, включит
+                                                таймеры и отдых, а в конце
+                                                подсчитает итог.
+                                            </p>
+
+                                            <Link to={`/complexes/${complexDef.id}/run`}>
+                                                <Button variant="primary">
+                                                    Пройти с помощником
+                                                </Button>
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <p className="complex-details__login-hint">
+                                            <Link
+                                                to="/login"
+                                                state={{
+                                                    from: location.pathname + location.search,
+                                                }}
+                                            >
+                                                Войдите
+                                            </Link>
+                                            , чтобы пройти комплекс с помощником
+                                            и таймерами.
+                                        </p>
+                                    )
+                                }
+                            </div>
+                        </section>
+
+                        <ProgramSchemeContent
+                            scheme={{
+                                ...complexDef.autoScheme,
+                                // Описание и примечание у комплекса свои.
+                                description: undefined,
+                                note: complexDef.schemeNote,
+                            }}
+                            showMuscles={false}
+                        />
+                    </>
+                )
+            }
+
+            {
+                complexDef.autoScheme ? null : complexDef.scheme.length > 0 ? (
                     <section className="complex-details__section">
                         <h2 className="complex-details__section-title">Схема</h2>
 

@@ -9,6 +9,12 @@ import type { ComplexCompletion } from "../../types/complexCompletion";
 import type { ComplexLeaderboard } from "../../types/complexLeaderboard";
 import type { SchemeBlock, SchemeItem } from "../../types/complexScheme";
 import type { NewComplex } from "../../types/newComplex";
+
+import {
+    mapApiSchemeToScheme,
+    mapSchemeToApi,
+    type ApiProgramScheme,
+} from "./program";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
 
 // --- Схема ---------------------------------------------------------------
@@ -97,6 +103,7 @@ export type ApiComplex = {
     exercise: string;
     exercise_ids?: string[] | null;
     scheme?: ApiSchemeBlock[] | null;
+    auto_scheme?: ApiProgramScheme | null;
     scheme_note?: string | null;
     result_metrics: MetricType[];
     instructions?: string | null;
@@ -116,6 +123,9 @@ export function mapApiComplexToComplex(apiComplex: ApiComplex): Complex {
         exercise: apiComplex.exercise,
         exerciseIds: apiComplex.exercise_ids ?? [],
         scheme: (apiComplex.scheme ?? []).map(mapApiSchemeBlock),
+        autoScheme: apiComplex.auto_scheme
+            ? mapApiSchemeToScheme(apiComplex.auto_scheme, "complex-scheme")
+            : undefined,
         schemeNote: apiComplex.scheme_note ?? undefined,
         resultMetrics: apiComplex.result_metrics,
         instructions: apiComplex.instructions ?? undefined,
@@ -144,7 +154,17 @@ export function mapNewComplexToApi(
         // "Упражнение(я)" не шлём: сервер выводит их из схемы сам.
         // Устаревший текстовый вариант схемы (scheme_display и др.) не
         // трогаем — он остаётся только у старых комплексов.
-        scheme: complex.scheme.map(mapSchemeBlockToApi),
+        // Схема в новом формате (как у программ) заменяет старую: сервер
+        // сам очищает старую при сохранении.
+        ...(complex.autoScheme
+            ? {
+                  auto_scheme: mapSchemeToApi({
+                      ...complex.autoScheme,
+                      name: complex.name.trim(),
+                      mode: "auto",
+                  }),
+              }
+            : { scheme: complex.scheme.map(mapSchemeBlockToApi) }),
         scheme_note: complex.schemeNote.trim() || null,
         result_metrics: complex.resultMetrics,
         instructions: complex.instructions.trim() || null,
@@ -166,6 +186,7 @@ export type ApiComplexCompletion = {
     result_count?: number | null;
     diary_entry_id?: number | null;
     completed_date: string;
+    via_assistant?: boolean;
     created_at: string;
     updated_at: string;
 };
@@ -190,6 +211,7 @@ export function mapApiCompletionToCompletion(
                 ? String(apiCompletion.diary_entry_id)
                 : undefined,
         completedDate: apiCompletion.completed_date,
+        viaAssistant: apiCompletion.via_assistant === true,
         createdAt: apiCompletion.created_at,
         updatedAt: apiCompletion.updated_at,
     };
@@ -207,6 +229,7 @@ export function mapNewCompletionToApi(
         result_duration_seconds: completion.resultDurationSeconds ?? null,
         result_count: completion.resultCount ?? null,
         diary_entry_id: completion.diaryEntryId ?? null,
+        via_assistant: completion.viaAssistant === true,
         completed_date: completion.completedDate,
     };
 }

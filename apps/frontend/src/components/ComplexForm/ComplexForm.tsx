@@ -7,6 +7,7 @@ import TagBadge from "../ui/TagBadge/TagBadge";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import SchemeBuilder from "../SchemeBuilder/SchemeBuilder";
+import { AutoSchemeEditor } from "../ProgramStructureEditor/ProgramStructureEditor";
 import ComplexSchemeView from "../ComplexSchemeView/ComplexSchemeView";
 
 import "../../styles/components/complex-form.css";
@@ -20,6 +21,47 @@ import { movementTypeLabels } from "../../constants/movementTypes";
 import { useExercises } from "../../context/ExerciseContext";
 import type { MetricType, MovementType } from "../../types/complex";
 import type { NewComplex } from "../../types/newComplex";
+
+/**
+ * Что означает каждый показатель результата — для подсказки в форме.
+ * autoText — как его считает помощник (только у комплексов со схемой для
+ * помощника). Правило сравнения участников — то же, что в рейтинге
+ * (routers/complexes.py, _leaderboard_metric).
+ */
+const metricHelp: {
+    metric: MetricType;
+    text: string;
+    autoText?: string;
+}[] = [
+    {
+        metric: "time",
+        text: "Сколько времени ушло на весь комплекс. Чем меньше, тем лучше.",
+        autoText:
+            "С помощником подставляется само: от старта до финиша, вместе с отдыхом.",
+    },
+    {
+        metric: "reps",
+        text: "Сколько всего повторений сделано во всех упражнениях. Чем больше, тем лучше.",
+        autoText:
+            "С помощником считается само: складываются повторения, «максимум», а также повторения, отмеченные в AMRAP и EMOM. Упражнения на секунды без отметки повторений в сумму не входят.",
+    },
+    {
+        metric: "sets",
+        text: "Сколько подходов выполнено. Вводится вручную. Чем больше, тем лучше.",
+    },
+    {
+        metric: "rounds",
+        text: "Сколько кругов выполнено, например «сколько кругов успеете за отведённое время». Вводится вручную. Чем больше, тем лучше.",
+    },
+    {
+        metric: "duration",
+        text: "Сколько человек выполнял задание, например держал планку: минуты и секунды, вводится вручную и обязательно. В рейтинге чем дольше, тем лучше — противоположность «Времени».",
+    },
+    {
+        metric: "count",
+        text: "Любое число, смысл которого задаёте вы: очки, вес, расстояние. Вводится вручную. Чем больше, тем лучше.",
+    },
+];
 
 const metricOptions = (Object.keys(metricLabels) as MetricType[]).map(
     (value) => ({ value, label: metricLabels[value] })
@@ -69,18 +111,45 @@ export default function ComplexForm({
     const derivedMovements = useMemo(() => {
         const result: MovementType[] = [];
 
-        for (const block of complex.scheme) {
-            for (const item of block.items) {
-                const movementType = getExerciseById(item.exerciseId)?.movementType;
+        const exerciseIds = complex.autoScheme
+            ? complex.autoScheme.blocks.flatMap((block) =>
+                  block.items.flatMap((item) =>
+                      item.kind === "exercise" ? [item.exerciseId] : []
+                  )
+              )
+            : complex.scheme.flatMap((block) =>
+                  block.items.map((item) => item.exerciseId)
+              );
 
-                if (movementType && !result.includes(movementType)) {
-                    result.push(movementType);
-                }
+        for (const exerciseId of exerciseIds) {
+            const movementType = getExerciseById(exerciseId)?.movementType;
+
+            if (movementType && !result.includes(movementType)) {
+                result.push(movementType);
             }
         }
 
         return result;
-    }, [complex.scheme, getExerciseById]);
+    }, [complex.autoScheme, complex.scheme, getExerciseById]);
+
+    // Переход со старого конструктора на новый (как у программ): схема
+    // собирается заново, а старая при сохранении заменяется.
+    function switchToAutoScheme() {
+        const confirmed = window.confirm(
+            "Перейти на новый конструктор схемы?\n\n" +
+                "Схему придётся собрать заново: старая останется только до " +
+                "сохранения, после него она заменяется новой."
+        );
+
+        if (!confirmed) return;
+
+        updateField("autoScheme", {
+            id: "complex-scheme",
+            name: complex.name,
+            mode: "auto",
+            blocks: [],
+        });
+    }
 
     function updateField<K extends keyof NewComplex>(
         field: K,
@@ -200,21 +269,58 @@ export default function ComplexForm({
 
             <FormSection title="Схема комплекса">
                 {
-                    legacySchemeText && (
-                        <p className="complex-form__legacy">
-                            Раньше схема была записана текстом: <em>{legacySchemeText}</em>.
-                            Соберите её заново из блоков и упражнений базы.
-                        </p>
+                    complex.autoScheme ? (
+                        <>
+                            <AutoSchemeEditor
+                                scheme={complex.autoScheme}
+                                onChange={(autoScheme) =>
+                                    updateField("autoScheme", autoScheme)
+                                }
+                            />
+
+                            {
+                                getFieldError(errors, "scheme") && (
+                                    <small className="complex-form__error">
+                                        Схема заполнена не полностью — смотрите
+                                        список выше.
+                                    </small>
+                                )
+                            }
+                        </>
+                    ) : (
+                        <>
+                            {
+                                legacySchemeText && (
+                                    <p className="complex-form__legacy">
+                                        Раньше схема была записана текстом: <em>{legacySchemeText}</em>.
+                                        Соберите её заново из блоков и упражнений базы.
+                                    </p>
+                                )
+                            }
+
+                            <p className="complex-form__hint">
+                                Это прежний конструктор схем: по такому
+                                комплексу нет помощника с таймерами.
+                            </p>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={switchToAutoScheme}
+                            >
+                                Перейти на новый конструктор (с помощником)
+                            </Button>
+
+                            <SchemeBuilder
+                                value={complex.scheme}
+                                onChange={(scheme) => updateField("scheme", scheme)}
+                                errors={errors
+                                    .filter((error) => error.field === "scheme")
+                                    .map((error) => error.message)}
+                            />
+                        </>
                     )
                 }
-
-                <SchemeBuilder
-                    value={complex.scheme}
-                    onChange={(scheme) => updateField("scheme", scheme)}
-                    errors={errors
-                        .filter((error) => error.field === "scheme")
-                        .map((error) => error.message)}
-                />
 
                 <Textarea
                     id="complex-scheme-note"
@@ -226,6 +332,7 @@ export default function ComplexForm({
                 />
 
                 {
+                    !complex.autoScheme &&
                     complex.scheme.some((block) => block.items.length > 0) && (
                         <div className="complex-form__preview">
                             <h4 className="complex-form__preview-title">
@@ -244,6 +351,44 @@ export default function ComplexForm({
             </FormSection>
 
             <FormSection title="Показатели результата">
+                <div className="complex-form__hint">
+                    <p>
+                        Отметьте, что считается результатом комплекса: по
+                        каждому отмеченному показателю участник вносит значение
+                        при выполнении.
+                        {
+                            complex.autoScheme &&
+                                " При прохождении с помощником «Время» и «Повторения» подставляются сами, остальные показатели участник вводит на экране завершения."
+                        }
+                    </p>
+
+                    <ul className="complex-form__metric-help">
+                        {
+                            metricHelp.map((help) => (
+                                <li key={help.metric}>
+                                    <strong>{metricLabels[help.metric]}</strong>
+                                    {" — "}
+                                    {help.text}
+                                    {
+                                        complex.autoScheme && help.autoText &&
+                                            ` ${help.autoText}`
+                                    }
+                                </li>
+                            ))
+                        }
+                    </ul>
+
+                    <p>
+                        Как сравниваются участники в таблице результатов: если
+                        отмечено «Время», выше тот, у кого оно меньше. Если
+                        «Времени» нет, но есть «Продолжительность», выше тот,
+                        кто выполнял дольше. Иначе — по первому показателю,
+                        который вы отметили (чем больше, тем выше). Остальные
+                        показатели сохраняются вместе с выполнением, но места
+                        не определяют.
+                    </p>
+                </div>
+
                 <div className="complex-form__tag-row">
                     {
                         metricOptions.map((option) => (

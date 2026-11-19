@@ -22,6 +22,10 @@ import {
 
 type ProgramSchemeContentProps = {
     scheme: ProgramScheme;
+
+    /** false — не показывать «Нагружаемые мышцы» (страница комплекса
+     *  показывает их сама). */
+    showMuscles?: boolean;
 };
 
 /**
@@ -38,6 +42,7 @@ type ProgramSchemeContentProps = {
  */
 export default function ProgramSchemeContent({
     scheme,
+    showMuscles = true,
 }: ProgramSchemeContentProps) {
     const { exercises, isLoading } = useExercises();
 
@@ -230,7 +235,7 @@ export default function ProgramSchemeContent({
             }
 
             {
-                hasMuscles && (
+                showMuscles && hasMuscles && (
                     <section className="program-scheme-content__section">
                         <h2 className="program-scheme-content__section-title">
                             Нагружаемые мышцы

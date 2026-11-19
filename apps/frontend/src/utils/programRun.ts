@@ -248,6 +248,9 @@ export type RunState = RunIds & {
     /** EMOM «все вместе»: повторения каждого упражнения в каждом
      *  интервале — индекс шага → ключ упражнения → повторения. */
     togetherReps?: Record<number, Record<string, number>>;
+
+    /** Когда сделан последний шаг (для общего времени прохождения). */
+    finishedAt?: number;
 };
 
 export const MAX_RESULT = 9999;
@@ -546,6 +549,7 @@ export function completeWork(
         return {
             ...state,
             phase: "finished",
+            finishedAt: now,
             results,
             repsResults,
             togetherReps,
@@ -586,6 +590,48 @@ export function setStepReps(
     return {
         ...state,
         repsResults: { ...state.repsResults, [stepIndex]: safe },
+    };
+}
+
+/**
+ * Итоги прохождения для результата комплекса: общее время от старта до
+ * финиша (включая отдых) и общее число повторений всех упражнений.
+ * Повторения — то, что человек отметил: у «повторений» и «максимума» это
+ * результат подхода, у упражнений на время, AMRAP и EMOM — отмеченные
+ * повторения; секунды без подсчёта повторений в сумму не входят.
+ */
+export function computeRunTotals(
+    steps: RunStep[],
+    state: RunState,
+    now: number
+): { seconds: number; reps: number } {
+    let reps = 0;
+
+    steps.forEach((step) => {
+        const result = state.results[step.index];
+
+        if (result === undefined) {
+            return;
+        }
+
+        if (step.together) {
+            const perExercise = state.togetherReps?.[step.index];
+
+            step.together.forEach((entry) => {
+                reps += perExercise?.[entry.groupKey] ?? entry.reps;
+            });
+        } else if (step.trackReps) {
+            reps += state.repsResults[step.index] ?? step.targetReps;
+        } else if (step.targetKind === "reps" || step.targetKind === "max") {
+            reps += result;
+        }
+    });
+
+    const end = state.finishedAt ?? now;
+
+    return {
+        seconds: Math.max(1, Math.round((end - state.startedAt) / 1000)),
+        reps,
     };
 }
 
@@ -823,7 +869,11 @@ export function buildRunSummaryBlocks(
 }
 
 export type RunDescriptionInput = {
+    /** Название программы или, если isComplex, комплекса. */
     programTitle: string;
+
+    /** Схема пройдена не в программе, а в комплексе каталога. */
+    isComplex?: boolean;
     sectionName?: string;
     schemeName: string;
     steps: RunStep[];
@@ -866,9 +916,11 @@ function describeSetHeading(set: RunSummarySet): string {
  */
 export function buildRunDescription(input: RunDescriptionInput): string {
     const where = [
-        `Программа «${input.programTitle}»`,
-        input.sectionName?.trim(),
-        input.schemeName.trim(),
+        input.isComplex
+            ? `Комплекс «${input.programTitle}»`
+            : `Программа «${input.programTitle}»`,
+        input.isComplex ? undefined : input.sectionName?.trim(),
+        input.isComplex ? undefined : input.schemeName.trim(),
     ]
         .filter(Boolean)
         .join(", ");

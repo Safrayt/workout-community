@@ -2,7 +2,8 @@
 GET /complexes/{id}/leaderboard и /leaderboard/all — рейтинг комплекса.
 
 Очки пользователя — значение основного показателя его лучшего
-выполнения (больше лучше; для временных комплексов меньше лучше).
+выполнения: у «Времени» меньше лучше, у остальных (в том числе у
+«Продолжительности») больше лучше.
 """
 
 from datetime import date, timedelta
@@ -21,6 +22,8 @@ from conftest import auth_headers, register_user
 
 TIME_COMPLEX_ID = "hannibal-scheme-steel"  # временной: меньше — лучше
 REPS_COMPLEX_ID = "three-addends"  # объёмный: больше — лучше
+DURATION_COMPLEX_ID = "plank-hold"  # продолжительность: больше — лучше
+TIME_AND_DURATION_COMPLEX_ID = "time-and-hold"  # время главнее
 
 
 @pytest.fixture(name="reps_complex")
@@ -36,6 +39,28 @@ def reps_complex_fixture(session):
             }
         )
     )
+    session.commit()
+
+
+@pytest.fixture(name="duration_complexes")
+def duration_complexes_fixture(session):
+    """Комплексы с «Продолжительностью»: одна и вместе с «Временем»."""
+    row = session.get(ComplexDB, TIME_COMPLEX_ID)
+
+    for complex_id, metrics in (
+        (DURATION_COMPLEX_ID, ["duration"]),
+        (TIME_AND_DURATION_COMPLEX_ID, ["duration", "time"]),
+    ):
+        session.add(
+            ComplexDB(
+                **{
+                    **row.model_dump(),
+                    "id": complex_id,
+                    "result_metrics": metrics,
+                }
+            )
+        )
+
     session.commit()
 
 
@@ -59,6 +84,7 @@ def _add_result(
     *,
     reps: int | None = None,
     seconds: int | None = None,
+    duration: int | None = None,
     days_ago: int = 0,
 ) -> None:
     session.add(
@@ -68,6 +94,7 @@ def _add_result(
             completed_date=date.today() - timedelta(days=days_ago),
             result_reps=reps,
             result_time_seconds=seconds,
+            result_duration_seconds=duration,
         )
     )
     session.commit()
@@ -184,6 +211,60 @@ def test_time_based_complex_ranks_by_least_time(client, session):
         (1, "fast", 250),
         (2, "slow", 400),
     ]
+
+
+def test_duration_complex_ranks_by_longest_duration(
+    client, session, duration_complexes
+):
+    short = _add_user(client, session, "short")
+    long = _add_user(client, session, "long")
+
+    _add_result(session, short, DURATION_COMPLEX_ID, duration=60)
+    _add_result(session, long, DURATION_COMPLEX_ID, duration=90)
+    _add_result(session, long, DURATION_COMPLEX_ID, duration=45)
+
+    assert _lines(_board(client, DURATION_COMPLEX_ID)) == [
+        (1, "long", 90),
+        (2, "short", 60),
+    ]
+
+
+def test_time_is_the_ranking_metric_when_duration_is_also_selected(
+    client, session, duration_complexes
+):
+    slow = _add_user(client, session, "slow")
+    fast = _add_user(client, session, "fast")
+
+    # У «медленного» дольше продолжительность, но «Время» главнее.
+    _add_result(
+        session, slow, TIME_AND_DURATION_COMPLEX_ID, seconds=400, duration=120
+    )
+    _add_result(
+        session, fast, TIME_AND_DURATION_COMPLEX_ID, seconds=250, duration=30
+    )
+
+    assert _lines(_board(client, TIME_AND_DURATION_COMPLEX_ID)) == [
+        (1, "fast", 250),
+        (2, "slow", 400),
+    ]
+
+
+def test_best_completion_of_duration_complex_is_the_longest(
+    client, session, duration_complexes
+):
+    token = register_user(client, nickname="holder")["token"]
+    user_id = session.exec(select(User).where(User.nickname == "holder")).first().id
+
+    _add_result(session, user_id, DURATION_COMPLEX_ID, duration=60, days_ago=3)
+    _add_result(session, user_id, DURATION_COMPLEX_ID, duration=95, days_ago=2)
+    _add_result(session, user_id, DURATION_COMPLEX_ID, duration=70, days_ago=1)
+
+    response = client.get(
+        f"/complexes/{DURATION_COMPLEX_ID}/best", headers=auth_headers(token)
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["result_duration_seconds"] == 95
 
 
 def test_completions_without_the_ranking_metric_are_ignored(

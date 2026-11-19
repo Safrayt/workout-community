@@ -346,3 +346,32 @@
     font-size: var(--font-size-sm);
     text-align: center;
 }
+
+.program-scheme-run__save {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.program-scheme-run__hint {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.program-scheme-run__saved {
+    margin: 0;
+    font-weight: 600;
+}
+
+.program-scheme-run__entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.program-scheme-run__entry-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+}

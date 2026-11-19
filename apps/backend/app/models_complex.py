@@ -7,6 +7,11 @@ from pydantic import field_validator
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, Session, SQLModel, select
 
+from app.models_program import (
+    ProgramScheme,
+    ProgramSchemeMode,
+    auto_scheme_problems,
+)
 from app.utc import UtcDatetime
 
 
@@ -170,6 +175,52 @@ MAX_SCHEME_REPS = 1000
 MAX_SCHEME_SECONDS = 24 * 60 * 60
 
 
+def auto_scheme_rows(auto_scheme) -> List[dict]:
+    """
+    Строки автоматической схемы (упражнения всех её комплексов по
+    порядку, с повторами) — словарями, как они лежат в JSON. Принимает
+    и ProgramScheme, и сырой словарь из базы; None — пустой список.
+    """
+    if auto_scheme is None:
+        return []
+
+    raw = (
+        auto_scheme.model_dump(mode="json")
+        if isinstance(auto_scheme, ProgramScheme)
+        else auto_scheme
+    )
+
+    return [
+        item or {}
+        for block in (raw.get("blocks") or [])
+        for item in (block.get("items") or [])
+    ]
+
+
+def auto_scheme_exercise_ids(auto_scheme) -> List[str]:
+    """Id упражнений из базы в строках автоматической схемы — с повторами."""
+    return [
+        row["exercise_id"]
+        for row in auto_scheme_rows(auto_scheme)
+        if row.get("exercise_id")
+    ]
+
+
+def complex_auto_scheme_problems(scheme: ProgramScheme) -> List[str]:
+    """
+    Что не заполнено в автоматической схеме комплекса. Те же правила, что
+    у автоматических схем программ (auto_scheme_problems): схема комплекса
+    — это одна такая схема. Пустой список — по схеме можно проходить
+    комплекс с таймерами.
+    """
+    if scheme.mode != ProgramSchemeMode.auto:
+        return ["Схема комплекса должна быть автоматической"]
+
+    return auto_scheme_problems(
+        {"sections": [{"schemes": [scheme.model_dump(mode="json")]}]}
+    )
+
+
 def scheme_row_exercise_ids(scheme: List[SchemeBlock]) -> List[str]:
     """Упражнения всех строк схемы по порядку — с повторами."""
     return [item.exercise_id for block in scheme for item in block.items]
@@ -266,7 +317,7 @@ class Complex(SQLModel):
     """
     Один комплекс из каталога — форма, в которой каталог отдаётся по
     API и в которой с ним работает бизнес-логика этого файла (см.
-    is_time_based ниже и routers/complexes.py).
+    ranking_metric ниже и routers/complexes.py).
     Хранится в БД в таблице complex в более "плоском" виде (см.
     ComplexDB) — friendlier для JSON-колонок; complex_from_db()
     ниже конвертирует строку БД в этот класс на выходе.
@@ -295,6 +346,13 @@ class Complex(SQLModel):
     # (остаётся только у комплексов, заведённых до структурированной
     # схемы). Упражнения схемы — единственный источник exercise_ids.
     scheme: List[SchemeBlock] = []
+
+    # Схема в новом формате — той же структуре, что у схем программ
+    # (ProgramScheme, режим «автоматическая»): с ней комплекс можно
+    # проходить с помощником и таймерами. Если она есть, именно она
+    # показывается на странице комплекса, а scheme выше (старый формат)
+    # пуста.
+    auto_scheme: Optional[ProgramScheme] = None
 
     # Пояснение к схеме целиком («отдыхать можно, но время не
     # останавливается…») — показывается внизу схемы.
@@ -375,6 +433,10 @@ class ComplexDB(SQLModel, table=True):
     scheme: List[dict] = Field(default_factory=list, sa_column=Column(JSON))
     scheme_note: Optional[str] = None
 
+    # См. Complex.auto_scheme. Колонка добавлена позже таблицы — см.
+    # _run_migrations в database.py.
+    auto_scheme: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+
     # Типы движения комплекса: производное от упражнений (см.
     # movements_from_exercises). Хранится для комплексов без привязки к
     # базе упражнений и как запасной вариант; у связанных комплексов API
@@ -433,6 +495,7 @@ class ComplexCreate(SQLModel):
     scheme_steps: Optional[List[int]] = None
     total_reps: Optional[int] = None
     scheme: List[SchemeBlock] = []
+    auto_scheme: Optional[ProgramScheme] = None
     scheme_note: Optional[str] = None
     # Тип движения комплекса (movements) клиент не присылает: сервер
     # выводит его из упражнений схемы. Если клиент всё же пришлёт это
@@ -464,6 +527,7 @@ class ComplexUpdate(SQLModel):
     scheme_steps: Optional[List[int]] = None
     total_reps: Optional[int] = None
     scheme: Optional[List[SchemeBlock]] = None
+    auto_scheme: Optional[ProgramScheme] = None
     scheme_note: Optional[str] = None
     exercise: Optional[str] = None
     exercise_ids: Optional[List[str]] = None
@@ -526,14 +590,38 @@ def apply_complex_update(row: ComplexDB, data: ComplexUpdate) -> None:
     row.updated_at = datetime.now(timezone.utc)
 
 
-# Является ли основной показатель комплекса «чем меньше, тем лучше»
-# (время) или «чем больше, тем лучше» (объём) — нужно для определения
-# лучшего результата (п.21 документа).
+# Показатели, значения которых — секунды (на клиенте показываются как
+# «04:52»). На то, кто лучше, это не влияет — см. ranking_metric.
 TIME_LIKE_METRICS = {MetricType.time, MetricType.duration}
 
 
 def is_time_based(complex_def: Complex) -> bool:
     return any(m in TIME_LIKE_METRICS for m in complex_def.result_metrics)
+
+
+def ranking_metric(complex_def: Complex) -> tuple[Optional[MetricType], bool]:
+    """
+    Показатель, по которому определяют лучший результат и сравнивают
+    пользователей, и направление: True — чем больше, тем лучше (п.21
+    документа).
+
+    «Время» главнее всего и единственное «чем меньше, тем лучше». Следом
+    «Продолжительность» — наоборот, чем дольше, тем лучше (удержание,
+    «как можно дольше»). Нет ни того, ни другого — первый показатель
+    результата, больше лучше. Показателей нет — None.
+    """
+    metrics = complex_def.result_metrics
+
+    if MetricType.time in metrics:
+        return MetricType.time, False
+
+    if MetricType.duration in metrics:
+        return MetricType.duration, True
+
+    if metrics:
+        return metrics[0], True
+
+    return None, True
 
 
 # Стартовые данные каталога — единственная задача этого списка теперь
@@ -638,6 +726,11 @@ class ComplexCompletionBase(SQLModel):
     result_duration_seconds: Optional[int] = None
     result_count: Optional[int] = None
 
+    # Результат внесён автоматически из помощника (прохождение комплекса
+    # с таймерами), а не введён вручную. Помечается при создании;
+    # менять потом нельзя (в ComplexCompletionUpdate этого поля нет).
+    via_assistant: bool = False
+
     completed_date: date_type = Field(
         default_factory=lambda: datetime.now(timezone.utc).date()
     )
@@ -709,9 +802,9 @@ class ComplexCompletionRead(ComplexCompletionBase):
 # --- Рейтинг комплекса ------------------------------------------------------
 #
 # «Очки» пользователя в комплексе — значение основного показателя его
-# ЛУЧШЕГО выполнения (для объёмных комплексов — например, сумма
-# повторений, чем больше, тем лучше; для временных — время, чем меньше,
-# тем лучше). Видны всем (в том числе
+# ЛУЧШЕГО выполнения (например, сумма повторений или продолжительность —
+# чем больше, тем лучше; время — чем меньше, тем лучше, см.
+# ranking_metric). Видны всем (в том числе
 # гостям) только ник и это значение — сама история выполнений остаётся
 # личной (см. list_completions в routers/complexes.py).
 

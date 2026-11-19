@@ -1,5 +1,6 @@
 import type { NewComplex } from "../types/newComplex";
 import type { SchemeBlock } from "../types/complexScheme";
+import { getAutoSchemeProblems } from "../utils/programAuto";
 
 import type { ValidationError, ValidationResult } from "./index";
 
@@ -109,7 +110,16 @@ export function validateComplex(
         });
     }
 
-    for (const message of validateScheme(complex.scheme)) {
+    // Схема в новом формате проверяется правилами схем программ (то же,
+    // что на сервере: complex_auto_scheme_problems); старая — прежними.
+    const schemeMessages = complex.autoScheme
+        ? getAutoSchemeProblems({
+              ...complex.autoScheme,
+              name: complex.name.trim(),
+          })
+        : validateScheme(complex.scheme);
+
+    for (const message of schemeMessages) {
         errors.push({ field: "scheme", message });
     }
 

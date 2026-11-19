@@ -42,3 +42,16 @@
     margin-top: var(--space-1);
     color: var(--color-danger, #c53030);
 }
+
+.complex-form__hint p {
+    margin: 0 0 var(--space-2);
+}
+
+.complex-form__metric-help {
+    margin: 0 0 var(--space-2);
+    padding-left: var(--space-5);
+}
+
+.complex-form__metric-help li {
+    margin-bottom: var(--space-2);
+}

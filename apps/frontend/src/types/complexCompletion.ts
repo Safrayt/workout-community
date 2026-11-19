@@ -30,6 +30,9 @@ export type ComplexCompletion = {
 
     completedDate: string;
 
+    /** Результат внесён автоматически из помощника, а не вручную. */
+    viaAssistant?: boolean;
+
     createdAt: string;
 
     updatedAt: string;

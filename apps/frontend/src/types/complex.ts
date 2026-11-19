@@ -1,5 +1,6 @@
 import type { SchemeBlock } from "./complexScheme";
 import type { MovementType } from "./exercise";
+import type { ProgramScheme } from "./program";
 
 /**
  * Тип движения комплекса — тот же, что у упражнений («Тяговые»,
@@ -62,6 +63,14 @@ export type Complex = {
      * комплексов, там показывается текстовая схема выше.
      */
     scheme: SchemeBlock[];
+
+    /**
+     * Схема в новом формате — той же структуре, что у схем программ
+     * (режим «автоматическая»): с ней комплекс можно проходить с
+     * помощником и таймерами. Если она есть, показывается именно она, а
+     * scheme выше пуста.
+     */
+    autoScheme?: ProgramScheme;
 
     /** Пояснение к схеме целиком — показывается внизу схемы. */
     schemeNote?: string;

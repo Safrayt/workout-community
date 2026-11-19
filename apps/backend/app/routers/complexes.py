@@ -30,12 +30,14 @@ from app.models_complex import (
     ComplexUpdate,
     MetricType,
     MovementType,
-    TIME_LIKE_METRICS,
     apply_complex_update,
+    auto_scheme_exercise_ids,
+    auto_scheme_rows,
+    complex_auto_scheme_problems,
     complex_db_from_create,
     complex_from_db,
     compose_exercise_text,
-    is_time_based,
+    ranking_metric,
     movements_from_exercises,
     scheme_exercise_ids,
     scheme_row_exercise_ids,
@@ -92,6 +94,9 @@ def _ordered_exercise_ids(complex_def: Complex) -> List[str]:
     может стоять в ней несколько раз); у комплекса без схемы — по
     списку exercise_ids.
     """
+    if complex_def.auto_scheme is not None:
+        return auto_scheme_exercise_ids(complex_def.auto_scheme)
+
     return scheme_row_exercise_ids(complex_def.scheme) or complex_def.exercise_ids
 
 
@@ -117,9 +122,20 @@ def _to_complex(row: ComplexDB, info: dict[str, tuple[str, str]]) -> Complex:
 
     ordered_ids = _ordered_exercise_ids(complex_def)
 
-    linked_names = [
-        info[exercise_id][0] for exercise_id in ordered_ids if exercise_id in info
-    ]
+    if complex_def.auto_scheme is not None:
+        # Строки схемы: упражнение из базы (текущее название) или свой
+        # текст автора — в порядке схемы, с повторами.
+        linked_names = [
+            info[row["exercise_id"]][0]
+            if row.get("exercise_id")
+            else row.get("text")
+            for row in auto_scheme_rows(complex_def.auto_scheme)
+            if row.get("text") or row.get("exercise_id") in info
+        ]
+    else:
+        linked_names = [
+            info[exercise_id][0] for exercise_id in ordered_ids if exercise_id in info
+        ]
 
     if linked_names:
         complex_def.exercise = compose_exercise_text(linked_names)
@@ -161,6 +177,40 @@ def _validate_scheme_or_422(scheme) -> None:
         validate_scheme(scheme)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error))
+
+
+def _validate_auto_scheme_or_422(auto_scheme) -> None:
+    problems = complex_auto_scheme_problems(auto_scheme)
+
+    if problems:
+        raise HTTPException(status_code=422, detail="; ".join(problems))
+
+
+def _apply_auto_scheme(row: ComplexDB, auto_scheme, session: Session) -> None:
+    """
+    Выводит из автоматической схемы то, что в комплексе от неё зависит:
+    список упражнений, текст «Упражнения», типы движения. Старую схему
+    (scheme) очищает: схема в новом формате её заменяет.
+    """
+    rows = auto_scheme_rows(auto_scheme)
+    row_ids = auto_scheme_exercise_ids(auto_scheme)
+
+    # Заодно проверяем, что все упражнения из базы существуют.
+    names_by_id = dict(zip(row_ids, _resolve_exercise_names(row_ids, session)))
+
+    names = [
+        names_by_id[item["exercise_id"]]
+        if item.get("exercise_id")
+        else item["text"]
+        for item in rows
+    ]
+
+    row.scheme = []
+    row.exercise_ids = list(dict.fromkeys(row_ids))
+    row.exercise = compose_exercise_text(names)
+    row.movements = (
+        _movements_for(row_ids, _exercise_info(session, row_ids)) if row_ids else []
+    )
 
 
 def _ensure_has_exercises(row: ComplexDB) -> None:
@@ -221,6 +271,28 @@ def create_complex(
             detail=f"Комплекс с id «{data.id}» уже существует.",
         )
 
+    if data.auto_scheme is not None:
+        if data.scheme:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Укажите схему одним способом: в новом формате "
+                    "(auto_scheme) или в старом (scheme)."
+                ),
+            )
+
+        _validate_auto_scheme_or_422(data.auto_scheme)
+
+        row = complex_db_from_create(data)
+        _apply_auto_scheme(row, data.auto_scheme, session)
+        _ensure_has_exercises(row)
+
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+
+        return _to_complex(row, _exercise_info(session, row.exercise_ids or []))
+
     _validate_scheme_or_422(data.scheme)
 
     # Есть схема — упражнения берём из неё (с повторами, в её порядке);
@@ -263,9 +335,37 @@ def update_complex(
 
     row = _get_complex_db_or_404(complex_id, session)
 
+    if "auto_scheme" in data.model_fields_set:
+        if data.auto_scheme is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Схему нельзя убрать — замените её другой.",
+            )
+
+        if data.scheme:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Укажите схему одним способом: в новом формате "
+                    "(auto_scheme) или в старом (scheme)."
+                ),
+            )
+
+        _validate_auto_scheme_or_422(data.auto_scheme)
+
+        apply_complex_update(row, data)
+        _apply_auto_scheme(row, data.auto_scheme, session)
+        _ensure_has_exercises(row)
+
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+
+        return _to_complex(row, _exercise_info(session, row.exercise_ids or []))
+
     if data.scheme is not None:
         _validate_scheme_or_422(data.scheme)
-    elif data.exercise_ids is not None and row.scheme:
+    elif data.exercise_ids is not None and (row.scheme or row.auto_scheme):
         # Упражнения комплекса со схемой определяются схемой; отдельный
         # список разошёлся бы с ней.
         raise HTTPException(
@@ -324,24 +424,18 @@ def _metric_value(data, metric: MetricType) -> Optional[float]:
 def _best_completion_key(complex_def: Complex, completion: ComplexCompletion):
     """
     Ключ сортировки для определения лучшего результата (п.21
-    документа): для временных комплексов — меньшее время, для
-    объёмных — большее значение основного показателя.
+    документа): у «Времени» лучше меньшее значение, у остальных
+    показателей — большее (см. ranking_metric). Выше ключ — лучше
+    результат; нет значения основного показателя — хуже любого.
     """
 
-    if is_time_based(complex_def):
-        metric = (
-            MetricType.time
-            if MetricType.time in complex_def.result_metrics
-            else MetricType.duration
-        )
-        value = _metric_value(completion, metric)
-        score = float("-inf") if value is None else -value
-    else:
-        metric = complex_def.result_metrics[0] if complex_def.result_metrics else None
-        value = _metric_value(completion, metric) if metric else None
-        score = value if value is not None else float("-inf")
+    metric, higher_is_better = ranking_metric(complex_def)
+    value = _metric_value(completion, metric) if metric else None
 
-    return score
+    if value is None:
+        return float("-inf")
+
+    return value if higher_is_better else -value
 
 
 # =====================================================================
@@ -462,23 +556,11 @@ LEADERBOARD_TOP = 5
 def _leaderboard_metric(complex_def: Complex) -> tuple[Optional[MetricType], bool]:
     """
     Показатель, по которому сравнивают пользователей, и направление:
-    True — чем больше, тем лучше. У временного комплекса — время
-    (меньше лучше), у остальных — первый показатель результата.
+    True — чем больше, тем лучше. Время — меньше лучше, продолжительность
+    и остальные показатели — больше лучше (см. ranking_metric).
     """
 
-    if is_time_based(complex_def):
-        metric = (
-            MetricType.time
-            if MetricType.time in complex_def.result_metrics
-            else MetricType.duration
-        )
-
-        return metric, False
-
-    if complex_def.result_metrics:
-        return complex_def.result_metrics[0], True
-
-    return None, True
+    return ranking_metric(complex_def)
 
 
 def _ranked_leaderboard(

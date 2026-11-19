@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../components/ui/Button/Button";
+import ComplexRunResult from "../../components/ComplexRunResult/ComplexRunResult";
 
 import "../../styles/components/program-scheme-run.css";
 
@@ -9,7 +10,14 @@ import { useExercises } from "../../context/ExerciseContext";
 import { usePageMeta } from "../../hooks/usePageMeta";
 import { useProgramScheme } from "../../hooks/useProgramScheme";
 import { useWakeLock } from "../../hooks/useWakeLock";
+import type { Complex } from "../../types/complex";
 import type { Exercise } from "../../types/exercise";
+import {
+    buildRunResultFields,
+    pickManualFields,
+    validateManualResult,
+    type ManualResultFields,
+} from "../../utils/complexRunResult";
 import type { WorkoutEntryPrefill } from "../../types/newWorkoutEntry";
 import type { ProgramBlockItem, ProgramScheme } from "../../types/program";
 import {
@@ -34,6 +42,7 @@ import {
     emomContinues,
     emomPanel,
     emomRepsFor,
+    computeRunTotals,
     describeStepName,
     setTogetherReps,
     setEmomReps,
@@ -857,10 +866,18 @@ function FinishScreen({
     onCreateEntry,
     onRestart,
     onClose,
+    extra,
+    createEntryHint,
 }: {
     steps: RunStep[];
     state: RunState;
     name: string;
+
+    /** Блок под итогом тренировки (результат комплекса). */
+    extra?: React.ReactNode;
+
+    /** Пояснение под кнопкой «Сделать запись в дневнике». */
+    createEntryHint?: string;
     togetherRows?: TogetherRows;
     onTogetherReps: (groupKey: string, value: number) => void;
 
@@ -897,6 +914,8 @@ function FinishScreen({
                 {renderRichText(description)}
             </div>
 
+            {extra}
+
             <div className="program-scheme-run__actions">
                 <Button
                     className="program-scheme-run__big-button"
@@ -904,6 +923,14 @@ function FinishScreen({
                 >
                     Сделать запись в дневнике
                 </Button>
+
+                {
+                    createEntryHint && (
+                        <p className="program-scheme-run__hint">
+                            {createEntryHint}
+                        </p>
+                    )
+                }
 
                 <Link to={backTo} onClick={onClose}>
                     <Button
@@ -930,13 +957,20 @@ function FinishScreen({
 // Само прохождение (монтируется, когда схема загружена и годится)
 // =====================================================================
 
-function RunScreen({
+/**
+ * Прохождение схемы. Используется и для схем программ, и для комплексов
+ * каталога (pages/ComplexRun): у комплекса programTitle — его название,
+ * isComplex включает «комплексные» тексты, а запись дневника не
+ * привязывается к программе.
+ */
+export function RunScreen({
     ids,
     programTitle,
     sectionName,
     scheme,
     steps,
     backTo,
+    complexDef,
 }: {
     ids: RunIds;
     programTitle: string;
@@ -944,7 +978,17 @@ function RunScreen({
     scheme: ProgramScheme;
     steps: RunStep[];
     backTo: string;
+
+    /** Комплекс каталога, если проходится он, а не схема программы. */
+    complexDef?: Complex;
 }) {
+    const isComplex = complexDef !== undefined;
+
+    // Результат комплекса: показатели, которые помощник не считает
+    // (человек вводит их на экране завершения), и что в них не так.
+    const [manualResult, setManualResult] = useState<ManualResultFields>({});
+    const [resultError, setResultError] = useState<string | null>(null);
+
     const navigate = useNavigate();
     const { exercises } = useExercises();
 
@@ -1051,6 +1095,8 @@ function RunScreen({
         clearSavedRun(ids);
         setSaved(null);
         signalledRef.current = "";
+        setManualResult({});
+        setResultError(null);
         setState(createRun(ids, Date.now()));
     }
 
@@ -1110,11 +1156,13 @@ function RunScreen({
         const schemeLabel = scheme.name.trim();
 
         const workoutPrefill: WorkoutEntryPrefill = {
-            title:
-                [sectionLabel, schemeLabel].filter(Boolean).join(" — ") ||
-                programTitle,
+            title: isComplex
+                ? programTitle
+                : [sectionLabel, schemeLabel].filter(Boolean).join(" — ") ||
+                  programTitle,
             description: buildRunDescription({
                 programTitle,
+                isComplex,
                 sectionName,
                 schemeName: scheme.name,
                 steps,
@@ -1124,17 +1172,57 @@ function RunScreen({
                 nameOf,
                 minutes,
             }),
-            programId: ids.programId,
-            programSection: sectionLabel ?? "",
-            programScheme: schemeLabel,
+            // Комплекс каталога — не программа: к ней запись не привязываем.
+            ...(isComplex
+                ? {}
+                : {
+                      programId: ids.programId,
+                      programSection: sectionLabel ?? "",
+                      programScheme: schemeLabel,
+                  }),
         };
 
-        navigate("/diary/create/workout", { state: { workoutPrefill } });
+        // Результат комплекса ждёт новой записи: форма записи после
+        // сохранения привяжет к ней выполнение (AddWorkoutEntry).
+        let complexCompletion: object | undefined;
+
+        if (complexDef) {
+            const problem = validateManualResult(
+                complexDef.resultMetrics,
+                manualResult
+            );
+
+            if (problem) {
+                setResultError(problem);
+                return;
+            }
+
+            // Выполнение привязывается к записи всегда — даже если вносить
+            // в него нечего: иначе запись не подтверждала бы комплекс.
+            complexCompletion = {
+                complexId: complexDef.id,
+                complexName: complexDef.name,
+                ...buildRunResultFields(
+                    complexDef.resultMetrics,
+                    computeRunTotals(steps, state, Date.now())
+                ),
+                ...pickManualFields(complexDef.resultMetrics, manualResult),
+            };
+        }
+
+        navigate("/diary/create/workout", {
+            state: {
+                workoutPrefill,
+                ...(complexCompletion ? { complexCompletion } : {}),
+            },
+        });
     }
 
     function handleRestart() {
         clearSavedRun(ids);
         signalledRef.current = "";
+        setManualResult({});
+        setResultError(null);
         setState(createRun(ids, Date.now()));
     }
 
@@ -1142,7 +1230,7 @@ function RunScreen({
         return (
             <IntroScreen
                 scheme={scheme}
-                programTitle={programTitle}
+                programTitle={isComplex ? "Комплекс" : programTitle}
                 steps={steps}
                 saved={saved}
                 onStart={handleStart}
@@ -1154,6 +1242,27 @@ function RunScreen({
     const nextStep = steps[state.stepIndex + 1];
     const doneSteps = state.stepIndex + (state.phase === "work" ? 0 : 1);
     const progress = Math.round((doneSteps / steps.length) * 100);
+
+    // Текст итога: показывается на экране завершения, попадает в запись
+    // дневника и (по галочке) дописывается в существующую запись.
+    const finishDescription =
+        state.phase === "finished"
+            ? buildRunDescription({
+                  programTitle,
+                  isComplex,
+                  sectionName,
+                  schemeName: scheme.name,
+                  steps,
+                  results: state.results,
+                  repsResults: state.repsResults,
+                  togetherReps: state.togetherReps,
+                  nameOf,
+                  minutes: Math.max(
+                      1,
+                      Math.round((now - state.startedAt) / 60000)
+                  ),
+              })
+            : "";
 
     return (
         <div className="program-scheme-run__session">
@@ -1281,21 +1390,29 @@ function RunScreen({
                         steps={steps}
                         state={state}
                         name={describeStepName(step, nameOf)}
-                        description={buildRunDescription({
-                            programTitle,
-                            sectionName,
-                            schemeName: scheme.name,
-                            steps,
-                            results: state.results,
-                            repsResults: state.repsResults,
-                            togetherReps: state.togetherReps,
-                            nameOf,
-                            minutes: Math.max(
-                                1,
-                                Math.round((now - state.startedAt) / 60000)
-                            ),
-                        })}
+                        description={finishDescription}
                         backTo={backTo}
+                        extra={
+                            complexDef ? (
+                                <ComplexRunResult
+                                    manual={manualResult}
+                                    onManualChange={setManualResult}
+                                    error={resultError}
+                                    onErrorChange={setResultError}
+                                    complexDef={complexDef}
+                                    fields={buildRunResultFields(
+                                        complexDef.resultMetrics,
+                                        computeRunTotals(steps, state, now)
+                                    )}
+                                    description={finishDescription}
+                                />
+                            ) : undefined
+                        }
+                        createEntryHint={
+                            complexDef
+                                ? "Результат комплекса добавится к новой записи автоматически."
+                                : undefined
+                        }
                         onResult={(value) =>
                             update((current) =>
                                 setStepResult(current, step.index, value)

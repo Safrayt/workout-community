@@ -211,7 +211,7 @@ function mapApiBlockToBlock(block: ApiProgramBlock): ProgramBlock {
 // месту в структуре, а не случайный: на id схемы строится её адрес
 // (/programs/:id/schemes/:schemeId), и он не должен меняться от
 // загрузки к загрузке. Новые схемы получают настоящий id в редакторе.
-function mapApiSchemeToScheme(
+export function mapApiSchemeToScheme(
     scheme: ApiProgramScheme,
     fallbackId: string
 ): ProgramScheme {
@@ -273,7 +273,7 @@ function mapBlockToApi(block: ProgramBlock): ApiProgramBlock {
     };
 }
 
-function mapSchemeToApi(scheme: ProgramScheme): ApiProgramScheme {
+export function mapSchemeToApi(scheme: ProgramScheme): ApiProgramScheme {
     return {
         id: scheme.id,
         name: scheme.name,

@@ -43,6 +43,25 @@ export async function getWorkoutEntry(id: string): Promise<WorkoutEntry> {
     return mapApiWorkoutEntryToEntry(apiEntry);
 }
 
+/**
+ * Дописывает текст в конец описания записи, ничего больше в ней не
+ * меняя: перед этим читает запись заново (чтобы не затереть правки,
+ * сделанные на другом устройстве) и отправляет только поле описания
+ * (сервер обновляет лишь переданные поля).
+ */
+export async function appendToWorkoutEntryDescription(
+    id: string,
+    text: string
+): Promise<void> {
+    const current = await getWorkoutEntry(id);
+    const base = (current.description ?? "").trimEnd();
+
+    await apiFetch(`/diary/entries/${id}`, {
+        method: "PUT",
+        body: { description: base ? `${base}\n\n${text}` : text },
+    });
+}
+
 async function syncEntryPhotos(
     entryId: string,
     existingEntry: WorkoutEntry | undefined,
