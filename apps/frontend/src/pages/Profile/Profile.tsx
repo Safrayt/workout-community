@@ -7,6 +7,9 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 
 import ProfileHeader from "../../components/ProfileHeader/ProfileHeader";
 import ProfileStats from "../../components/ProfileStats/ProfileStats";
+import ProfileActivity from "../../components/ProfileActivity/ProfileActivity";
+import ProfilePrograms from "../../components/ProfilePrograms/ProfilePrograms";
+import ProfileComplexes from "../../components/ProfileComplexes/ProfileComplexes";
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 import WorkoutEntryCard from "../../components/WorkoutEntryCard/WorkoutEntryCard";
 import DiaryNoteCard from "../../components/DiaryNoteCard/DiaryNoteCard";
@@ -280,7 +283,60 @@ export default function Profile() {
                 isOwnProfile={isOwnProfile}
             />
 
+            <InfoSection
+                title="Активность за год"
+                className="profile-section"
+            >
+                {
+                    canViewDiary ? (
+                        <ProfileActivity
+                            workoutDates={userEntries.map((entry) => entry.date)}
+                            noteDates={userNotes.map((note) => note.date)}
+                        />
+                    ) : (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл свой дневник от посторонних.
+                            </p>
+                        </div>
+                    )
+                }
+            </InfoSection>
+
             <ProfileStats items={statsItems} />
+
+            <InfoSection
+                title="Программы тренировок"
+                className="profile-section"
+            >
+                {
+                    canViewDiary ? (
+                        <ProfilePrograms
+                            entries={userEntries}
+                            isOwnProfile={isOwnProfile}
+                        />
+                    ) : (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл свой дневник от посторонних.
+                            </p>
+                        </div>
+                    )
+                }
+            </InfoSection>
+
+            {
+                // Выполнения комплексов — личная история: только в своём
+                // профиле.
+                isOwnProfile && (
+                    <InfoSection
+                        title="Комплексы"
+                        className="profile-section"
+                    >
+                        <ProfileComplexes />
+                    </InfoSection>
+                )
+            }
 
             <InfoSection
                 title="Последние записи"

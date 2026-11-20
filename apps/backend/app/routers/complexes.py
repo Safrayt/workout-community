@@ -725,6 +725,30 @@ def create_completion(
     return completion
 
 
+@router.get("/completions/mine", response_model=List[ComplexCompletionRead])
+def list_my_completions(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> List[ComplexCompletion]:
+    """
+    Все выполнения текущего пользователя по всем комплексам — для
+    страницы его профиля (какие комплексы проходил и с какими
+    результатами). Как и история одного комплекса (list_completions),
+    это приватные данные: чужие выполнения не отдаём никому.
+    """
+    completions = session.exec(
+        select(ComplexCompletion).where(
+            ComplexCompletion.user_id == current_user.id
+        )
+    ).all()
+
+    return sorted(
+        completions,
+        key=lambda completion: (completion.completed_date, completion.id),
+        reverse=True,
+    )
+
+
 @router.get(
     "/{complex_id}/completions", response_model=List[ComplexCompletionRead]
 )

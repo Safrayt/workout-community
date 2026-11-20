@@ -124,6 +124,18 @@ export async function listCompletions(
     return apiCompletions.map(mapApiCompletionToCompletion);
 }
 
+/**
+ * Все выполнения текущего пользователя по всем комплексам — для его
+ * профиля. Чужие выполнения сервер не отдаёт (история личная).
+ */
+export async function listMyCompletions(): Promise<ComplexCompletion[]> {
+    const apiCompletions = await apiFetch<ApiComplexCompletion[]>(
+        "/complexes/completions/mine"
+    );
+
+    return apiCompletions.map(mapApiCompletionToCompletion);
+}
+
 export async function getBestCompletion(
     complexId: string
 ): Promise<ComplexCompletion | undefined> {

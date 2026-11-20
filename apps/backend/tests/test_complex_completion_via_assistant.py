@@ -104,3 +104,36 @@ def test_marking_cannot_be_changed_by_update(client, session):
 
     assert response.status_code == 200, response.text
     assert response.json()["via_assistant"] is False
+
+
+def test_my_completions_lists_only_own_results_of_all_complexes(client, session):
+    mine_headers, mine_entry = _setup(client, session)
+
+    other = register_user(client, nickname="other")
+    other_user = session.exec(select(User).where(User.nickname == "other")).first()
+
+    from app.models_diary import WorkoutEntry
+
+    other_entry = WorkoutEntry(
+        date=date.today(), title="Чужая", user_id=other_user.id
+    )
+    session.add(other_entry)
+    session.commit()
+    session.refresh(other_entry)
+
+    first = _create(client, mine_headers, mine_entry, result_reps=100).json()
+    _create(
+        client,
+        auth_headers(other["token"]),
+        other_entry.id,
+        result_reps=999,
+    )
+
+    response = client.get("/complexes/completions/mine", headers=mine_headers)
+
+    assert response.status_code == 200, response.text
+    assert [item["id"] for item in response.json()] == [first["id"]]
+
+
+def test_my_completions_requires_login(client):
+    assert client.get("/complexes/completions/mine").status_code == 401
