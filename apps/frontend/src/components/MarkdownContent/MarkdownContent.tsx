@@ -68,6 +68,40 @@ function heading(tag: "h3" | "h4" | "h5" | "h6"): Components["h1"] {
     return (props) => <Tag {...omitNode(props)} />;
 }
 
+/** Адреса, которые считаем «своим сайтом» кроме текущего (на localhost при
+ *  разработке в текстах остаются боевые адреса). */
+const OWN_HOSTS = new Set(["street-workout.online", "www.street-workout.online"]);
+
+/**
+ * Если href — полный адрес страницы этого же сайта, возвращает путь для
+ * роутера (с параметрами и якорем), иначе null.
+ */
+function sameSitePath(href: string): string | null {
+    let url: URL;
+
+    try {
+        url = new URL(href);
+    } catch {
+        return null;
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return null;
+    }
+
+    if (url.hostname !== window.location.hostname && !OWN_HOSTS.has(url.hostname)) {
+        return null;
+    }
+
+    // Файлы, загрузки и API — не страницы роутера: пусть открываются как
+    // обычная ссылка.
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/uploads/")) {
+        return null;
+    }
+
+    return `${url.pathname}${url.search}${url.hash}`;
+}
+
 const components: Components = {
     h1: heading("h3"),
     h2: heading("h3"),
@@ -83,6 +117,19 @@ const components: Components = {
         // перезагрузки.
         if (href && href.startsWith("/") && !href.startsWith("//")) {
             return <Link to={href}>{children}</Link>;
+        }
+
+        // То же, если автор вставил полный адрес своего сайта
+        // (https://street-workout.online/programs/18). Раньше такая ссылка
+        // считалась внешней и открывалась в новой вкладке: в мобильных
+        // встроенных браузерах (Telegram, VK) и в установленном на экран
+        // сайте новая вкладка может оказаться другим браузером с другим
+        // хранилищем, где нет токена входа, и человека «выбрасывало» из
+        // аккаунта.
+        const internalPath = href ? sameSitePath(href) : null;
+
+        if (internalPath) {
+            return <Link to={internalPath}>{children}</Link>;
         }
 
         // Внешняя ссылка (в том числе на видео) открывается в новой
