@@ -7,7 +7,7 @@ import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import TagsField from "../TagsField/TagsField";
 import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 
 import type {

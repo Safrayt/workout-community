@@ -1,3 +1,4 @@
+import type { ComponentType, ReactElement } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import ProtectedLayout from "./ProtectedLayout";
@@ -5,73 +6,45 @@ import RootLayout from "../components/layout/RootLayout";
 import Layout from "../components/layout/Layout";
 import type { RouteHandle } from "./guestAccess";
 
-import Login from "../pages/Login/Login";
-import Register from "../pages/Register/Register";
-import Recover from "../pages/Recover/Recover";
-import PrivacyPolicy from "../pages/PrivacyPolicy/PrivacyPolicy";
-import TermsOfService from "../pages/TermsOfService/TermsOfService";
 
-import Home from "../pages/Home/Home";
-import Profile from "../pages/Profile/Profile";
-import EditProfile from "../pages/EditProfile/EditProfile";
-import MyEvents from "../pages/MyEvents/MyEvents";
-import PastEvents from "../pages/PastEvents/PastEvents";
-import AccountSettings from "../pages/AccountSettings/AccountSettings";
-import UserDiary from "../pages/UserDiary/UserDiary";
-import UserEvents from "../pages/UserEvents/UserEvents";
-import Subscriptions from "../pages/Subscriptions/Subscriptions";
-import Events from "../pages/Events/Events";
-import CreateEvent from "../pages/CreateEvent/CreateEvent";
-import Diary from "../pages/Diary/Diary";
-import Notifications from "../pages/Notifications/Notifications";
-import AddDiaryEntry from "../pages/AddDiaryEntry/AddDiaryEntry";
-import AddWorkoutEntry from "../pages/AddWorkoutEntry/AddWorkoutEntry";
-import AddDiaryNote from "../pages/AddDiaryNote/AddDiaryNote";
-import WorkoutEntryDetails from "../pages/WorkoutEntryDetails/WorkoutEntryDetails";
-import DiaryNoteDetails from "../pages/DiaryNoteDetails/DiaryNoteDetails";
 import LegacyDiaryRedirect from "../pages/LegacyDiaryRedirect/LegacyDiaryRedirect";
-import Playgrounds from "../pages/Playgrounds/Playgrounds";
-import EventDetails from "../pages/EventDetails/EventDetails";
-import EditEvent from "../pages/EditEvent/EditEvent";
-import PlaygroundDetails from "../pages/PlaygroundDetails/PlaygroundDetails";
-import AddPlayground from "../pages/AddPlayground/AddPlayground";
-import EditPlayground from "../pages/EditPlayground/EditPlayground";
-import PlaygroundHistory from "../pages/PlaygroundHistory/PlaygroundHistory";
-import PlaygroundReviewsList from "../pages/PlaygroundReviewsList/PlaygroundReviewsList";
-import WriteReview from "../pages/WriteReview/WriteReview";
-import PlaygroundEventsList from "../pages/PlaygroundEventsList/PlaygroundEventsList";
-import Achievements from "../pages/Achievements/Achievements";
-import PersonalTags from "../pages/PersonalTags/PersonalTags";
-import Complexes from "../pages/Complexes/Complexes";
-import ComplexDetails from "../pages/ComplexDetails/ComplexDetails";
-import ComplexResults from "../pages/ComplexResults/ComplexResults";
-import ComplexCreate from "../pages/ComplexCreate/ComplexCreate";import ComplexEdit from "../pages/ComplexEdit/ComplexEdit";
-import Programs from "../pages/Programs/Programs";
-import KnowledgeExercises from "../pages/KnowledgeExercises/KnowledgeExercises";
-import KnowledgeExerciseDetails from "../pages/KnowledgeExerciseDetails/KnowledgeExerciseDetails";
-import KnowledgeExerciseCreate from "../pages/KnowledgeExerciseCreate/KnowledgeExerciseCreate";
-import KnowledgeExerciseEdit from "../pages/KnowledgeExerciseEdit/KnowledgeExerciseEdit";
-import KnowledgeArticles from "../pages/KnowledgeArticles/KnowledgeArticles";
-import KnowledgeArticleDetails from "../pages/KnowledgeArticleDetails/KnowledgeArticleDetails";
-import KnowledgeArticleCreate from "../pages/KnowledgeArticleCreate/KnowledgeArticleCreate";
-import KnowledgeArticleEdit from "../pages/KnowledgeArticleEdit/KnowledgeArticleEdit";
-import ProgramDetails from "../pages/ProgramDetails/ProgramDetails";
-import ProgramCreate from "../pages/ProgramCreate/ProgramCreate";
-import ProgramEdit from "../pages/ProgramEdit/ProgramEdit";
-import ProgramVersionDetails from "../pages/ProgramVersionDetails/ProgramVersionDetails";
-import ProgramSchemeDetails from "../pages/ProgramSchemeDetails/ProgramSchemeDetails";
-import ProgramSchemeRun from "../pages/ProgramSchemeRun/ProgramSchemeRun";
-import ComplexRun from "../pages/ComplexRun/ComplexRun";
-import ProgramVersions from "../pages/ProgramVersions/ProgramVersions";
 import RequireAdmin from "./RequireAdmin";
-import AdminUsers from "../pages/AdminUsers/AdminUsers";
-import NotFound from "../pages/NotFound/NotFound";
+
+
+/**
+ * Страница подгружается отдельным файлом при первом переходе на неё,
+ * а не входит в общий бандл. handle (заголовок, доступ гостя) остаётся
+ * в самом маршруте, поэтому RouteMeta и проверки доступа работают, не
+ * дожидаясь загрузки файла страницы. wrap — обёртка вокруг страницы
+ * (например, RequireAdmin).
+ */
+function lazyPage(
+  load: () => Promise<{ default: ComponentType }>,
+  wrap?: (Page: ComponentType) => ReactElement
+): () => Promise<{ Component: ComponentType }> {
+  return async () => {
+    const Page = (await load()).default;
+
+    return { Component: wrap ? () => wrap(Page) : Page };
+  };
+}
+
+function PageLoading() {
+  return (
+    <p role="status" style={{ padding: "2rem", textAlign: "center" }}>
+      Загрузка…
+    </p>
+  );
+}
 
 export const router = createBrowserRouter([
   {
     // Общий корень без адреса: заголовки вкладок (RouteMeta) для всех
     // страниц, в том числе вне основного Layout (вход, политика).
     element: <RootLayout />,
+    // Пока загружается файл первой открытой страницы (страницы
+    // подгружаются лениво, см. lazyPage), вместо пустого экрана.
+    HydrateFallback: PageLoading,
     children: [
   {
     // Вход — в обычном макете, с шапкой и подвалом: сюда перенаправляют
@@ -86,31 +59,31 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         handle: { title: "Вход" } satisfies RouteHandle,
-        element: <Login />,
+        lazy: lazyPage(() => import("../pages/Login/Login")),
       },
     ],
   },
   {
     path: "/register",
     handle: { title: "Регистрация" } satisfies RouteHandle,
-    element: <Register />,
+    lazy: lazyPage(() => import("../pages/Register/Register")),
   },
   {
     path: "/recover",
     handle: { title: "Восстановление доступа" } satisfies RouteHandle,
-    element: <Recover />,
+    lazy: lazyPage(() => import("../pages/Recover/Recover")),
   },
   {
     // Публичные — доступны и без входа: их читают в том числе до
     // регистрации (ссылка с чекбокса на странице /register).
     path: "/privacy",
     handle: { title: "Политика конфиденциальности" } satisfies RouteHandle,
-    element: <PrivacyPolicy />,
+    lazy: lazyPage(() => import("../pages/PrivacyPolicy/PrivacyPolicy")),
   },
   {
     path: "/terms",
     handle: { title: "Пользовательское соглашение" } satisfies RouteHandle,
-    element: <TermsOfService />,
+    lazy: lazyPage(() => import("../pages/TermsOfService/TermsOfService")),
   },
   {
     path: "/",
@@ -119,133 +92,133 @@ export const router = createBrowserRouter([
       {
         index: true,
         handle: { title: "Главная" } satisfies RouteHandle,
-        element: <Home />,
+        lazy: lazyPage(() => import("../pages/Home/Home")),
       },
       {
         path: "profile",
         handle: { title: "Мой профиль" } satisfies RouteHandle,
-        element: <Profile />,
+        lazy: lazyPage(() => import("../pages/Profile/Profile")),
       },
       {
         path: "u/:username",
         handle: { title: ({ username }) => `Профиль ${username}` } satisfies RouteHandle,
-        element: <Profile />,
+        lazy: lazyPage(() => import("../pages/Profile/Profile")),
       },
       {
         path: "u/:username/diary",
         handle: { title: ({ username }) => `Дневник — ${username}` } satisfies RouteHandle,
-        element: <UserDiary />,
+        lazy: lazyPage(() => import("../pages/UserDiary/UserDiary")),
       },
       {
         path: "u/:username/events",
         handle: { title: ({ username }) => `События — ${username}` } satisfies RouteHandle,
-        element: <UserEvents />,
+        lazy: lazyPage(() => import("../pages/UserEvents/UserEvents")),
       },
       {
         path: "u/:username/events/past/:role",
         handle: { title: ({ username }) => `Прошедшие события — ${username}` } satisfies RouteHandle,
-        element: <PastEvents />,
+        lazy: lazyPage(() => import("../pages/PastEvents/PastEvents")),
       },
       {
         path: "u/:username/achievements",
         handle: { title: ({ username }) => `Достижения — ${username}` } satisfies RouteHandle,
-        element: <Achievements />,
+        lazy: lazyPage(() => import("../pages/Achievements/Achievements")),
       },
       {
         path: "u/:username/subscriptions",
         handle: { title: ({ username }) => `Подписки — ${username}` } satisfies RouteHandle,
-        element: <Subscriptions />,
+        lazy: lazyPage(() => import("../pages/Subscriptions/Subscriptions")),
       },
       {
         path: "profile/edit",
         handle: { title: "Редактирование профиля" } satisfies RouteHandle,
-        element: <EditProfile />,
+        lazy: lazyPage(() => import("../pages/EditProfile/EditProfile")),
       },
       {
         path: "profile/tags",
         handle: { title: "Мои теги" } satisfies RouteHandle,
-        element: <PersonalTags />,
+        lazy: lazyPage(() => import("../pages/PersonalTags/PersonalTags")),
       },
       {
         path: "profile/settings",
         handle: { title: "Настройки аккаунта" } satisfies RouteHandle,
-        element: <AccountSettings />,
+        lazy: lazyPage(() => import("../pages/AccountSettings/AccountSettings")),
       },
       {
         path: "profile/subscriptions",
         handle: { title: "Мои подписки" } satisfies RouteHandle,
-        element: <Subscriptions />,
+        lazy: lazyPage(() => import("../pages/Subscriptions/Subscriptions")),
       },
       {
         path: "profile/events",
         handle: { title: "Мои события" } satisfies RouteHandle,
-        element: <MyEvents />,
+        lazy: lazyPage(() => import("../pages/MyEvents/MyEvents")),
       },
       {
         path: "profile/events/past/:role",
         handle: { title: "Прошедшие события" } satisfies RouteHandle,
-        element: <PastEvents />,
+        lazy: lazyPage(() => import("../pages/PastEvents/PastEvents")),
       },
       {
         path: "achievements",
         handle: { title: "Достижения" } satisfies RouteHandle,
-        element: <Achievements />,
+        lazy: lazyPage(() => import("../pages/Achievements/Achievements")),
       },
       {
         path: "events",
-        element: <Events />,
+        lazy: lazyPage(() => import("../pages/Events/Events")),
         handle: { title: "События", description: "Тренировки и события сообщества уличной тренировки: даты, места проведения и участники.", guest: ["events"] } satisfies RouteHandle,
       },
       {
         path: "events/:id",
-        element: <EventDetails />,
+        lazy: lazyPage(() => import("../pages/EventDetails/EventDetails")),
         handle: { guest: ["events"] } satisfies RouteHandle,
       },
       {
         path: "events/:id/edit",
         handle: { title: "Редактирование события" } satisfies RouteHandle,
-        element: <EditEvent />,
+        lazy: lazyPage(() => import("../pages/EditEvent/EditEvent")),
       },
       {
           path: "events/create",
           handle: { title: "Новое событие" } satisfies RouteHandle,
-          element: <CreateEvent />,
+          lazy: lazyPage(() => import("../pages/CreateEvent/CreateEvent")),
       },
       {
         path: "diary",
         handle: { title: "Дневник" } satisfies RouteHandle,
-        element: <Diary />,
+        lazy: lazyPage(() => import("../pages/Diary/Diary")),
       },
       {
         path: "notifications",
         handle: { title: "Уведомления" } satisfies RouteHandle,
-        element: <Notifications />,
+        lazy: lazyPage(() => import("../pages/Notifications/Notifications")),
       },
       {
         path: "diary/create",
         handle: { title: "Новая запись" } satisfies RouteHandle,
-        element: <AddDiaryEntry />,
+        lazy: lazyPage(() => import("../pages/AddDiaryEntry/AddDiaryEntry")),
       },
       {
         path: "diary/create/workout",
         handle: { title: "Новая тренировка" } satisfies RouteHandle,
-        element: <AddWorkoutEntry />,
+        lazy: lazyPage(() => import("../pages/AddWorkoutEntry/AddWorkoutEntry")),
       },
       {
         path: "diary/create/note",
         handle: { title: "Новая заметка" } satisfies RouteHandle,
-        element: <AddDiaryNote />,
+        lazy: lazyPage(() => import("../pages/AddDiaryNote/AddDiaryNote")),
       },
       // Канонические адреса записей — в дневнике их автора (см.
       // utils/diaryPaths.ts); старые /diary/:id и /diary/notes/:id
       // остались только как редиректы на них.
       {
         path: "u/:username/diary/notes/:id",
-        element: <DiaryNoteDetails />,
+        lazy: lazyPage(() => import("../pages/DiaryNoteDetails/DiaryNoteDetails")),
       },
       {
         path: "u/:username/diary/:id",
-        element: <WorkoutEntryDetails />,
+        lazy: lazyPage(() => import("../pages/WorkoutEntryDetails/WorkoutEntryDetails")),
       },
       {
         path: "diary/notes/:id",
@@ -257,84 +230,90 @@ export const router = createBrowserRouter([
       },
       {
         path: "playgrounds",
-        element: <Playgrounds />,
+        lazy: lazyPage(() => import("../pages/Playgrounds/Playgrounds")),
         handle: { title: "Площадки", description: "Карта площадок для воркаута и уличных тренировок: оборудование, покрытие, доступ и отзывы.", guest: ["playgrounds"] } satisfies RouteHandle,
       },
       {
           path: "playgrounds/:id",
-          element: <PlaygroundDetails />,
+          lazy: lazyPage(() => import("../pages/PlaygroundDetails/PlaygroundDetails")),
           handle: { guest: ["playground"] } satisfies RouteHandle,
       },
       {
           path: "playgrounds/:id/edit",
           handle: { title: "Редактирование площадки" } satisfies RouteHandle,
-          element: <EditPlayground />,
+          lazy: lazyPage(() => import("../pages/EditPlayground/EditPlayground")),
       },
       {
           path: "playgrounds/:id/history",
           handle: { title: "История изменений площадки" } satisfies RouteHandle,
-          element: <PlaygroundHistory />,
+          lazy: lazyPage(() => import("../pages/PlaygroundHistory/PlaygroundHistory")),
       },
       {
           path: "playgrounds/:id/reviews",
           handle: { title: "Отзывы о площадке" } satisfies RouteHandle,
-          element: <PlaygroundReviewsList />,
+          lazy: lazyPage(() => import("../pages/PlaygroundReviewsList/PlaygroundReviewsList")),
       },
       {
           path: "playgrounds/:id/reviews/create",
           handle: { title: "Новый отзыв" } satisfies RouteHandle,
-          element: <WriteReview />,
+          lazy: lazyPage(() => import("../pages/WriteReview/WriteReview")),
       },
       {
           path: "playgrounds/:id/events",
           handle: { title: "События на площадке" } satisfies RouteHandle,
-          element: <PlaygroundEventsList />,
+          lazy: lazyPage(() => import("../pages/PlaygroundEventsList/PlaygroundEventsList")),
       },
             {
           path: "playgrounds/add",
           handle: { title: "Новая площадка" } satisfies RouteHandle,
-          element: <AddPlayground />,
+          lazy: lazyPage(() => import("../pages/AddPlayground/AddPlayground")),
       },
       {
           path: "complexes",
-          element: <Complexes />,
+          lazy: lazyPage(() => import("../pages/Complexes/Complexes")),
           handle: { title: "Комплексы", description: "Каталог комплексов упражнений для уличной тренировки: схемы, форматы, результаты и рейтинг участников.", guest: ["complexes"] } satisfies RouteHandle,
       },
       {
           path: "complexes/create",
           handle: { title: "Новый комплекс" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin>
-                  <ComplexCreate />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/ComplexCreate/ComplexCreate"),
+              (Page) => (
+                  <RequireAdmin>
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
           path: "complexes/:id",
-          element: <ComplexDetails />,
+          lazy: lazyPage(() => import("../pages/ComplexDetails/ComplexDetails")),
           handle: { guest: ["complex"] } satisfies RouteHandle,
       },
       {
           // Прохождение комплекса с помощником — только для вошедших
           // (нет guest в handle).
           path: "complexes/:id/run",
-          element: <ComplexRun />,
+          lazy: lazyPage(() => import("../pages/ComplexRun/ComplexRun")),
           handle: { title: "Прохождение комплекса" } satisfies RouteHandle,
       },
       {
           // «Все результаты» — рейтинг по всем пользователям. Открыт
           // и гостям; каталогу комплексов нужен только ComplexProvider.
           path: "complexes/:id/results",
-          element: <ComplexResults />,
+          lazy: lazyPage(() => import("../pages/ComplexResults/ComplexResults")),
           handle: { guest: ["complexes"] } satisfies RouteHandle,
       },
       {
           path: "complexes/:id/edit",
           handle: { title: "Редактирование комплекса" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin>
-                  <ComplexEdit />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/ComplexEdit/ComplexEdit"),
+              (Page) => (
+                  <RequireAdmin>
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
@@ -345,61 +324,61 @@ export const router = createBrowserRouter([
           // больше не нужен.
           path: "admin/users",
           handle: { title: "Пользователи" } satisfies RouteHandle,
-          element: <AdminUsers />,
+          lazy: lazyPage(() => import("../pages/AdminUsers/AdminUsers")),
       },
       {
           path: "programs",
-          element: <Programs />,
+          lazy: lazyPage(() => import("../pages/Programs/Programs")),
           handle: { title: "Программы", description: "Программы тренировок для воркаута и калистеники: структура, версии и обсуждение.", guest: ["programs"] } satisfies RouteHandle,
       },
       {
           path: "programs/create",
           handle: { title: "Новая программа" } satisfies RouteHandle,
-          element: <ProgramCreate />,
+          lazy: lazyPage(() => import("../pages/ProgramCreate/ProgramCreate")),
       },
       {
           path: "programs/:id",
-          element: <ProgramDetails />,
+          lazy: lazyPage(() => import("../pages/ProgramDetails/ProgramDetails")),
           handle: { guest: ["program"] } satisfies RouteHandle,
       },
       {
           path: "programs/:id/edit",
           handle: { title: "Редактирование программы" } satisfies RouteHandle,
-          element: <ProgramEdit />,
+          lazy: lazyPage(() => import("../pages/ProgramEdit/ProgramEdit")),
       },
       {
           // Вся история версий — публичная, как и раздел с последней
           // версией на странице программы.
           path: "programs/:id/versions",
-          element: <ProgramVersions />,
+          lazy: lazyPage(() => import("../pages/ProgramVersions/ProgramVersions")),
           handle: { guest: ["programVersions"] } satisfies RouteHandle,
       },
       {
           path: "programs/:id/versions/:versionId",
-          element: <ProgramVersionDetails />,
+          lazy: lazyPage(() => import("../pages/ProgramVersionDetails/ProgramVersionDetails")),
       },
       {
           // Схема текущей версии — публичная, как и страница программы.
           path: "programs/:id/schemes/:schemeId",
-          element: <ProgramSchemeDetails />,
+          lazy: lazyPage(() => import("../pages/ProgramSchemeDetails/ProgramSchemeDetails")),
           handle: { guest: ["programScheme"] } satisfies RouteHandle,
       },
       {
           // Схема конкретной версии — как и сама страница версии, только
           // для вошедших пользователей.
           path: "programs/:id/versions/:versionId/schemes/:schemeId",
-          element: <ProgramSchemeDetails />,
+          lazy: lazyPage(() => import("../pages/ProgramSchemeDetails/ProgramSchemeDetails")),
       },
       {
           // Прохождение автоматической схемы с таймерами — только для
           // вошедших пользователей (поэтому без handle.guest).
           path: "programs/:id/schemes/:schemeId/run",
-          element: <ProgramSchemeRun />,
+          lazy: lazyPage(() => import("../pages/ProgramSchemeRun/ProgramSchemeRun")),
           handle: { title: "Прохождение схемы" } satisfies RouteHandle,
       },
       {
           path: "programs/:id/versions/:versionId/schemes/:schemeId/run",
-          element: <ProgramSchemeRun />,
+          lazy: lazyPage(() => import("../pages/ProgramSchemeRun/ProgramSchemeRun")),
           handle: { title: "Прохождение схемы" } satisfies RouteHandle,
       },
       {
@@ -411,7 +390,7 @@ export const router = createBrowserRouter([
       },
       {
           path: "knowledge/exercises",
-          element: <KnowledgeExercises />,
+          lazy: lazyPage(() => import("../pages/KnowledgeExercises/KnowledgeExercises")),
           handle: { title: "Упражнения", description: "База упражнений для воркаута и калистеники: техника выполнения, целевые мышцы, оборудование и типы движений.", guest: ["exercises"] } satisfies RouteHandle,
       },
       {
@@ -420,29 +399,35 @@ export const router = createBrowserRouter([
           // (на сервере слаг "create" тоже зарезервирован).
           path: "knowledge/exercises/create",
           handle: { title: "Новое упражнение" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin redirectTo="/knowledge/exercises">
-                  <KnowledgeExerciseCreate />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/KnowledgeExerciseCreate/KnowledgeExerciseCreate"),
+              (Page) => (
+                  <RequireAdmin redirectTo="/knowledge/exercises">
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
           path: "knowledge/exercises/:id",
-          element: <KnowledgeExerciseDetails />,
+          lazy: lazyPage(() => import("../pages/KnowledgeExerciseDetails/KnowledgeExerciseDetails")),
           handle: { guest: ["exercise"] } satisfies RouteHandle,
       },
       {
           path: "knowledge/exercises/:id/edit",
           handle: { title: "Редактирование упражнения" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin redirectTo="/knowledge/exercises">
-                  <KnowledgeExerciseEdit />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/KnowledgeExerciseEdit/KnowledgeExerciseEdit"),
+              (Page) => (
+                  <RequireAdmin redirectTo="/knowledge/exercises">
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
           path: "knowledge/articles",
-          element: <KnowledgeArticles />,
+          lazy: lazyPage(() => import("../pages/KnowledgeArticles/KnowledgeArticles")),
           handle: { title: "Статьи", description: "Статьи о воркауте, калистенике и тренировочном процессе.", guest: [] } satisfies RouteHandle,
       },
       {
@@ -450,24 +435,30 @@ export const router = createBrowserRouter([
           // сервере слаг "create" зарезервирован.
           path: "knowledge/articles/create",
           handle: { title: "Новая статья" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin redirectTo="/knowledge/articles">
-                  <KnowledgeArticleCreate />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/KnowledgeArticleCreate/KnowledgeArticleCreate"),
+              (Page) => (
+                  <RequireAdmin redirectTo="/knowledge/articles">
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
           path: "knowledge/articles/:id",
-          element: <KnowledgeArticleDetails />,
+          lazy: lazyPage(() => import("../pages/KnowledgeArticleDetails/KnowledgeArticleDetails")),
           handle: { guest: [] } satisfies RouteHandle,
       },
       {
           path: "knowledge/articles/:id/edit",
           handle: { title: "Редактирование статьи" } satisfies RouteHandle,
-          element: (
-              <RequireAdmin redirectTo="/knowledge/articles">
-                  <KnowledgeArticleEdit />
-              </RequireAdmin>
+          lazy: lazyPage(
+              () => import("../pages/KnowledgeArticleEdit/KnowledgeArticleEdit"),
+              (Page) => (
+                  <RequireAdmin redirectTo="/knowledge/articles">
+                      <Page />
+                  </RequireAdmin>
+              )
           ),
       },
       {
@@ -477,7 +468,7 @@ export const router = createBrowserRouter([
           // выпадает из него.
           path: "*",
           handle: { title: "Страница не найдена" } satisfies RouteHandle,
-          element: <NotFound />,
+          lazy: lazyPage(() => import("../pages/NotFound/NotFound")),
       },
     ],
   },
@@ -488,7 +479,7 @@ export const router = createBrowserRouter([
       // которые не подпадают вообще ни под один родительский маршрут.
       path: "*",
           handle: { title: "Страница не найдена" } satisfies RouteHandle,
-      element: <NotFound />,
+      lazy: lazyPage(() => import("../pages/NotFound/NotFound")),
   },
     ],
   },

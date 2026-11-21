@@ -11,7 +11,7 @@ import PlaygroundPhotoUpload from "../PlaygroundPhotoUpload/PlaygroundPhotoUploa
 import { usePlaygrounds } from "../../context/PlaygroundContext";
 import { useEffect, useRef, useState } from "react";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import { getPlaygroundMarkers } from "../../utils/maps";
 import { PLAYGROUND_FOCUS_ZOOM } from "../../constants/map";
 import {

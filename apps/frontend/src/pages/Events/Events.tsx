@@ -25,7 +25,7 @@ import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Badge from "../../components/ui/Badge/Badge";
 
-import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
+import PlaygroundsMap from "../../components/Map/LazyPlaygroundsMap";
 import {
     EURASIA_MAP_CENTER,
     EURASIA_MAP_ZOOM,
@@ -60,6 +60,7 @@ export default function Events() {
 
     const {
         events,
+        isLoading,
     } = useEvents();
 
     const {
@@ -244,7 +245,9 @@ export default function Events() {
             <hr />
 
             {
-                events.length === 0 ? (
+                isLoading ? (
+                    <p className="events-count">Загрузка событий…</p>
+                ) : events.length === 0 ? (
                     <div className="events-empty-state">
                         <p className="events-empty-state__title">
                             Событий пока нет

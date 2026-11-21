@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Playground } from "../../types/playground";
 import type { HomeActivityMarker } from "../../types/homeActivityMarker";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import ActivityMapLegend from "../ActivityMapLegend/ActivityMapLegend";
 import Button from "../ui/Button/Button";
 

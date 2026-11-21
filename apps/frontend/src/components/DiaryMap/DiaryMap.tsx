@@ -1,4 +1,4 @@
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 
 import type { DiaryRecord } from "../../types/diaryRecord";
 import type { Playground } from "../../types/playground";

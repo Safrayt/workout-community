@@ -3,7 +3,7 @@ import Textarea from "../ui/Textarea/Textarea";
 import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 import EventPosterUpload from "../EventPosterUpload/EventPosterUpload";
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import "../../styles/components/playground-main-photo.css";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 
 import type { PlaygroundPhoto } from "../../types/playground";
 import type { MapMarker } from "../../types/map";

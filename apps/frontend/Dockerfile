@@ -29,6 +29,12 @@ ENV VITE_API_URL=/api
 
 RUN npm run build
 
+# Подставляем в собранный index.html места для SEO-данных конкретной
+# страницы: Caddy при каждом запросе запрашивает их у бэкенда
+# (/api/seo/head и /api/seo/body, см. Caddyfile). Если метки пропали из
+# сборки, скрипт завершается с ошибкой, и сборка образа останавливается.
+RUN node scripts/inject-seo-placeholders.mjs dist/index.html
+
 FROM caddy:2-alpine
 
 COPY --from=build /app/dist /usr/share/caddy

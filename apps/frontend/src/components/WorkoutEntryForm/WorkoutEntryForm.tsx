@@ -42,7 +42,7 @@ import {
     usePrograms,
 } from "../../context/ProgramContext";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
 import FavoritePlaygroundQuickPick from "../FavoritePlaygroundQuickPick/FavoritePlaygroundQuickPick";
 

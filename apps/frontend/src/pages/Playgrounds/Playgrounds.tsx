@@ -11,7 +11,7 @@ import Button from "../../components/ui/Button/Button";
 import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import Badge from "../../components/ui/Badge/Badge";
 
-import PlaygroundsMap from "../../components/Map/PlaygroundsMap";
+import PlaygroundsMap from "../../components/Map/LazyPlaygroundsMap";
 import {
     EURASIA_MAP_CENTER,
     EURASIA_MAP_ZOOM,
@@ -35,6 +35,7 @@ import { pluralizeRu } from "../../utils/pluralize";
 export default function Playgrounds() {
     const {
         playgrounds,
+        isLoading,
     } = usePlaygrounds();
 
     const [filters, setFilters] =
@@ -134,7 +135,9 @@ export default function Playgrounds() {
             <hr />
 
             {
-                playgrounds.length === 0 ? (
+                isLoading ? (
+                    <p className="playgrounds-count">Загрузка площадок…</p>
+                ) : playgrounds.length === 0 ? (
                     <div className="playgrounds-empty-state">
                         <p className="playgrounds-empty-state__title">
                             Площадок пока нет

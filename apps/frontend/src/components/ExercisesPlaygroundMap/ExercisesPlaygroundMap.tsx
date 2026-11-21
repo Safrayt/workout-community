@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import PlaygroundsMap from "../Map/PlaygroundsMap";
+import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 
 import type { Playground } from "../../types/playground";
 

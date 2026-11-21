@@ -61,9 +61,25 @@
 	# внутреннем адресе (например /events/5) сервер всё равно отдаст
 	# index.html, а маршрутизацию внутри уже сделает React Router —
 	# без этого браузер получал бы 404 при обновлении страницы.
+	# В index.html (см. scripts/inject-seo-placeholders.mjs) стоят вставки
+	# {{httpInclude ...}}: при каждом запросе страницы Caddy берёт у
+	# бэкенда заголовок, описание, Open Graph, микроразметку и текст
+	# именно этого адреса (/api/seo/head и /api/seo/body). Без этого все
+	# страницы отдавали бы роботам одинаковый HTML. Исходный адрес берётся
+	# из .OriginalReq: после try_files путь запроса уже "/index.html".
+	# Шаблоны обрабатываются только для HTML, JS/CSS/картинки отдаются как
+	# есть. HTML не кешируем: он зависит от адреса и от данных в базе, а
+	# файлы в /assets/ имеют хеш в имени и их можно кешировать надолго.
 	handle {
 		root * /usr/share/caddy
 		try_files {path} /index.html
+		templates {
+			mime text/html
+		}
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
 		file_server
 		encode gzip
 	}
