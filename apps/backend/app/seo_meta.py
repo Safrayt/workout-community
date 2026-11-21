@@ -44,6 +44,10 @@ MAX_DESCRIPTION_LENGTH = 160
 # Сколько символов текста страницы отдаём роботу в <div id="root">.
 MAX_BODY_TEXT_LENGTH = 1500
 
+# Сколько ссылок на записи отдаём роботу на странице-списке. Этого хватает
+# на весь каталог, а ответ остаётся небольшим.
+MAX_BODY_LINKS = 500
+
 
 @dataclass
 class PageSeo:
@@ -68,6 +72,10 @@ class PageSeo:
     # содержимого для робота.
     heading: str = ""
     text: str = ""
+
+    # Ссылки (адрес, название) на записи раздела — для страниц-списков,
+    # чтобы робот без JavaScript мог перейти на каждую запись.
+    links: list[tuple[str, str]] = field(default_factory=list)
 
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -109,6 +117,36 @@ STATIC_PAGES: dict[str, tuple[str, str]] = {
     ),
     "/privacy": ("Политика конфиденциальности", SITE_DESCRIPTION),
     "/terms": ("Пользовательское соглашение", SITE_DESCRIPTION),
+}
+
+
+# Вводный текст страниц-списков (добавляется к описанию).
+LIST_INTRO: dict[str, str] = {
+    "/playgrounds": (
+        "У каждой площадки указаны адрес, оборудование, режим работы и "
+        "фотографии. Выберите площадку из списка, чтобы открыть подробности."
+    ),
+    "/knowledge/exercises": (
+        "Для каждого упражнения описаны техника выполнения, целевые "
+        "мышцы, необходимое оборудование, а также более лёгкие и более "
+        "сложные варианты."
+    ),
+    "/knowledge/articles": (
+        "Статьи сообщества об уличной тренировке. Выберите статью из "
+        "списка, чтобы прочитать её полностью."
+    ),
+    "/complexes": (
+        "У каждого комплекса есть схема, правила прохождения и таблица "
+        "результатов, куда участники вносят свои результаты."
+    ),
+    "/events": (
+        "Предстоящие и прошедшие события сообщества: дата, место "
+        "проведения и участники."
+    ),
+    "/programs": (
+        "Программы тренировок: упражнения из справочника, схемы и "
+        "обсуждение."
+    ),
 }
 
 
@@ -176,7 +214,11 @@ def static_page(path: str) -> Optional[PageSeo]:
         title=format_title(title),
         description=description,
         heading=title,
-        text=description,
+        text="\n\n".join(
+            part
+            for part in (description, LIST_INTRO.get(path.rstrip("/") or "/", ""))
+            if part
+        ),
     )
 
 
@@ -258,7 +300,17 @@ def render_body(page: PageSeo) -> str:
         if chunk.strip()
     )
 
-    return f"<main><h1>{escape(page.heading)}</h1>{paragraphs}</main>"
+    links = ""
+
+    if page.links:
+        items = "".join(
+            f'<li><a href="{escape(href, quote=True)}">{escape(name)}</a></li>'
+            for href, name in page.links[:MAX_BODY_LINKS]
+            if name
+        )
+        links = f"<nav><ul>{items}</ul></nav>"
+
+    return f"<main><h1>{escape(page.heading)}</h1>{paragraphs}{links}</main>"
 
 
 # ---------------------------------------------------------------------------

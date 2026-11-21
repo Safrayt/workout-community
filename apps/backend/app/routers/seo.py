@@ -441,6 +441,56 @@ _DETAIL_LOADERS = {
 }
 
 
+def _list_links(session: Session, path: str) -> list[tuple[str, str]]:
+    """Ссылки на записи раздела для страницы-списка (те же, что в sitemap)."""
+
+    limit = seo_meta.MAX_BODY_LINKS
+
+    if path == "/knowledge/exercises":
+        rows = session.exec(
+            select(ExerciseDB.id, ExerciseDB.name).order_by(ExerciseDB.name).limit(limit)
+        )
+        return [(_path("knowledge", "exercises", i), name) for i, name in rows]
+
+    if path == "/knowledge/articles":
+        rows = session.exec(
+            select(ArticleDB.id, ArticleDB.title)
+            .where(ArticleDB.is_published == True)  # noqa: E712
+            .order_by(ArticleDB.title)
+            .limit(limit)
+        )
+        return [(_path("knowledge", "articles", i), name) for i, name in rows]
+
+    if path == "/complexes":
+        rows = session.exec(
+            select(ComplexDB.id, ComplexDB.name).order_by(ComplexDB.name).limit(limit)
+        )
+        return [(_path("complexes", i), name) for i, name in rows]
+
+    if path == "/playgrounds":
+        rows = session.exec(
+            select(Playground.id, Playground.name).order_by(Playground.name).limit(limit)
+        )
+        return [(_path("playgrounds", i), name) for i, name in rows]
+
+    if path == "/events":
+        rows = session.exec(
+            select(Event.id, Event.title).order_by(Event.start_date.desc()).limit(limit)
+        )
+        return [(_path("events", i), name) for i, name in rows]
+
+    if path == "/programs":
+        rows = session.exec(
+            select(ProgramDB.id, ProgramDB.title)
+            .where(ProgramDB.is_published == True)  # noqa: E712
+            .order_by(ProgramDB.title)
+            .limit(limit)
+        )
+        return [(_path("programs", i), name) for i, name in rows]
+
+    return []
+
+
 def load_page_seo(session: Session, base: str, path: str) -> seo_meta.PageSeo:
     """SEO-данные страницы по адресу; для неизвестных адресов — общие."""
 
@@ -449,6 +499,8 @@ def load_page_seo(session: Session, base: str, path: str) -> seo_meta.PageSeo:
     static = seo_meta.static_page(path)
 
     if static is not None:
+        static.links = _list_links(session, path)
+
         return static
 
     for prefix, loader in _DETAIL_LOADERS.items():

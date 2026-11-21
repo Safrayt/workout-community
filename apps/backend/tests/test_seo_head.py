@@ -82,3 +82,17 @@ def test_body_is_empty_for_pages_without_content(client):
 
     assert response.status_code == 200
     assert response.text == ""
+
+
+def test_list_page_body_links_to_records(client, content):
+    response = client.get("/seo/body", params={"path": "/knowledge/exercises"})
+
+    assert response.status_code == 200
+    assert "<h1>Упражнения</h1>" in response.text
+    assert f'href="/knowledge/exercises/{content["exercise_id"]}"' in response.text
+
+
+def test_list_page_body_has_intro_text(client):
+    response = client.get("/seo/body", params={"path": "/playgrounds"})
+
+    assert "Выберите площадку из списка" in response.text
