@@ -510,6 +510,14 @@ def _run_migrations() -> None:
             _add_column_if_missing(
                 connection, "workoutentry", "program_scheme", "TEXT"
             )
+            # Id раздела и схемы в структуре версии программы (раздел и
+            # схема выбираются из реального наполнения программы).
+            _add_column_if_missing(
+                connection, "workoutentry", "program_section_id", "TEXT"
+            )
+            _add_column_if_missing(
+                connection, "workoutentry", "program_scheme_id", "TEXT"
+            )
             # Температура воздуха на площадке записи (см.
             # app/workout_weather.py); FLOAT понимают и SQLite, и Postgres.
             _add_column_if_missing(

@@ -274,14 +274,16 @@ def test_no_response_model_exposes_datetime_without_policy():
 def test_guard_detects_a_plain_datetime():
     """Страж не "зелёный по умолчанию": простой datetime он обязан заметить."""
 
-    class Bad(SQLModel):
-        created_at: datetime
-        nested: typing.Optional[list["Inner"]] = None
-
+    # Inner объявлен раньше Bad, без строкового имени: ссылка на класс,
+    # созданный внутри функции, не разрешается при model_rebuild (зависит
+    # от версии pydantic), и страж видел бы вместо Inner неразобранную
+    # ссылку.
     class Inner(SQLModel):
         when: typing.Optional[datetime] = None
 
-    Bad.model_rebuild()
+    class Bad(SQLModel):
+        created_at: datetime
+        nested: typing.Optional[list[Inner]] = None
 
     found = _naive_datetime_fields(Bad, [], "route", set())
 

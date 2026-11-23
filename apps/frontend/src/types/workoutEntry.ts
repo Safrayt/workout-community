@@ -33,6 +33,12 @@ export type WorkoutEntry = {
 
     programScheme?: string;
 
+    /** Id раздела и схемы в структуре версии программы. Нет у старых
+     *  записей, где раздел и схема вводились вручную текстом. */
+    programSectionId?: string;
+
+    programSchemeId?: string;
+
     date: string;
 
     timeOfDay?: TimeOfDay;

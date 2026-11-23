@@ -6,6 +6,7 @@ import ActionGroup from "../ui/ActionGroup/ActionGroup";
 import Button from "../ui/Button/Button";
 import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
 import TagsField from "../TagsField/TagsField";
+import ProgramPartSelects from "./ProgramPartSelects";
 
 import "../../styles/components/checkbox-grid.css";
 
@@ -232,6 +233,18 @@ export default function WorkoutEntryForm({
         label: program.title,
     }));
 
+    // Раздел и схему предлагаем из структуры той версии программы, на
+    // которой записана тренировка: у существующей записи с прежней
+    // программой — из её сохранённой версии (запись не «переезжает» на
+    // новую), иначе — из текущей опубликованной версии выбранной программы.
+    const programVersionIdForParts =
+        entry.programId &&
+        entry.programId === initialValue.programId &&
+        initialValue.programVersionId
+            ? initialValue.programVersionId
+            : programs.find((program) => program.id === entry.programId)
+                  ?.currentVersionId;
+
     // Метки считаем один раз на набор площадок: новый массив при
     // каждом рендере формы заставлял бы карту заново пересобирать
     // содержимое всех попапов после любого нажатия клавиши в форме.
@@ -430,38 +443,32 @@ export default function WorkoutEntryForm({
                     value={entry.programId}
                     onChange={(e) => {
                         updateField("programId", e.target.value);
-                        // Раздел/схема имеют смысл только вместе с
-                        // программой (UX-документ «Раздел Программы», п.5).
-                        if (!e.target.value) {
-                            updateField("programSection", "");
-                            updateField("programScheme", "");
-                        }
+                        // Раздел и схема принадлежат конкретной программе
+                        // (UX-документ «Раздел Программы», п.5): при смене
+                        // или сбросе программы выбор очищаем.
+                        updateField("programSection", "");
+                        updateField("programScheme", "");
+                        updateField("programSectionId", "");
+                        updateField("programSchemeId", "");
                     }}
                 />
 
                 {
                     entry.programId && (
-                        <>
-                            <Input
-                                id="programSection"
-                                label="Раздел (необязательно)"
-                                placeholder="Например, Неделя 2"
-                                value={entry.programSection}
-                                onChange={(e) =>
-                                    updateField("programSection", e.target.value)
-                                }
-                            />
-
-                            <Input
-                                id="programScheme"
-                                label="Схема (необязательно)"
-                                placeholder="Например, Тренировка B"
-                                value={entry.programScheme}
-                                onChange={(e) =>
-                                    updateField("programScheme", e.target.value)
-                                }
-                            />
-                        </>
+                        <ProgramPartSelects
+                            programId={entry.programId}
+                            versionId={programVersionIdForParts}
+                            sectionId={entry.programSectionId ?? ""}
+                            schemeId={entry.programSchemeId ?? ""}
+                            legacySection={entry.programSection ?? ""}
+                            legacyScheme={entry.programScheme ?? ""}
+                            onChange={(patch) =>
+                                setEntry((current) => ({
+                                    ...current,
+                                    ...patch,
+                                }))
+                            }
+                        />
                     )
                 }
             </Section>

@@ -20,7 +20,7 @@ from app.models_playground import Playground
 from app.notifications import notify_mentions, notify_new_comment
 from app.models_program import ProgramDB, ProgramVersionDB
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
-from app.routers.programs import resolve_program_link
+from app.routers.programs import resolve_program_link, resolve_program_part
 from app.workout_weather import temperature_for_entry
 from app.models_diary import (
     ActivityMapMarker,
@@ -177,9 +177,21 @@ def create_workout_entry(
     # только программу, текущая опубликованная версия подставляется
     # автоматически и дальше не меняется, даже если программа потом
     # обновится (resolve_program_link в routers/programs.py).
+    version = None
+
     if data.program_id is not None:
         version = resolve_program_link(data.program_id, session)
         entry_data["program_version_id"] = version.id if version else None
+
+    # Раздел и схему выбирают из структуры этой версии: названия берём из
+    # неё, а не из присланного текста. Без id (старый клиент) остаётся
+    # текст как есть.
+    if data.program_section_id or data.program_scheme_id:
+        section_name, scheme_name = resolve_program_part(
+            version, data.program_section_id, data.program_scheme_id
+        )
+        entry_data["program_section"] = section_name
+        entry_data["program_scheme"] = scheme_name
 
     entry = WorkoutEntry(**entry_data, user_id=current_user.id)
 
@@ -436,15 +448,59 @@ def update_workout_entry(
         entry.program_version_id = None
         entry.program_section = None
         entry.program_scheme = None
+        entry.program_section_id = None
+        entry.program_scheme_id = None
         updates.pop("program_id", None)
         updates.pop("program_section", None)
         updates.pop("program_scheme", None)
+        updates.pop("program_section_id", None)
+        updates.pop("program_scheme_id", None)
     elif "program_id" in updates:
         if updates["program_id"] is None:
             entry.program_version_id = None
-        else:
+            entry.program_section_id = None
+            entry.program_scheme_id = None
+        elif updates["program_id"] != entry.program_id:
+            # Программу сменили: фиксируем её текущую версию. Раньше
+            # версия пересчитывалась при каждом сохранении, где форма
+            # присылала programId, и запись молча «переезжала» на новую
+            # версию, хотя должна оставаться на той, по которой
+            # тренировались. Раздел и схема прежней программы к новой не
+            # относятся.
             version = resolve_program_link(updates["program_id"], session)
             entry.program_version_id = version.id if version else None
+            entry.program_section_id = None
+            entry.program_scheme_id = None
+
+    # Раздел и схему проверяем по структуре версии, на которой записана
+    # тренировка (при смене программы — по новой версии). Названия берём
+    # из структуры, присланный текст в этом случае игнорируем.
+    if "program_section_id" in updates or "program_scheme_id" in updates:
+        target_program_id = updates.get("program_id", entry.program_id)
+        section_id = updates.pop("program_section_id", None)
+        scheme_id = updates.pop("program_scheme_id", None)
+
+        if target_program_id is None and (section_id or scheme_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Сначала выберите программу",
+            )
+
+        version = (
+            session.get(ProgramVersionDB, entry.program_version_id)
+            if entry.program_version_id is not None
+            else None
+        )
+
+        if section_id or scheme_id:
+            section_name, scheme_name = resolve_program_part(
+                version, section_id, scheme_id
+            )
+            updates["program_section"] = section_name
+            updates["program_scheme"] = scheme_name
+
+        entry.program_section_id = section_id or None
+        entry.program_scheme_id = scheme_id or None
 
     previous_playground_id = entry.playground_id
     previous_date = entry.date

@@ -91,6 +91,15 @@ class WorkoutEntry(WorkoutEntryBase, table=True):
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
 
+    # Id раздела и схемы в структуре зафиксированной версии программы
+    # (ProgramVersionDB.structure). Раздел и схему выбирают из реальной
+    # структуры программы, а id нужны, чтобы по записи дневника потом
+    # находить упражнения схемы (например, для карты мышц). Названия выше
+    # — снимок на момент записи, их сервер подставляет сам по этим id.
+    # У старых записей id нет: там только текст, введённый вручную.
+    program_section_id: Optional[str] = None
+    program_scheme_id: Optional[str] = None
+
     # Температура воздуха на площадке записи, °C. Клиент её не передаёт:
     # сервер один раз смотрит погоду по координатам площадки при
     # создании записи (см. app/workout_weather.py) и сохраняет число.
@@ -118,6 +127,11 @@ class WorkoutEntryCreate(WorkoutEntryBase):
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
 
+    # Раздел и схема из структуры программы (см. WorkoutEntry). Если id
+    # переданы, названия выше сервер игнорирует и берёт из структуры.
+    program_section_id: Optional[str] = None
+    program_scheme_id: Optional[str] = None
+
 
 class WorkoutEntryUpdate(SQLModel):
     """Все поля необязательны — обновляем только то, что передано."""
@@ -134,6 +148,8 @@ class WorkoutEntryUpdate(SQLModel):
     program_id: Optional[int] = None
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
+    program_section_id: Optional[str] = None
+    program_scheme_id: Optional[str] = None
 
     # Как clear_diary_entry у ComplexCompletionUpdate в
     # models_complex.py: JSON null не отличить от "поле не передано"
@@ -165,6 +181,8 @@ class WorkoutEntryRead(WorkoutEntryBase):
     program_version_id: Optional[int] = None
     program_section: Optional[str] = None
     program_scheme: Optional[str] = None
+    program_section_id: Optional[str] = None
+    program_scheme_id: Optional[str] = None
     temperature_c: Optional[float] = None
     created_at: UtcDatetime
     photos: List[WorkoutEntryPhotoRead] = []

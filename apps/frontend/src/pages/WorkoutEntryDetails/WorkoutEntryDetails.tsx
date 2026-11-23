@@ -193,6 +193,9 @@ export default function WorkoutEntryDetails() {
             programId: entry.programId ?? "",
             programSection: entry.programSection ?? "",
             programScheme: entry.programScheme ?? "",
+            programSectionId: entry.programSectionId ?? "",
+            programSchemeId: entry.programSchemeId ?? "",
+            programVersionId: entry.programVersionId,
             title: entry.title,
             description: entry.description ?? "",
             photos:
@@ -275,6 +278,8 @@ export default function WorkoutEntryDetails() {
                 programVersionId={entry.programVersionId}
                 programSection={entry.programSection}
                 programScheme={entry.programScheme}
+                programSectionId={entry.programSectionId}
+                programSchemeId={entry.programSchemeId}
             />
 
             {/* Компактный preview площадки (UX §16–18, §27) */}

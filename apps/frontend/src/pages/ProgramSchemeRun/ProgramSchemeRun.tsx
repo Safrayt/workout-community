@@ -966,6 +966,7 @@ function FinishScreen({
 export function RunScreen({
     ids,
     programTitle,
+    sectionId,
     sectionName,
     scheme,
     steps,
@@ -974,6 +975,10 @@ export function RunScreen({
 }: {
     ids: RunIds;
     programTitle: string;
+
+    /** Id раздела программы, в котором лежит схема (для записи дневника). */
+    sectionId?: string;
+
     sectionName: string | undefined;
     scheme: ProgramScheme;
     steps: RunStep[];
@@ -1179,6 +1184,8 @@ export function RunScreen({
                       programId: ids.programId,
                       programSection: sectionLabel ?? "",
                       programScheme: schemeLabel,
+                      programSectionId: sectionId ?? "",
+                      programSchemeId: ids.schemeId,
                   }),
         };
 
@@ -1515,6 +1522,7 @@ export default function ProgramSchemeRun() {
                     schemeId: scheme.id,
                 }}
                 programTitle={program.title}
+                sectionId={section.id}
                 sectionName={section.name}
                 scheme={scheme}
                 steps={steps}

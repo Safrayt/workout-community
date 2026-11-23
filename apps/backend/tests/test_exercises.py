@@ -126,7 +126,15 @@ def test_seed_keeps_media_and_text_blocks(client):
 
 def test_every_seed_exercise_passes_validation():
     for seed in load_seed_exercises():
-        ExerciseWrite(**{key: seed[key] for key in ExerciseWrite.model_fields})
+        # Поля с значением по умолчанию (например, other_names) в
+        # стартовых файлах можно не указывать.
+        ExerciseWrite(
+            **{
+                key: seed[key]
+                for key in ExerciseWrite.model_fields
+                if key in seed
+            }
+        )
 
         for url in (seed.get("photo_url"), seed.get("video_url")):
             # Стартовые файлы — статика фронтенда, не /uploads/.

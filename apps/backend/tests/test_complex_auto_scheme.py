@@ -45,7 +45,17 @@ def _auto_scheme(items, **block):
         "name": "Схема",
         "mode": "auto",
         "blocks": [
-            {"rounds": 3, "rest_between_rounds": 60, "items": items, **block}
+            # title у блока обязателен (ProgramBlock.title).
+            {
+                "title": "Комплекс 1",
+                "rounds": 3,
+                "rest_between_rounds": 60,
+                # Если в комплексе несколько сетов, отдых между ними
+                # обязателен (можно 0).
+                "rest_between_sets": 0,
+                "items": items,
+                **block,
+            }
         ],
     }
 

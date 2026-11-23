@@ -939,3 +939,63 @@ def resolve_program_link(
         )
 
     return session.get(ProgramVersionDB, program.current_version_id)
+
+
+def resolve_program_part(
+    version: Optional[ProgramVersionDB],
+    section_id: Optional[str],
+    scheme_id: Optional[str],
+) -> tuple[Optional[str], Optional[str]]:
+    """
+    Проверяет, что раздел и схема есть в структуре версии программы, и
+    возвращает их названия (section_name, scheme_name) — снимок для записи
+    дневника. Раздел и схема необязательны: можно указать только раздел
+    или ничего, но схема без раздела не бывает (схемы лежат в разделах).
+
+    id считаются так же, как на фронтенде (api/mappers/program.ts): у
+    старых данных без сохранённого id раздел получает "section-N", схема
+    — "scheme-N-M" по месту в структуре.
+    """
+    if section_id is None and scheme_id is None:
+        return None, None
+
+    if section_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Чтобы указать схему, выберите раздел программы",
+        )
+
+    if version is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Раздел и схему можно указать только у программы",
+        )
+
+    sections = (version.structure or {}).get("sections") or []
+
+    for section_index, section in enumerate(sections, start=1):
+        if (section.get("id") or f"section-{section_index}") != section_id:
+            continue
+
+        section_name = (section.get("name") or "").strip() or None
+
+        if scheme_id is None:
+            return section_name, None
+
+        for scheme_index, scheme in enumerate(
+            section.get("schemes") or [], start=1
+        ):
+            found_id = scheme.get("id") or f"scheme-{section_index}-{scheme_index}"
+
+            if found_id == scheme_id:
+                return section_name, (scheme.get("name") or "").strip() or None
+
+        raise HTTPException(
+            status_code=400,
+            detail="Такой схемы нет в выбранном разделе программы",
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail="Такого раздела нет в этой версии программы",
+    )

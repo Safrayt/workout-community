@@ -31,6 +31,8 @@ export function createEmptyWorkoutEntry(): NewWorkoutEntry {
         programId: "",
         programSection: "",
         programScheme: "",
+        programSectionId: "",
+        programSchemeId: "",
         title: "",
         description: "",
         photos: [],
@@ -46,6 +48,8 @@ const PREFILL_FIELDS = [
     "programId",
     "programSection",
     "programScheme",
+    "programSectionId",
+    "programSchemeId",
 ] as const;
 
 /**
@@ -103,6 +107,8 @@ export function isWorkoutDraftEmpty(entry: NewWorkoutEntry) {
         entry.programId === "" &&
         entry.programSection.trim() === "" &&
         entry.programScheme.trim() === "" &&
+        !entry.programSectionId &&
+        !entry.programSchemeId &&
         entry.photos.length === 0 &&
         entry.tags.length === 0
     );
