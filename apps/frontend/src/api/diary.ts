@@ -22,6 +22,8 @@ import type { Comment } from "../types/comment";
 import type { DiaryRecordType } from "../types/diaryRecord";
 import type { NewWorkoutEntryPhoto } from "../types/newWorkoutEntry";
 import type { HomeActivityMarker } from "../types/homeActivityMarker";
+import type { MuscleLoad } from "../types/muscleLoad";
+import type { MuscleGroupKey } from "../types/exercise";
 
 // =====================================================================
 // Записи тренировок
@@ -35,6 +37,43 @@ export async function listWorkoutEntries(
     );
 
     return apiEntries.map(mapApiWorkoutEntryToEntry);
+}
+
+type ApiMuscleLoad = {
+    date_from: string;
+    date_to: string;
+    target: string[];
+    auxiliary: string[];
+    entries_total: number;
+    entries_with_data: number;
+};
+
+/**
+ * Мышцы, которые пользователь нагружал за период (включительно, даты
+ * «ГГГГ-ММ-ДД» по местному времени). Считается на сервере по записям
+ * дневника с учётом приватности: закрытый дневник — 403.
+ */
+export async function getMuscleLoad(
+    userId: string,
+    dateFrom: string,
+    dateTo: string
+): Promise<MuscleLoad> {
+    const load = await apiFetch<ApiMuscleLoad>(
+        `/diary/muscle-load${buildQuery({
+            user_id: userId,
+            date_from: dateFrom,
+            date_to: dateTo,
+        })}`
+    );
+
+    return {
+        dateFrom: load.date_from,
+        dateTo: load.date_to,
+        target: load.target as MuscleGroupKey[],
+        auxiliary: load.auxiliary as MuscleGroupKey[],
+        entriesTotal: load.entries_total,
+        entriesWithData: load.entries_with_data,
+    };
 }
 
 export async function getWorkoutEntry(id: string): Promise<WorkoutEntry> {

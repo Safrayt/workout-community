@@ -941,6 +941,47 @@ def resolve_program_link(
     return session.get(ProgramVersionDB, program.current_version_id)
 
 
+def find_scheme_exercise_ids(
+    structure: Optional[dict],
+    section_id: Optional[str],
+    scheme_id: Optional[str],
+) -> List[str]:
+    """
+    Упражнения из базы, на которые ссылаются блоки схемы (без повторов, в
+    порядке появления); упражнения «своим текстом» не входят. Схема ищется
+    по id так же, как в resolve_program_part; раздел сужает поиск, если
+    указан. Если схемы нет в структуре — пустой список.
+    """
+    sections = (structure or {}).get("sections") or []
+
+    for section_index, section in enumerate(sections, start=1):
+        if section_id is not None and (
+            section.get("id") or f"section-{section_index}"
+        ) != section_id:
+            continue
+
+        for scheme_index, scheme in enumerate(
+            section.get("schemes") or [], start=1
+        ):
+            found_id = scheme.get("id") or f"scheme-{section_index}-{scheme_index}"
+
+            if found_id != scheme_id:
+                continue
+
+            ids: dict[str, None] = {}
+
+            for block in scheme.get("blocks") or []:
+                for item in block.get("items") or []:
+                    exercise_id = item.get("exercise_id")
+
+                    if exercise_id:
+                        ids[exercise_id] = None
+
+            return list(ids)
+
+    return []
+
+
 def resolve_program_part(
     version: Optional[ProgramVersionDB],
     section_id: Optional[str],

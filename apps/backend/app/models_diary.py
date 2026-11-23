@@ -339,3 +339,25 @@ class ActivityMapMarker(SQLModel):
     workout_count: int
     note_count: int
     last_activity_at: UtcDatetime
+
+
+class MuscleLoadRead(SQLModel):
+    """
+    Мышцы, которые нагружал пользователь за период — по записям его
+    дневника (схемы программ и выполненные комплексы). Ключи мышц те же,
+    что у упражнений (MuscleGroup).
+    """
+
+    date_from: date_type
+    date_to: date_type
+
+    # Мышцы, на которые нацелено хотя бы одно упражнение, и мышцы, которые
+    # работают только в помощь (целевая роль важнее вспомогательной).
+    target: List[str]
+    auxiliary: List[str]
+
+    # Сколько записей дневника за период видно смотрящему и сколько из них
+    # дали упражнения из базы (есть схема программы или комплекс). Нужны,
+    # чтобы пустую карту можно было объяснить.
+    entries_total: int
+    entries_with_data: int

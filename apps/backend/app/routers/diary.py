@@ -1,6 +1,7 @@
 import logging
 import re
 import zipfile
+from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -20,9 +21,16 @@ from app.models_playground import Playground
 from app.notifications import notify_mentions, notify_new_comment
 from app.models_program import ProgramDB, ProgramVersionDB
 from app.routers.complexes import clear_diary_link as _clear_complex_diary_link
-from app.routers.programs import resolve_program_link, resolve_program_part
+from app.models_complex import ComplexCompletion, ComplexDB
+from app.models_exercise import ExerciseDB
+from app.routers.programs import (
+    find_scheme_exercise_ids,
+    resolve_program_link,
+    resolve_program_part,
+)
 from app.workout_weather import temperature_for_entry
 from app.models_diary import (
+    MuscleLoadRead,
     ActivityMapMarker,
     Comment,
     CommentCreate,
@@ -323,6 +331,122 @@ def get_activity_map(
         _touch(note.playground_id, note.created_at, is_workout=False)
 
     return list(markers.values())
+
+
+# Самый длинный период для карты мышц (месяц с запасом): запрос читает записи
+# и справочники, ограничиваем окно, чтобы он не превращался в выгрузку всего
+# дневника.
+MUSCLE_LOAD_MAX_DAYS = 31
+
+
+@router.get("/muscle-load", response_model=MuscleLoadRead)
+def get_muscle_load(
+    user_id: int,
+    date_from: date_type,
+    date_to: date_type,
+    session: Session = Depends(get_session),
+    viewer: Optional[User] = Depends(get_optional_current_user),
+) -> MuscleLoadRead:
+    """
+    Какие мышцы нагружал пользователь за период [date_from, date_to]
+    (включительно) — для карты мышц на странице профиля. Считается по
+    записям дневника: упражнения из базы в выбранной схеме программы
+    (по версии, на которой записана тренировка) и в выполненных комплексах,
+    привязанных к записи. Записи без схемы и комплексов ничего не дают.
+
+    Приватность та же, что у списка записей: закрытый дневник виден только
+    владельцу, а записи «только мне» — только владельцу и администратору.
+    """
+    if date_to < date_from or (date_to - date_from).days >= MUSCLE_LOAD_MAX_DAYS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Период должен быть от 1 до {MUSCLE_LOAD_MAX_DAYS} дней",
+        )
+
+    owner = _get_target_user_or_404(user_id, session)
+    _check_diary_visible(owner, viewer)
+
+    entries = [
+        entry
+        for entry in session.exec(
+            select(WorkoutEntry).where(
+                WorkoutEntry.user_id == user_id,
+                WorkoutEntry.date >= date_from,
+                WorkoutEntry.date <= date_to,
+            )
+        ).all()
+        if _is_private_record_visible(entry.user_id, entry.is_private, viewer)
+    ]
+
+    exercise_ids_by_entry: dict[int, set[str]] = {
+        entry.id: set() for entry in entries if entry.id is not None
+    }
+
+    # Схемы программ: упражнения берём из версии, зафиксированной в записи.
+    versions: dict[int, Optional[ProgramVersionDB]] = {}
+
+    for entry in entries:
+        if entry.id is None or not entry.program_version_id or not entry.program_scheme_id:
+            continue
+
+        if entry.program_version_id not in versions:
+            versions[entry.program_version_id] = session.get(
+                ProgramVersionDB, entry.program_version_id
+            )
+
+        version = versions[entry.program_version_id]
+
+        if version is not None:
+            exercise_ids_by_entry[entry.id].update(
+                find_scheme_exercise_ids(
+                    version.structure,
+                    entry.program_section_id,
+                    entry.program_scheme_id,
+                )
+            )
+
+    # Выполненные комплексы, привязанные к записям.
+    if exercise_ids_by_entry:
+        complexes: dict[str, list[str]] = {}
+
+        for completion in session.exec(
+            select(ComplexCompletion).where(
+                ComplexCompletion.diary_entry_id.in_(list(exercise_ids_by_entry))
+            )
+        ).all():
+            if completion.diary_entry_id is None:
+                continue
+
+            if completion.complex_id not in complexes:
+                complex_row = session.get(ComplexDB, completion.complex_id)
+                complexes[completion.complex_id] = (
+                    list(complex_row.exercise_ids or []) if complex_row else []
+                )
+
+            exercise_ids_by_entry[completion.diary_entry_id].update(
+                complexes[completion.complex_id]
+            )
+
+    all_exercise_ids = set().union(*exercise_ids_by_entry.values())
+    target: set[str] = set()
+    auxiliary: set[str] = set()
+
+    if all_exercise_ids:
+        for exercise in session.exec(
+            select(ExerciseDB).where(ExerciseDB.id.in_(all_exercise_ids))
+        ).all():
+            target.update(exercise.target_muscles or [])
+            auxiliary.update(exercise.auxiliary_muscles or [])
+
+    return MuscleLoadRead(
+        date_from=date_from,
+        date_to=date_to,
+        target=sorted(target),
+        # Мышца, которая где-то целевая, не может быть «вспомогательной».
+        auxiliary=sorted(auxiliary - target),
+        entries_total=len(entries),
+        entries_with_data=sum(1 for ids in exercise_ids_by_entry.values() if ids),
+    )
 
 
 @router.get("/entries", response_model=List[WorkoutEntryRead])

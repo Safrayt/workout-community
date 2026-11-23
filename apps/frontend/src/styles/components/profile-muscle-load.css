@@ -1,0 +1,32 @@
+/* Карта мышц на странице профиля: переключатель периода и карта. */
+.profile-muscle-load__periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.profile-muscle-load__body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-5);
+}
+
+.profile-muscle-load__map {
+    flex: 0 1 320px;
+    min-width: 220px;
+}
+
+.profile-muscle-load__text {
+    flex: 1 1 240px;
+}
+
+.profile-muscle-load__text p {
+    margin: var(--space-2) 0 0;
+}
+
+.profile-muscle-load__note {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}

@@ -8,6 +8,7 @@ import ActionGroup from "../../components/ui/ActionGroup/ActionGroup";
 import ProfileHeader from "../../components/ProfileHeader/ProfileHeader";
 import ProfileStats from "../../components/ProfileStats/ProfileStats";
 import ProfileActivity from "../../components/ProfileActivity/ProfileActivity";
+import ProfileMuscleLoad from "../../components/ProfileMuscleLoad/ProfileMuscleLoad";
 import ProfilePrograms from "../../components/ProfilePrograms/ProfilePrograms";
 import ProfileComplexes from "../../components/ProfileComplexes/ProfileComplexes";
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
@@ -304,6 +305,26 @@ export default function Profile() {
             </InfoSection>
 
             <ProfileStats items={statsItems} />
+
+            <InfoSection
+                title="Нагруженные мышцы"
+                className="profile-section"
+            >
+                {
+                    canViewDiary ? (
+                        <ProfileMuscleLoad
+                            userId={user.id}
+                            isOwnProfile={isOwnProfile}
+                        />
+                    ) : (
+                        <div className="profile-empty">
+                            <p>
+                                Пользователь закрыл свой дневник от посторонних.
+                            </p>
+                        </div>
+                    )
+                }
+            </InfoSection>
 
             <InfoSection
                 title="Программы тренировок"
