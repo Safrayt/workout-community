@@ -35,8 +35,10 @@ export default function Programs() {
     const [difficultyFilter, setDifficultyFilter] = useState<
         ProgramDifficulty | ""
     >("");
+    // При открытии страницы показываем публичные программы; выбрав
+    // «Любая», можно увидеть и личные.
     const [categoryFilter, setCategoryFilter] = useState<ProgramCategory | "">(
-        ""
+        "public"
     );
     const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
     const [searchQuery, setSearchQuery] = useState("");
