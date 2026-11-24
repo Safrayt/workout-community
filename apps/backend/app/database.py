@@ -494,6 +494,20 @@ def _run_migrations() -> None:
             if "exercise" in existing_tables:
                 _refresh_complex_movements(connection)
 
+        # Категория программы («публичная» / «личная», см.
+        # ProgramCategory). Все программы, созданные до появления
+        # категорий, получают «личную» через DEFAULT колонки — автор
+        # сам решит, считает ли он свою программу публичной. Повторный
+        # запуск (на каждом старте) колонку уже находит и значения не
+        # трогает, так что выбор авторов не сбрасывается.
+        if "program" in existing_tables:
+            _add_column_if_missing(
+                connection,
+                "program",
+                "category",
+                "VARCHAR NOT NULL DEFAULT 'personal'",
+            )
+
         # Связь записи тренировки с программой (см. UX-документ
         # «Раздел Программы», models_diary.WorkoutEntry) — добавлена
         # позже, чем таблица workoutentry уже существовала на проде.

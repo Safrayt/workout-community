@@ -484,3 +484,48 @@ def test_delete_published_program_with_real_foreign_key_enforcement():
     finally:
         app.dependency_overrides.pop(get_session, None)
         session.close()
+
+
+def test_empty_program_can_be_published_right_after_creation(client: TestClient):
+    """
+    Фронтенд публикует первую версию сразу при создании программы
+    (кнопка «Создать и перейти к структуре»), ещё до наполнения
+    структуры: программа сразу видна в каталоге, а автор продолжает
+    работу в черновике следующей версии.
+    """
+    user = register_user(client)
+    headers = auth_headers(user["token"])
+    program = _create_program(client, user["token"])
+
+    published = client.post(
+        f"/programs/{program['id']}/publish", json={}, headers=headers
+    )
+    assert published.status_code == 200, published.text
+    assert published.json()["version_number"] == "1.0"
+
+    catalog = client.get("/programs/")
+    assert program["id"] in [p["id"] for p in catalog.json()]
+
+    # Сразу после публикации у программы есть новый редактируемый
+    # черновик, куда автор вносит структуру.
+    draft = client.get(f"/programs/{program['id']}/draft", headers=headers)
+    assert draft.status_code == 200
+    assert draft.json()["status"] == "draft"
+
+    client.put(
+        f"/programs/{program['id']}/draft", json=SAMPLE_STRUCTURE, headers=headers
+    )
+
+    # Вторая публикация уже требует комментарий об изменениях.
+    without_changelog = client.post(
+        f"/programs/{program['id']}/publish", json={}, headers=headers
+    )
+    assert without_changelog.status_code == 400
+
+    with_changelog = client.post(
+        f"/programs/{program['id']}/publish",
+        json={"changelog": "Добавил структуру"},
+        headers=headers,
+    )
+    assert with_changelog.status_code == 200, with_changelog.text
+    assert with_changelog.json()["version_number"] == "1.1"

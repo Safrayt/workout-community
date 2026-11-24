@@ -14,6 +14,7 @@ import {
     createProgram as apiCreateProgram,
     deleteProgram as apiDeleteProgram,
     listPrograms,
+    publishProgramDraft,
     removeProgramFavorite as apiRemoveProgramFavorite,
     updateProgram as apiUpdateProgram,
 } from "../api/programs";
@@ -109,9 +110,37 @@ export function ProgramProvider({ children }: { children: ReactNode }) {
     }
 
     async function createProgram(data: NewProgram): Promise<Program> {
-        // Новая программа — черновик, в публичный каталог не попадает
-        // до первой публикации, поэтому список здесь не трогаем.
-        return apiCreateProgram(data);
+        const created = await apiCreateProgram(data);
+
+        // Первая версия публикуется сразу при создании: иначе программа
+        // оставалась бы невидимым черновиком (её нет в списке программ),
+        // и всё внесённое в форму можно было потерять, просто закрыв
+        // страницу до первой публикации. Структуру автор наполняет уже
+        // потом — в черновике следующей версии.
+        try {
+            const firstVersion = await publishProgramDraft(created.id);
+
+            const published: Program = {
+                ...created,
+                isPublished: true,
+                currentVersionId: firstVersion.id,
+            };
+
+            upsertProgram(published);
+
+            return published;
+        } catch (error: unknown) {
+            // Программа уже создана, просто не опубликована: не теряем
+            // её и не создаём заново — вызывающий код видит
+            // isPublished === false и предупреждает автора, что первую
+            // версию можно опубликовать на странице редактирования.
+            console.error(
+                "Программа создана, но первую версию опубликовать не удалось:",
+                error
+            );
+
+            return created;
+        }
     }
 
     async function updateProgram(

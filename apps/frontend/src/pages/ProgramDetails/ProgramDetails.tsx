@@ -27,7 +27,10 @@ import { useAuth } from "../../context/CurrentUserContext";
 
 import { useLoginRedirect } from "../../hooks/useLoginRedirect";
 
-import { programDifficultyLabels } from "../../constants/programTypes";
+import {
+    programCategoryLabels,
+    programDifficultyLabels,
+} from "../../constants/programTypes";
 
 export default function ProgramDetails() {
     const { id } = useParams();
@@ -152,6 +155,14 @@ export default function ProgramDetails() {
 
             <div className="program-details__header">
                 <h1 className="program-details__title">{program.title}</h1>
+
+                <Badge
+                    variant={
+                        program.category === "public" ? "success" : "primary"
+                    }
+                >
+                    {programCategoryLabels[program.category]}
+                </Badge>
 
                 {
                     program.difficulty && (

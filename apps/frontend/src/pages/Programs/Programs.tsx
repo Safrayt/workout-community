@@ -11,9 +11,10 @@ import "../../styles/components/programs-page.css";
 import { usePrograms } from "../../context/ProgramContext";
 
 import {
+    programCategoryFilterOptions,
     programDifficultyFilterOptions,
 } from "../../constants/programTypes";
-import type { ProgramDifficulty } from "../../types/program";
+import type { ProgramCategory, ProgramDifficulty } from "../../types/program";
 
 type ScopeFilter = "all" | "favorites";
 type SortOption = "newest" | "popularity";
@@ -34,6 +35,9 @@ export default function Programs() {
     const [difficultyFilter, setDifficultyFilter] = useState<
         ProgramDifficulty | ""
     >("");
+    const [categoryFilter, setCategoryFilter] = useState<ProgramCategory | "">(
+        ""
+    );
     const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -44,6 +48,10 @@ export default function Programs() {
         return programs
             .filter((program) => {
                 if (difficultyFilter && program.difficulty !== difficultyFilter) {
+                    return false;
+                }
+
+                if (categoryFilter && program.category !== categoryFilter) {
                     return false;
                 }
 
@@ -76,7 +84,14 @@ export default function Programs() {
                     new Date(a.createdAt).getTime()
                 );
             });
-    }, [programs, difficultyFilter, scopeFilter, searchQuery, sortBy]);
+    }, [
+        programs,
+        categoryFilter,
+        difficultyFilter,
+        scopeFilter,
+        searchQuery,
+        sortBy,
+    ]);
 
     return (
         <div className="programs-page">
@@ -107,6 +122,20 @@ export default function Programs() {
                         setScopeFilter(event.target.value as ScopeFilter)
                     }
                     options={scopeFilterOptions}
+                    hideEmptyOption
+                />
+
+                <Select
+                    id="program-category-filter"
+                    label="Категория"
+                    value={categoryFilter}
+                    onChange={(event) =>
+                        setCategoryFilter(
+                            event.target.value as ProgramCategory | ""
+                        )
+                    }
+                    options={programCategoryFilterOptions}
+                    emptyOptionLabel="Любая"
                 />
 
                 <Select
@@ -130,6 +159,7 @@ export default function Programs() {
                         setSortBy(event.target.value as SortOption)
                     }
                     options={sortOptions}
+                    hideEmptyOption
                 />
             </div>
 

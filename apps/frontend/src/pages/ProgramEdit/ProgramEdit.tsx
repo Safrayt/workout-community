@@ -77,10 +77,11 @@ export default function ProgramEdit() {
         let cancelled = false;
 
         // Программа может быть уже в каталоге (контексте), но это
-        // только опубликованные программы — свежесозданный черновик
-        // там ещё не появится (см. context/ProgramContext.tsx
-        // createProgram), поэтому саму программу тоже всегда
-        // загружаем заново, а не полагаемся на кеш каталога.
+        // только опубликованные программы — а у программы, не
+        // опубликованной из-за сбоя при создании (см.
+        // context/ProgramContext.tsx createProgram), её там нет, поэтому
+        // саму программу тоже всегда загружаем заново, а не
+        // полагаемся на кеш каталога.
         Promise.all([
             getProgram(id),
             getProgramDraft(id),
@@ -107,11 +108,12 @@ export default function ProgramEdit() {
     }, [id]);
 
     if (!id || !program) {
-        // Программы ещё нет в кеше каталога — это нормально сразу
-        // после создания (создание не добавляет в публичный каталог,
-        // см. context/ProgramContext.tsx createProgram). Раз мы уже
-        // на странице /programs/:id/edit, доверяем ссылке и просто
-        // ждём первой загрузки данных, а не показываем "не найдено".
+        // Программы может не быть в кеше каталога — например, если
+        // ссылку открыли напрямую или программа не опубликовалась при
+        // создании (см. context/ProgramContext.tsx createProgram). Раз
+        // мы уже на странице /programs/:id/edit, доверяем ссылке и
+        // просто ждём первой загрузки данных, а не показываем "не
+        // найдено".
         if (isLoading) {
             return <p className="program-edit__loading">Загрузка…</p>;
         }
@@ -270,6 +272,7 @@ export default function ProgramEdit() {
                         description: program.description,
                         coverUrl: program.coverUrl,
                         difficulty: program.difficulty,
+                        category: program.category,
                     }}
                     submitLabel="Сохранить информацию"
                     onUploadDescriptionImage={(file) =>

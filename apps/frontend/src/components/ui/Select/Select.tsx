@@ -17,6 +17,13 @@ type SelectProps =
         /** Текст первого пустого пункта. По умолчанию "Выберите...". */
         emptyOptionLabel?: string;
 
+        /**
+         * Не показывать пустой пункт совсем — для списков, где значение
+         * всегда выбрано (например, сортировка). Пока свойство не
+         * передано, пустой пункт, как и раньше, есть.
+         */
+        hideEmptyOption?: boolean;
+
         options: Option[];
 
         error?: string;
@@ -32,6 +39,8 @@ export default function Select({
     placeholder,
 
     emptyOptionLabel = "Выберите...",
+
+    hideEmptyOption = false,
 
     options,
 
@@ -83,9 +92,15 @@ export default function Select({
 
             >
 
-                <option value="">
-                    {emptyOptionLabel}
-                </option>
+                {
+                    !hideEmptyOption && (
+
+                        <option value="">
+                            {emptyOptionLabel}
+                        </option>
+
+                    )
+                }
 
                 {
                     placeholder && (

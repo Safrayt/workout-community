@@ -170,12 +170,22 @@ export default function ProgramSchemeDetails() {
         const nameById = new Map(
             exercises.map((exercise) => [exercise.id, exercise.name])
         );
+        const movementById = new Map(
+            exercises.map((exercise) => [exercise.id, exercise.movementType])
+        );
 
         downloadSchemeAsImage(
             scheme,
             program!.title,
             version!.versionNumber,
-            (exerciseId) => nameById.get(exerciseId) ?? "Упражнение"
+            // Подпись для удалённого из базы упражнения — как на странице.
+            (exerciseId) => nameById.get(exerciseId) ?? "Упражнение недоступно",
+            // Тип движения показывается после названия, как на странице.
+            (exerciseId) => {
+                const movementType = movementById.get(exerciseId);
+
+                return movementType ? movementTypeLabels[movementType] : undefined;
+            }
         ).catch((error: unknown) => {
             console.error("Не удалось скачать схему как изображение:", error);
             window.alert("Не удалось скачать схему. Попробуйте ещё раз.");

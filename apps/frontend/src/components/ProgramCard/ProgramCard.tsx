@@ -9,7 +9,10 @@ import "../../styles/components/program-card.css";
 
 import type { Program } from "../../types/program";
 
-import { programDifficultyLabels } from "../../constants/programTypes";
+import {
+    programCategoryLabels,
+    programDifficultyLabels,
+} from "../../constants/programTypes";
 import { markdownToPlainText } from "../../utils/markdownPlain";
 
 type ProgramCardProps = {
@@ -35,13 +38,23 @@ export default function ProgramCard({ program }: ProgramCardProps) {
                 <h3 className="program-card__title">{program.title}</h3>
             </div>
 
-            {
-                program.difficulty && (
-                    <Badge variant="primary">
-                        {programDifficultyLabels[program.difficulty]}
-                    </Badge>
-                )
-            }
+            <div className="program-card__badges">
+                <Badge
+                    variant={
+                        program.category === "public" ? "success" : "primary"
+                    }
+                >
+                    {programCategoryLabels[program.category]}
+                </Badge>
+
+                {
+                    program.difficulty && (
+                        <Badge variant="primary">
+                            {programDifficultyLabels[program.difficulty]}
+                        </Badge>
+                    )
+                }
+            </div>
 
             <div className="program-card__author">
                 <Avatar

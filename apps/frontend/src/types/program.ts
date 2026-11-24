@@ -1,5 +1,13 @@
 export type ProgramDifficulty = "beginner" | "intermediate" | "advanced";
 
+/**
+ * Для кого программа. «Публичная» — автор создал её как программу для
+ * других участников сообщества; «личная» — автор сам по ней тренируется.
+ * Отметка автора для каталога, а не права доступа: видимость программы
+ * по-прежнему определяется только публикацией версии.
+ */
+export type ProgramCategory = "public" | "personal";
+
 export type ProgramVersionStatus = "draft" | "published";
 
 /**
@@ -220,6 +228,8 @@ export type Program = {
     coverUrl?: string;
 
     difficulty?: ProgramDifficulty;
+
+    category: ProgramCategory;
 
     authorId: string;
 

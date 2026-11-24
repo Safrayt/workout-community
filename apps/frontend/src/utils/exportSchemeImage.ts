@@ -1,12 +1,20 @@
-import type { ProgramScheme } from "../types/program";
+import type { ProgramBlock, ProgramScheme } from "../types/program";
 
-import { getBlockExerciseNames } from "./programExercises";
+import {
+    describeAutoBlock,
+    formatTarget,
+    hasSupersets,
+    isAutoScheme,
+} from "./programAuto";
 
 // Экспортируем в 2x относительно логической ширины разметки — иначе
 // текст на скачанной картинке выглядит смазанным на ретина-экранах.
 const WIDTH = 800;
 const SCALE = 2;
 const PADDING = 28;
+
+// Ширина колонки с номером упражнения внутри комплекса.
+const NUMBER_COLUMN = 30;
 
 const COLOR_TEXT = "#1a202c";
 const COLOR_SECONDARY = "#718096";
@@ -26,6 +34,12 @@ const FONT_FAMILY = "sans-serif";
  * toDataURL). Поэтому здесь никакого HTML и никакого drawImage: только
  * штатные примитивы Canvas 2D (fillRect/fillText), которые ничего не
  * помечают и всегда экспортируются без ограничений.
+ *
+ * Содержимое комплексов должно совпадать с тем, что показывает страница
+ * схемы (components/ProgramSchemeContent): у автоматической схемы — цели
+ * упражнений, сеты, число подходов или кругов и отдых; у свободной —
+ * нагрузка упражнений и текстовые «Схема» и «Отдых». Менять только
+ * вместе с ней.
  */
 
 type Line = { text: string; font: string; color: string };
@@ -34,9 +48,24 @@ type DrawCommand =
     | { kind: "rect"; x: number; y: number; width: number; height: number; color: string }
     | { kind: "text"; x: number; y: number; text: string; font: string; color: string };
 
+/**
+ * Часть содержимого комплекса: несколько строк с общим шагом, отступом
+ * сверху и сдвигом по горизонтали (x — от левого края содержимого
+ * комплекса). marker — номер упражнения, рисуется слева от первой строки.
+ */
+type Segment = {
+    lines: Line[];
+    lineHeight: number;
+    gapBefore: number;
+    x: number;
+    marker?: Line & { x: number };
+};
+
 /** Разбивает текст на строки по ширине — использует measureText того
  *  же контекста, что и итоговая отрисовка, так что перенос совпадает
- *  с тем, что реально поместится. */
+ *  с тем, что реально поместится. Переносы строк автора сохраняются (как
+ *  на странице, где у таких текстов white-space: pre-line), а пустые
+ *  строки в начале и в конце отбрасываются. */
 function wrapText(
     ctx: CanvasRenderingContext2D,
     text: string,
@@ -45,27 +74,39 @@ function wrapText(
 ): string[] {
     ctx.font = font;
 
-    const words = text.split(/\s+/).filter(Boolean);
-
-    if (words.length === 0) {
-        return [];
-    }
-
     const lines: string[] = [];
-    let currentLine = words[0];
 
-    for (const word of words.slice(1)) {
-        const candidate = `${currentLine} ${word}`;
+    for (const paragraph of text.split(/\r?\n/)) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
 
-        if (ctx.measureText(candidate).width > maxWidth) {
-            lines.push(currentLine);
-            currentLine = word;
-        } else {
-            currentLine = candidate;
+        if (words.length === 0) {
+            lines.push("");
+            continue;
         }
+
+        let currentLine = words[0];
+
+        for (const word of words.slice(1)) {
+            const candidate = `${currentLine} ${word}`;
+
+            if (ctx.measureText(candidate).width > maxWidth) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = candidate;
+            }
+        }
+
+        lines.push(currentLine);
     }
 
-    lines.push(currentLine);
+    while (lines.length > 0 && lines[0] === "") {
+        lines.shift();
+    }
+
+    while (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.pop();
+    }
 
     return lines;
 }
@@ -85,6 +126,198 @@ function wrapLines(
 }
 
 /**
+ * Содержимое комплекса по порядку сверху вниз — в том же составе и
+ * порядке, что на странице схемы (ProgramSchemeContent): название,
+ * упражнения (у автоматической схемы — с подписями «Сет N», когда в
+ * комплексе есть суперсеты, и с целью упражнения), затем строки про
+ * подходы/круги и отдых (автоматическая схема) либо текст «Схема»
+ * (свободная), примечание и, у свободной схемы, «Отдых».
+ */
+function buildBlockSegments(
+    ctx: CanvasRenderingContext2D,
+    block: ProgramBlock,
+    blockIndex: number,
+    isAuto: boolean,
+    nameOf: (exerciseId: string) => string,
+    typeOf: (exerciseId: string) => string | undefined,
+    width: number
+): Segment[] {
+    const segments: Segment[] = [];
+
+    function add(
+        lines: Line[],
+        lineHeight: number,
+        gapBefore: number,
+        x = 0,
+        marker?: Segment["marker"]
+    ) {
+        if (lines.length > 0) {
+            segments.push({ lines, lineHeight, gapBefore, x, marker });
+        }
+    }
+
+    add(
+        wrapLines(
+            ctx,
+            block.title || `Комплекс ${blockIndex + 1}`,
+            `700 16px ${FONT_FAMILY}`,
+            COLOR_TEXT,
+            width
+        ),
+        22,
+        0
+    );
+
+    const showSets = isAuto && hasSupersets(block);
+    let setNumber = 0;
+
+    block.items.forEach((item, itemIndex) => {
+        const startsSet = itemIndex === 0 || !item.groupWithPrevious;
+
+        if (startsSet) {
+            setNumber += 1;
+        }
+
+        const hasSetLabel = showSets && startsSet;
+
+        if (hasSetLabel) {
+            add(
+                [
+                    {
+                        text: `Сет ${setNumber}`,
+                        font: `700 13px ${FONT_FAMILY}`,
+                        color: COLOR_SECONDARY,
+                    },
+                ],
+                18,
+                itemIndex === 0 ? 10 : 14
+            );
+        }
+
+        // Как на странице: после названия упражнения из базы — тип
+        // движения (у своих упражнений текстом его нет).
+        const movementType =
+            item.kind === "exercise" ? typeOf(item.exerciseId) : undefined;
+        const baseName =
+            (item.kind === "exercise" ? nameOf(item.exerciseId) : item.text).trim() ||
+            "—";
+        const name = movementType ? `${baseName}  ·  ${movementType}` : baseName;
+        const nameFont = `700 14px ${FONT_FAMILY}`;
+
+        add(
+            wrapLines(ctx, name, nameFont, COLOR_TEXT, width - NUMBER_COLUMN),
+            20,
+            hasSetLabel ? 2 : itemIndex === 0 ? 8 : 10,
+            NUMBER_COLUMN,
+            {
+                text: String(itemIndex + 1).padStart(2, "0"),
+                font: nameFont,
+                color: COLOR_SECONDARY,
+                x: 0,
+            }
+        );
+
+        // Под названием — то, что автор задал упражнению: у
+        // автоматической схемы цель (повторения, секунды, «Максимум»,
+        // AMRAP, EMOM) и нагрузка, у свободной — только нагрузка.
+        const details = isAuto
+            ? [formatTarget(item.target), item.load].filter(Boolean).join(" · ")
+            : item.load;
+
+        if (details) {
+            add(
+                wrapLines(
+                    ctx,
+                    details,
+                    `14px ${FONT_FAMILY}`,
+                    COLOR_TEXT,
+                    width - NUMBER_COLUMN
+                ),
+                20,
+                2,
+                NUMBER_COLUMN
+            );
+        }
+    });
+
+    if (block.items.length === 0) {
+        add(
+            wrapLines(
+                ctx,
+                "В комплексе пока нет упражнений.",
+                `14px ${FONT_FAMILY}`,
+                COLOR_SECONDARY,
+                width
+            ),
+            19,
+            8
+        );
+    }
+
+    if (isAuto) {
+        describeAutoBlock(block).forEach((line, lineIndex) => {
+            add(
+                wrapLines(
+                    ctx,
+                    line,
+                    lineIndex === 0
+                        ? `600 14px ${FONT_FAMILY}`
+                        : `14px ${FONT_FAMILY}`,
+                    lineIndex === 0 ? COLOR_TEXT : COLOR_SECONDARY,
+                    width
+                ),
+                lineIndex === 0 ? 20 : 19,
+                lineIndex === 0 ? 12 : 6
+            );
+        });
+    } else if (block.scheme) {
+        add(
+            wrapLines(
+                ctx,
+                block.scheme,
+                `600 14px ${FONT_FAMILY}`,
+                COLOR_TEXT,
+                width
+            ),
+            20,
+            12
+        );
+    }
+
+    if (block.note) {
+        add(
+            wrapLines(
+                ctx,
+                `Примечание: ${block.note}`,
+                `14px ${FONT_FAMILY}`,
+                COLOR_SECONDARY,
+                width
+            ),
+            19,
+            6
+        );
+    }
+
+    // У автоматической схемы отдых задан числами и уже выведен строкой
+    // «Отдых: …» выше; текстовое поле block.rest — только у свободной.
+    if (!isAuto && block.rest) {
+        add(
+            wrapLines(
+                ctx,
+                `Отдых: ${block.rest}`,
+                `14px ${FONT_FAMILY}`,
+                COLOR_SECONDARY,
+                width
+            ),
+            19,
+            6
+        );
+    }
+
+    return segments;
+}
+
+/**
  * Строит план отрисовки (список примитивов с готовыми координатами) и
  * заодно возвращает итоговую высоту карточки — высота зависит от
  * количества комплексов/упражнений и от того, где перенеслись строки,
@@ -95,10 +328,12 @@ function buildLayout(
     scheme: ProgramScheme,
     programTitle: string,
     versionNumber: string | undefined,
-    nameOf: (exerciseId: string) => string
+    nameOf: (exerciseId: string) => string,
+    typeOf: (exerciseId: string) => string | undefined
 ): { commands: DrawCommand[]; height: number } {
     const commands: DrawCommand[] = [];
     const contentWidth = WIDTH - PADDING * 2;
+    const isAuto = isAutoScheme(scheme);
 
     let y = PADDING;
 
@@ -174,84 +409,46 @@ function buildLayout(
 
     y += 8;
 
+    if (scheme.blocks.length === 0) {
+        const lines = wrapLines(
+            ctx,
+            "Автор пока не добавил в схему ни одного комплекса.",
+            `14px ${FONT_FAMILY}`,
+            COLOR_SECONDARY,
+            contentWidth
+        );
+
+        for (const line of lines) {
+            commands.push({ kind: "text", x: PADDING, y, ...line });
+            y += 19;
+        }
+    }
+
     scheme.blocks.forEach((block, index) => {
         const blockPaddingX = 16;
         const blockPaddingY = 14;
         const blockContentX = PADDING + blockPaddingX;
         const blockContentWidth = contentWidth - blockPaddingX * 2;
 
-        const titleLines = wrapLines(
+        const segments = buildBlockSegments(
             ctx,
-            block.title || `Комплекс ${index + 1}`,
-            `700 16px ${FONT_FAMILY}`,
-            COLOR_TEXT,
+            block,
+            index,
+            isAuto,
+            nameOf,
+            typeOf,
             blockContentWidth
         );
 
-        const exerciseLineGroups = getBlockExerciseNames(block, nameOf).map((exercise, exerciseIndex) =>
-            wrapLines(
-                ctx,
-                `${exerciseIndex + 1}. ${exercise}`,
-                `14px ${FONT_FAMILY}`,
-                COLOR_TEXT,
-                blockContentWidth
-            )
-        );
-
-        const schemeLines = block.scheme
-            ? wrapLines(
-                  ctx,
-                  block.scheme,
-                  `600 14px ${FONT_FAMILY}`,
-                  COLOR_TEXT,
-                  blockContentWidth
-              )
-            : [];
-
-        const noteLines = block.note
-            ? wrapLines(
-                  ctx,
-                  `Примечание: ${block.note}`,
-                  `14px ${FONT_FAMILY}`,
-                  COLOR_SECONDARY,
-                  blockContentWidth
-              )
-            : [];
-
-        const restLines = block.rest
-            ? wrapLines(
-                  ctx,
-                  `Отдых: ${block.rest}`,
-                  `14px ${FONT_FAMILY}`,
-                  COLOR_SECONDARY,
-                  blockContentWidth
-              )
-            : [];
-
-        // Высоты считаем явно по группам, а не одним плоским списком —
-        // между заголовком/упражнениями/схемой/примечанием/отдыхом
-        // нужны разные отступы, как в обычном отображении структуры.
+        // Высоту считаем заранее по тем же отступам, по которым ниже
+        // рисуем: сначала нужна подложка комплекса, а текст — поверх неё.
         let blockHeight = blockPaddingY * 2;
-        blockHeight += titleLines.length * 22;
 
-        if (exerciseLineGroups.length > 0) {
-            blockHeight += 6;
-            for (const group of exerciseLineGroups) {
-                blockHeight += group.length * 20;
-            }
-        }
-
-        if (schemeLines.length > 0) {
-            blockHeight += 8 + schemeLines.length * 20;
-        }
-
-        if (noteLines.length > 0) {
-            blockHeight += 6 + noteLines.length * 19;
-        }
-
-        if (restLines.length > 0) {
-            blockHeight += 6 + restLines.length * 19;
-        }
+        segments.forEach((segment, segmentIndex) => {
+            blockHeight +=
+                (segmentIndex === 0 ? 0 : segment.gapBefore) +
+                segment.lines.length * segment.lineHeight;
+        });
 
         if (index > 0) {
             y += 12;
@@ -276,49 +473,32 @@ function buildLayout(
 
         let innerY = y + blockPaddingY;
 
-        for (const line of titleLines) {
-            commands.push({ kind: "text", x: blockContentX, y: innerY, ...line });
-            innerY += 22;
-        }
-
-        if (exerciseLineGroups.length > 0) {
-            innerY += 6;
-            for (const group of exerciseLineGroups) {
-                for (const line of group) {
-                    commands.push({
-                        kind: "text",
-                        x: blockContentX,
-                        y: innerY,
-                        ...line,
-                    });
-                    innerY += 20;
-                }
+        segments.forEach((segment, segmentIndex) => {
+            if (segmentIndex > 0) {
+                innerY += segment.gapBefore;
             }
-        }
 
-        if (schemeLines.length > 0) {
-            innerY += 8;
-            for (const line of schemeLines) {
-                commands.push({ kind: "text", x: blockContentX, y: innerY, ...line });
-                innerY += 20;
+            if (segment.marker) {
+                commands.push({
+                    kind: "text",
+                    x: blockContentX + segment.marker.x,
+                    y: innerY,
+                    text: segment.marker.text,
+                    font: segment.marker.font,
+                    color: segment.marker.color,
+                });
             }
-        }
 
-        if (noteLines.length > 0) {
-            innerY += 6;
-            for (const line of noteLines) {
-                commands.push({ kind: "text", x: blockContentX, y: innerY, ...line });
-                innerY += 19;
+            for (const line of segment.lines) {
+                commands.push({
+                    kind: "text",
+                    x: blockContentX + segment.x,
+                    y: innerY,
+                    ...line,
+                });
+                innerY += segment.lineHeight;
             }
-        }
-
-        if (restLines.length > 0) {
-            innerY += 6;
-            for (const line of restLines) {
-                commands.push({ kind: "text", x: blockContentX, y: innerY, ...line });
-                innerY += 19;
-            }
-        }
+        });
 
         y += blockHeight;
     });
@@ -369,13 +549,15 @@ function slugifyFileName(value: string): string {
 
 /**
  * nameOf — название упражнения из базы по id (на картинке упражнения
- * блока выводятся текстом, и «из базы», и свои).
+ * блока выводятся текстом, и «из базы», и свои); typeOf — подпись типа
+ * движения (необязательно: без неё тип на картинке не показывается).
  */
 export async function downloadSchemeAsImage(
     scheme: ProgramScheme,
     programTitle: string,
     versionNumber: string | undefined,
-    nameOf: (exerciseId: string) => string
+    nameOf: (exerciseId: string) => string,
+    typeOf: (exerciseId: string) => string | undefined = () => undefined
 ): Promise<void> {
     // Первый проход — только для раскладки/измерения текста, canvas
     // сам по себе никуда не идёт и в DOM не добавляется.
@@ -391,7 +573,8 @@ export async function downloadSchemeAsImage(
         scheme,
         programTitle,
         versionNumber,
-        nameOf
+        nameOf,
+        typeOf
     );
 
     const canvas = document.createElement("canvas");

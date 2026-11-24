@@ -17,8 +17,11 @@ import {
 } from "../../validation/program";
 import { getFieldError } from "../../utils/validation";
 
-import { programDifficultyFilterOptions } from "../../constants/programTypes";
-import type { ProgramDifficulty } from "../../types/program";
+import {
+    programCategoryFormOptions,
+    programDifficultyFilterOptions,
+} from "../../constants/programTypes";
+import type { ProgramCategory, ProgramDifficulty } from "../../types/program";
 import type { NewProgram } from "../../types/newProgram";
 
 type ProgramFormProps = {
@@ -39,7 +42,7 @@ type ProgramFormProps = {
 
 /**
  * Форма "информации о программе" (см. UX-документ «Раздел
- * Программы», п.2) — название/описание/обложка/сложность. Структуру
+ * Программы», п.2) — название/описание/обложка/сложность/категория. Структуру
  * версии (схемы/блоки/упражнения) эта форма не трогает — за неё
  * отвечает ProgramStructureEditor на странице редактирования.
  */
@@ -117,6 +120,20 @@ export default function ProgramForm({
                     }
                     options={programDifficultyFilterOptions}
                     emptyOptionLabel="Не указана"
+                />
+
+                <Select
+                    id="program-category"
+                    label="Категория"
+                    value={program.category}
+                    onChange={(event) =>
+                        updateField(
+                            "category",
+                            event.target.value as ProgramCategory
+                        )
+                    }
+                    options={programCategoryFormOptions}
+                    hideEmptyOption
                 />
             </FormSection>
 

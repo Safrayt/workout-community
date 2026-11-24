@@ -19,6 +19,7 @@ from app.models_program import (
     PROGRAM_IMAGE_SUBFOLDER,
     ProgramImageRead,
     program_description_images,
+    ProgramCategory,
     ProgramComment,
     ProgramCommentCreate,
     ProgramCommentRead,
@@ -181,6 +182,7 @@ def _get_version_or_404(version_id: int, session: Session) -> ProgramVersionDB:
 @router.get("/", response_model=List[ProgramRead])
 def list_programs(
     difficulty: Optional[ProgramDifficulty] = None,
+    category: Optional[ProgramCategory] = None,
     session: Session = Depends(get_session),
     viewer: Optional[User] = Depends(get_optional_current_user),
 ) -> List[ProgramRead]:
@@ -193,6 +195,9 @@ def list_programs(
 
     if difficulty is not None:
         query = query.where(ProgramDB.difficulty == difficulty.value)
+
+    if category is not None:
+        query = query.where(ProgramDB.category == category.value)
 
     programs = session.exec(query.order_by(ProgramDB.created_at.desc())).all()
 
@@ -255,7 +260,11 @@ def create_program(
     приступает к наполнению структуры сразу после создания, без
     отдельного шага "создать версию".
     """
-    program = ProgramDB(**data.model_dump(), author_id=current_user.id)
+    values = data.model_dump()
+    # В таблице категория — обычная строка, а не элемент enum.
+    values["category"] = data.category.value
+
+    program = ProgramDB(**values, author_id=current_user.id)
 
     session.add(program)
     session.commit()
@@ -283,6 +292,14 @@ def update_program(
     updates = data.model_dump(exclude_unset=True)
 
     for field_name, value in updates.items():
+        if field_name == "category":
+            # Категория обязательна: явный null («не менять») её не
+            # стирает, а в таблицу пишется строка, не элемент enum.
+            if value is None:
+                continue
+
+            value = ProgramCategory(value).value
+
         setattr(program, field_name, value)
 
     program.updated_at = datetime.now(timezone.utc)

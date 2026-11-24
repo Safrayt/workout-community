@@ -3,6 +3,7 @@ import type {
     ProgramBlock,
     ProgramBlockItem,
     ProgramBlockOrder,
+    ProgramCategory,
     ProgramDifficulty,
     ProgramItemTarget,
     ProgramScheme,
@@ -309,6 +310,7 @@ export type ApiProgram = {
     description: string;
     cover_url?: string | null;
     difficulty?: ProgramDifficulty | null;
+    category?: ProgramCategory | null;
     author_id: number;
     author_nickname: string;
     author_avatar_url?: string | null;
@@ -328,6 +330,9 @@ export function mapApiProgramToProgram(apiProgram: ApiProgram): Program {
         description: apiProgram.description,
         coverUrl: resolveMediaUrl(apiProgram.cover_url ?? undefined),
         difficulty: apiProgram.difficulty ?? undefined,
+        // Сервер всегда присылает категорию; запасное значение — на
+        // случай ответа старого сервера без этого поля.
+        category: apiProgram.category ?? "personal",
         authorId: String(apiProgram.author_id),
         authorNickname: apiProgram.author_nickname,
         authorAvatarUrl: resolveMediaUrl(
@@ -348,12 +353,16 @@ export function mapApiProgramToProgram(apiProgram: ApiProgram): Program {
 }
 
 export function mapNewProgramToApi(
-    program: Pick<NewProgram, "title" | "description" | "difficulty">
+    program: Pick<
+        NewProgram,
+        "title" | "description" | "difficulty" | "category"
+    >
 ): Record<string, unknown> {
     return {
         title: program.title,
         description: program.description,
         difficulty: program.difficulty || null,
+        category: program.category,
     };
 }
 

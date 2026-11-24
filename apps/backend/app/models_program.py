@@ -38,6 +38,26 @@ class ProgramDifficulty(str, enum.Enum):
     advanced = "advanced"
 
 
+class ProgramCategory(str, enum.Enum):
+    """
+    Для кого программа. «Публичная» — автор создал её как программу
+    для других участников сообщества; «личная» — автор сам по ней
+    тренируется. Это отметка автора для каталога (фильтр «Категория»),
+    а не права доступа: видимость программы по-прежнему определяется
+    только публикацией версии (см. ProgramDB.is_published).
+    """
+
+    public = "public"
+    personal = "personal"
+
+
+# Категория по умолчанию — и для новых программ, у которых автор её не
+# указал, и для всех программ, созданных до появления категорий (см.
+# database._run_migrations): пусть автор сам решит, считает ли он свою
+# программу публичной.
+DEFAULT_PROGRAM_CATEGORY = ProgramCategory.personal
+
+
 class ProgramVersionStatus(str, enum.Enum):
     draft = "draft"
     published = "published"
@@ -567,6 +587,12 @@ class ProgramDB(ProgramBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     author_id: int = Field(foreign_key="user.id")
 
+    # Значение ProgramCategory. В таблице — обычная строка (как
+    # ProgramVersionDB.status), а не тип enum базы: так колонку
+    # одинаково добавляет ручная миграция и на SQLite, и на PostgreSQL.
+    # Допустимые значения проверяют схемы ProgramCreate/ProgramUpdate.
+    category: str = DEFAULT_PROGRAM_CATEGORY.value
+
     # Кэш двух вещей, которые иначе пришлось бы каждый раз вычислять
     # join'ом по programversion: видна ли программа кому-то, кроме
     # автора (см. п.3 — черновик не публикуется, значит и в каталоге
@@ -594,6 +620,8 @@ class ProgramCreate(ProgramBase):
     сценарию из п.20 документа ("Создание программы → Черновик").
     """
 
+    category: ProgramCategory = DEFAULT_PROGRAM_CATEGORY
+
     # Проверки — только на входе (создание и правка): описания,
     # написанные до появления разметки, читаются как есть.
     @field_validator("description")
@@ -605,14 +633,15 @@ class ProgramCreate(ProgramBase):
 class ProgramUpdate(SQLModel):
     """
     Только "информация о программе" (п.2) — название, описание,
-    обложка, сложность. Структура версии редактируется отдельными
-    эндпоинтами про черновик, не через этот метод.
+    обложка, сложность, категория. Структура версии редактируется
+    отдельными эндпоинтами про черновик, не через этот метод.
     """
 
     title: Optional[str] = None
     description: Optional[str] = None
     cover_url: Optional[str] = None
     difficulty: Optional[ProgramDifficulty] = None
+    category: Optional[ProgramCategory] = None
 
     @field_validator("description")
     @classmethod
@@ -623,6 +652,7 @@ class ProgramUpdate(SQLModel):
 class ProgramRead(ProgramBase):
     id: int
     author_id: int
+    category: ProgramCategory = DEFAULT_PROGRAM_CATEGORY
     is_published: bool
     current_version_id: Optional[int] = None
     created_at: UtcDatetime
