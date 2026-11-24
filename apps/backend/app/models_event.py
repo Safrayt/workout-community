@@ -68,7 +68,6 @@ class RegistrationStatus(str, enum.Enum):
 
 class EventRegistrationBase(SQLModel):
     status: RegistrationStatus = RegistrationStatus.registered
-    experience_awarded: int = 0
 
 
 class EventRegistration(EventRegistrationBase, table=True):

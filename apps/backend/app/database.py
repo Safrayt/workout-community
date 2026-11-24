@@ -67,6 +67,39 @@ def _add_column_if_missing(
         connection.commit()
 
 
+def _drop_column_if_exists(connection, table_name: str, column_name: str) -> None:
+    """
+    Удаляет колонку, которой больше нет в модели, — если она ещё есть
+    в базе. Нужно для колонок NOT NULL без значения по умолчанию
+    (user.experience, eventregistration.experience_awarded: система
+    опыта убрана): модель их больше не заполняет, и без удаления
+    каждая новая запись падала бы на NOT NULL. Повторный запуск
+    безопасен. Если СУБД удалить колонку не даёт (например, очень
+    старый SQLite без DROP COLUMN), приложение не падает, а пишет
+    предупреждение.
+    """
+    existing_columns = {
+        column["name"] for column in inspect(connection).get_columns(table_name)
+    }
+
+    if column_name not in existing_columns:
+        return
+
+    try:
+        connection.exec_driver_sql(
+            f'ALTER TABLE "{table_name}" DROP COLUMN "{column_name}"'
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        logger.warning(
+            'Не удалось удалить устаревшую колонку "%s"."%s" — удалите её '
+            "вручную (ALTER TABLE ... DROP COLUMN).",
+            table_name,
+            column_name,
+        )
+
+
 # Типы движения упражнений, которые убрали из списка допустимых
 # (models_exercise.MovementType), и на какие заменять их в уже
 # существующих строках. Нужно потому, что ExerciseRead.movement_type
@@ -397,6 +430,13 @@ def _run_migrations() -> None:
             )
             _add_column_if_missing(
                 connection, "user", "token_version", "INTEGER NOT NULL DEFAULT 0"
+            )
+            # Система опыта убрана — см. _drop_column_if_exists.
+            _drop_column_if_exists(connection, "user", "experience")
+
+        if "eventregistration" in existing_tables:
+            _drop_column_if_exists(
+                connection, "eventregistration", "experience_awarded"
             )
 
         # Выполнение комплекса, внесённое из помощника (см.

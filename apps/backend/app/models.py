@@ -71,7 +71,6 @@ class User(UserBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     password_hash: str
-    experience: int = 0
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -231,7 +230,6 @@ class UserRead(UserBase):
     """
 
     id: int
-    experience: int
     created_at: UtcDatetime
     # Можно отдавать клиенту (в отличие от записи через API) — так
     # фронтенд знает, показывать ли этому пользователю кнопки

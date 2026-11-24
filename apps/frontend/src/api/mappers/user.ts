@@ -14,7 +14,6 @@ export type ApiUser = {
     nickname: string;
     bio: string;
     avatar_url: string | null;
-    experience: number;
     created_at: string;
     social_telegram: string | null;
     social_vk: string | null;
@@ -66,7 +65,6 @@ export function mapApiUserToUser(apiUser: ApiUser): User {
         nickname: apiUser.nickname,
         bio: apiUser.bio,
         avatarUrl: apiUser.avatar_url ?? undefined,
-        experience: apiUser.experience,
         createdAt: apiUser.created_at,
         socialLinks,
         privacySettings,

@@ -10,10 +10,6 @@ import UserLink from "../UserLink/UserLink";
 
 import { useUserDirectory } from "../../hooks/useUserDirectory";
 
-import {
-    getUserLevel,
-} from "../../utils/level";
-
 type Props = {
 
     participants:
@@ -114,16 +110,6 @@ export default function EventParticipants({
                                     )
                                 }
 
-                                {
-                                    user && (
-                                        <span className="event-participants__reputation">
-                                            {getUserLevel(user.experience)}
-                                            {" · "}
-                                            {user.experience}
-                                            {" XP"}
-                                        </span>
-                                    )
-                                }
                             </li>
 
                         );

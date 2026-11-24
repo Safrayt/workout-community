@@ -28,7 +28,6 @@ export type ApiEventRegistration = {
     event_id: number;
     registered_at: string;
     status: RegistrationStatus;
-    experience_awarded: number;
 };
 
 export function mapApiEventToEvent(apiEvent: ApiEvent): Event {
@@ -73,7 +72,6 @@ export function mapApiRegistrationToRegistration(
         eventId: String(apiRegistration.event_id),
         registeredAt: apiRegistration.registered_at,
         status: apiRegistration.status,
-        experienceAwarded: apiRegistration.experience_awarded,
     };
 }
 

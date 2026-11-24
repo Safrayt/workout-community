@@ -77,9 +77,7 @@ import {
     getCreatedPlaygrounds,
 } from "../../utils/playgrounds";
 
-import {
-    getAchievementsProgress,
-} from "../../utils/achievements";
+import { useAchievementsProgress } from "../../hooks/useAchievementsProgress";
 
 import {
     buildDiaryRecords,
@@ -95,8 +93,8 @@ import { MAX_PERSONAL_TAGS } from "../../constants/personalTags";
 /**
  * Профиль — карточка участника сообщества, идентифицированного
  * username, а не анкета человека с реальными данными
- * (UX-PROFILE §1, §49). Поэтому имя, фамилия, город, уровень и
- * XP намеренно не показываются на этом экране (UX-PROFILE §44).
+ * (UX-PROFILE §1, §49). Поэтому имя, фамилия и город
+ * намеренно не показываются на этом экране (UX-PROFILE §44).
  *
  * Обслуживает два маршрута:
  * - /profile — всегда собственный профиль текущего пользователя;
@@ -130,6 +128,15 @@ export default function Profile() {
     const canViewAchievements =
         isOwnProfile ||
         Boolean(user?.privacySettings.achievementsVisible);
+
+    // Прогресс по достижениям считает сервер (в него входят записи
+    // дневника, которых на клиенте у чужого профиля нет). Хук стоит
+    // до раннего return ниже.
+    const {
+        progress: achievementsProgress,
+        error: achievementsError,
+        isLoading: isAchievementsLoading,
+    } = useAchievementsProgress(user?.id, canViewAchievements);
 
     const canViewSubscriptions =
         isOwnProfile ||
@@ -207,14 +214,7 @@ export default function Profile() {
         ]
     );
 
-    const achievementsProgress = getAchievementsProgress(
-        user.id,
-        events,
-        playgrounds,
-        registrations
-    );
-
-    const unlockedAchievements = achievementsProgress.filter(
+    const unlockedAchievements = (achievementsProgress ?? []).filter(
         (item) => item.unlocked
     );
 
@@ -445,6 +445,18 @@ export default function Profile() {
                         <div className="profile-empty">
                             <p>
                                 Пользователь закрыл свои достижения от посторонних.
+                            </p>
+                        </div>
+                    ) : isAchievementsLoading ? (
+                        <div className="profile-empty">
+                            <p>
+                                Загружаю достижения…
+                            </p>
+                        </div>
+                    ) : achievementsError ? (
+                        <div className="profile-empty">
+                            <p>
+                                {achievementsError}
                             </p>
                         </div>
                     ) : unlockedAchievements.length === 0 ? (

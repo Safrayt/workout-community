@@ -13,6 +13,4 @@ export type EventRegistration = {
     registeredAt: string;
 
     status: RegistrationStatus;
-
-    experienceAwarded: number;
 };

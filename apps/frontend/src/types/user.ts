@@ -10,8 +10,6 @@ export type User = {
 
     avatarUrl?: string;
 
-    experience: number;
-
     createdAt: string;
 
     socialLinks: SocialLinks;

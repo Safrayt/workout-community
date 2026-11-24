@@ -14,21 +14,7 @@ import {
 
 import { useUserDirectory } from "../../hooks/useUserDirectory";
 
-import {
-    useEvents,
-} from "../../context/EventContext";
-
-import {
-    usePlaygrounds,
-} from "../../context/PlaygroundContext";
-
-import {
-    useRegistration,
-} from "../../context/RegistrationContext";
-
-import {
-    getAchievementsProgress,
-} from "../../utils/achievements";
+import { useAchievementsProgress } from "../../hooks/useAchievementsProgress";
 
 /**
  * Обслуживает /achievements (свои достижения) и
@@ -45,23 +31,22 @@ export default function Achievements() {
 
     const { getUserByUsername } = useUserDirectory();
 
-    const {
-        events,
-    } = useEvents();
-
-    const {
-        playgrounds,
-    } = usePlaygrounds();
-
-    const {
-        registrations,
-    } = useRegistration();
-
     const user = username
         ? getUserByUsername(username)
         : currentUser;
 
     const isOwnProfile = user?.id === currentUser.id;
+
+    // Прогресс считает сервер (записи дневника, площадки, регистрации).
+    // Хук стоит до ранних return ниже; запрос идёт, только если
+    // достижения можно показывать.
+    const canViewAchievements =
+        isOwnProfile || Boolean(user?.privacySettings.achievementsVisible);
+
+    const {
+        progress: achievementsProgress,
+        error: achievementsError,
+    } = useAchievementsProgress(user?.id, canViewAchievements);
 
     if (!user) {
         return (
@@ -94,13 +79,29 @@ export default function Achievements() {
         );
     }
 
-    const achievementsProgress =
-        getAchievementsProgress(
-            user.id,
-            events,
-            playgrounds,
-            registrations
+    if (achievementsError) {
+        return (
+            <Section title={isOwnProfile ? "Достижения" : `Достижения — ${user.nickname}`}>
+                <div className="profile-empty">
+                    <p>
+                        {achievementsError}
+                    </p>
+                </div>
+            </Section>
         );
+    }
+
+    if (!achievementsProgress) {
+        return (
+            <Section title={isOwnProfile ? "Достижения" : `Достижения — ${user.nickname}`}>
+                <div className="profile-empty">
+                    <p>
+                        Загружаю достижения…
+                    </p>
+                </div>
+            </Section>
+        );
+    }
 
     const unlocked =
         achievementsProgress.filter(

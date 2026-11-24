@@ -15,7 +15,11 @@ export type AchievementCondition =
     | "created-events"
     | "created-playgrounds"
     | "registrations"
-    | "attended-events";
+    | "attended-events"
+    | "workouts-at-minus-10"
+    | "workouts-at-minus-20"
+    | "workouts-with-program"
+    | "workouts-on-one-playground";
 
 export type Achievement = {
 
@@ -32,8 +36,6 @@ export type Achievement = {
     category: AchievementCategory;
 
     rarity: AchievementRarity;
-
-    experience: number;
 
     condition: AchievementCondition;
 
