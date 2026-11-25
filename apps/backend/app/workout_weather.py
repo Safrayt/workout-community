@@ -16,7 +16,11 @@
 тренировки не важно. Для записей с другой датой температуры нет.
 
 Всё это «лучшее из возможного»: недоступность сервиса погоды не должна
-мешать сохранить запись, поэтому любая ошибка даёт None.
+мешать сохранить запись, поэтому любая ошибка даёт None. Если с первой
+попытки MET не ответил (с сервера он порой отвечает медленно — таймаут
+на установке TLS-соединения), запись всё равно сохраняется, а
+температуру добирают повторные попытки в фоне (см. routers/diary.py) с
+более длинным таймаутом.
 """
 
 import logging
@@ -48,7 +52,11 @@ _HTTP_TIMEOUT_SECONDS = 5
 _MAX_DISTANCE_FROM_NOW = timedelta(hours=3)
 
 
-def _load_points_sync(latitude: float, longitude: float) -> list[ForecastPoint]:
+def _load_points_sync(
+    latitude: float,
+    longitude: float,
+    timeout: float = _HTTP_TIMEOUT_SECONDS,
+) -> list[ForecastPoint]:
     """
     Ряд точек прогноза для координат (время — местное для площадки) или
     пустой список, если сервис не ответил. Использует общий кэш.
@@ -64,7 +72,7 @@ def _load_points_sync(latitude: float, longitude: float) -> list[ForecastPoint]:
 
     try:
         with httpx.Client(
-            timeout=_HTTP_TIMEOUT_SECONDS,
+            timeout=timeout,
             follow_redirects=True,
             headers={
                 "User-Agent": _HTTP_USER_AGENT,
@@ -126,12 +134,15 @@ def temperature_for_entry(
     longitude: float,
     entry_date: date,
     now: Optional[datetime] = None,
+    timeout: Optional[float] = None,
 ) -> Optional[float]:
     """
     Температура воздуха для записи с этой датой на этих координатах или
     None. Определяется только для сегодняшней (по времени площадки)
     даты — у MET нет истории; для других дат запрос к сервису даже не
-    делается.
+    делается. timeout — сколько секунд ждать MET (по умолчанию короткий,
+    чтобы не задерживать сохранение записи; фоновые повторы передают
+    больший).
     """
     zone = timezone_for(_round_coord(latitude), _round_coord(longitude))
     now_local = (now or datetime.now(timezone.utc)).astimezone(zone).replace(
@@ -141,6 +152,10 @@ def temperature_for_entry(
     if entry_date != now_local.date():
         return None
 
-    return pick_current_temperature(
-        _load_points_sync(latitude, longitude), now_local
+    points = (
+        _load_points_sync(latitude, longitude)
+        if timeout is None
+        else _load_points_sync(latitude, longitude, timeout)
     )
+
+    return pick_current_temperature(points, now_local)

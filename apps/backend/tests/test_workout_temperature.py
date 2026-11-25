@@ -6,6 +6,7 @@
 Нет площадки — нет температуры.
 """
 
+from contextlib import nullcontext
 from datetime import date, datetime, timedelta, timezone
 
 from app.met_weather import ForecastPoint
@@ -319,3 +320,147 @@ def test_entry_for_playground_without_title_change_keeps_response_shape(
 
     assert "temperature_c" in entry
     assert entry["temperature_c"] is None
+
+
+# --- Повторные попытки в фоне ---------------------------------------------------
+
+
+def _enable_background_retries(monkeypatch, session, delays=(0, 0)):
+    """Включает фоновые повторы: без пауз и на сессии теста."""
+    monkeypatch.setattr(
+        "app.routers.diary._TEMPERATURE_RETRY_DELAYS_SECONDS", delays
+    )
+    monkeypatch.setattr("app.routers.diary.time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "app.routers.diary._open_background_session",
+        lambda: nullcontext(session),
+    )
+
+
+def _stub_sequence(monkeypatch, results):
+    """temperature_for_entry отвечает по очереди значениями из results."""
+    calls = []
+    queue = list(results)
+
+    def fake(latitude, longitude, entry_date, **kwargs):
+        calls.append(kwargs)
+        return queue.pop(0) if queue else None
+
+    monkeypatch.setattr("app.routers.diary.temperature_for_entry", fake)
+
+    return calls
+
+
+def test_missing_temperature_is_filled_in_by_background_retry(
+    client, session, monkeypatch
+):
+    user = register_user(client, nickname="temp_bg_ok")
+    playground_id = _create_playground(client, user["token"])
+    _enable_background_retries(monkeypatch, session)
+    # Первая попытка (при сохранении) и первый повтор — без ответа,
+    # второй повтор — 4.5.
+    calls = _stub_sequence(monkeypatch, [None, None, 4.5])
+
+    entry = _create_entry(client, user["token"], playground_id=playground_id)
+
+    fetched = client.get(
+        f"/diary/entries/{entry['id']}", headers=auth_headers(user["token"])
+    )
+    assert fetched.json()["temperature_c"] == 4.5
+    assert len(calls) == 3
+    # Фоновые попытки ждут MET дольше, чем попытка при сохранении.
+    assert calls[0] == {}
+    assert calls[1]["timeout"] > 5 and calls[2]["timeout"] > 5
+
+
+def test_background_retry_stops_after_success(client, session, monkeypatch):
+    user = register_user(client, nickname="temp_bg_stop")
+    playground_id = _create_playground(client, user["token"])
+    _enable_background_retries(monkeypatch, session, delays=(0, 0, 0))
+    calls = _stub_sequence(monkeypatch, [None, 2.0])
+
+    _create_entry(client, user["token"], playground_id=playground_id)
+
+    assert len(calls) == 2  # без лишних запросов после успеха
+
+
+def test_background_retry_gives_up_quietly(client, session, monkeypatch):
+    user = register_user(client, nickname="temp_bg_fail")
+    playground_id = _create_playground(client, user["token"])
+    _enable_background_retries(monkeypatch, session, delays=(0, 0))
+    calls = _stub_sequence(monkeypatch, [])
+
+    entry = _create_entry(client, user["token"], playground_id=playground_id)
+
+    assert entry["temperature_c"] is None
+    assert len(calls) == 3  # при сохранении + две попытки
+
+
+def test_no_background_retry_without_playground(client, session, monkeypatch):
+    user = register_user(client, nickname="temp_bg_none")
+    _enable_background_retries(monkeypatch, session)
+    calls = _stub_sequence(monkeypatch, [])
+
+    _create_entry(client, user["token"])
+
+    assert calls == []
+
+
+def test_no_background_retry_for_old_entries(client, session, monkeypatch):
+    # У MET нет истории: для записи недельной давности повторять нечего.
+    user = register_user(client, nickname="temp_bg_old")
+    playground_id = _create_playground(client, user["token"])
+    _enable_background_retries(monkeypatch, session)
+    calls = _stub_sequence(monkeypatch, [])
+
+    old_date = (date.today() - timedelta(days=7)).isoformat()
+    _create_entry(
+        client, user["token"], playground_id=playground_id, date=old_date
+    )
+
+    assert len(calls) == 1  # только попытка при сохранении
+
+
+def test_background_retry_does_not_overwrite_existing_temperature(
+    client, session, monkeypatch
+):
+    from app.models_diary import WorkoutEntry
+
+    user = register_user(client, nickname="temp_bg_keep")
+    playground_id = _create_playground(client, user["token"])
+    _enable_background_retries(monkeypatch, session, delays=(0,))
+    _stub_sequence(monkeypatch, [None])
+
+    entry = _create_entry(client, user["token"], playground_id=playground_id)
+
+    # Температуру успели проставить иначе (например, при редактировании).
+    row = session.get(WorkoutEntry, entry["id"])
+    row.temperature_c = 9.0
+    session.add(row)
+    session.commit()
+
+    calls = _stub_sequence(monkeypatch, [1.0])
+    from app.routers.diary import _retry_entry_temperature
+
+    _retry_entry_temperature(entry["id"])
+
+    session.refresh(row)
+    assert row.temperature_c == 9.0
+    assert calls == []
+
+
+def test_load_points_accepts_custom_timeout(monkeypatch):
+    seen = {}
+
+    def fake_load(latitude, longitude, timeout=5):
+        seen["timeout"] = timeout
+        return [_point(datetime(2026, 11, 14, 12, 0), 7.0)]
+
+    monkeypatch.setattr("app.workout_weather._load_points_sync", fake_load)
+    now = datetime(2026, 11, 14, 10, 0, tzinfo=timezone.utc)
+
+    assert (
+        temperature_for_entry(56.95, 24.10, date(2026, 11, 14), now, timeout=15)
+        == 7.0
+    )
+    assert seen["timeout"] == 15

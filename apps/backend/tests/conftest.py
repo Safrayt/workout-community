@@ -97,6 +97,19 @@ def _no_external_weather(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_background_temperature_retries(monkeypatch):
+    """
+    Повторные попытки узнать температуру идут в фоне с паузами (см.
+    routers/diary.py); TestClient выполняет фоновые задачи до возврата
+    ответа, так что по умолчанию их отключаем. Тесты самих повторов
+    включают их явно.
+    """
+    monkeypatch.setattr(
+        "app.routers.diary._TEMPERATURE_RETRY_DELAYS_SECONDS", ()
+    )
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limiters():
     """
     RateLimiter (app/rate_limit.py) хранит счётчики попыток в памяти

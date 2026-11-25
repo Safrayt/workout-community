@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 import zipfile
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
@@ -8,12 +9,21 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from app.auth import ensure_admin, get_current_user, get_optional_current_user
-from app.database import get_session
+from app.database import engine, get_session
 from app.files import UPLOAD_ROOT, delete_image, save_image
 from app.models import User
 from app.models_notification import NotificationType
@@ -170,9 +180,87 @@ def _lookup_entry_temperature(
         return None
 
 
+# Повторные попытки узнать температуру в фоне, если при сохранении
+# записи MET не ответил: паузы перед попытками (секунды) и таймаут
+# каждой. Нужны потому, что с сервера MET бывает медленным (таймаут
+# на установке TLS-соединения), а короткая первая попытка не должна
+# задерживать сохранение. Пустой кортеж отключает повторы (так в тестах).
+_TEMPERATURE_RETRY_DELAYS_SECONDS: tuple[float, ...] = (10, 30, 120)
+_TEMPERATURE_RETRY_TIMEOUT_SECONDS = 15
+
+
+def _open_background_session() -> Session:
+    """Своя сессия для фоновой задачи: сессия запроса к этому моменту закрыта."""
+    return Session(engine)
+
+
+def _retry_entry_temperature(entry_id: int) -> None:
+    """
+    Фоновая задача: добирает температуру записи, которую не удалось
+    получить при сохранении. Каждый раз перечитывает запись — если её
+    удалили, убрали площадку или температуру уже проставили (например,
+    при редактировании), ничего не делает.
+    """
+    for delay in _TEMPERATURE_RETRY_DELAYS_SECONDS:
+        time.sleep(delay)
+
+        try:
+            with _open_background_session() as session:
+                entry = session.get(WorkoutEntry, entry_id)
+
+                if (
+                    entry is None
+                    or entry.playground_id is None
+                    or entry.temperature_c is not None
+                ):
+                    return
+
+                playground = session.get(Playground, entry.playground_id)
+
+                if playground is None:
+                    return
+
+                temperature = temperature_for_entry(
+                    playground.latitude,
+                    playground.longitude,
+                    entry.date,
+                    timeout=_TEMPERATURE_RETRY_TIMEOUT_SECONDS,
+                )
+
+                if temperature is not None:
+                    entry.temperature_c = temperature
+                    session.add(entry)
+                    session.commit()
+                    return
+        except Exception:
+            logger.exception("Повторная попытка узнать температуру не удалась")
+
+
+def _schedule_temperature_retry(
+    background_tasks: BackgroundTasks, entry: WorkoutEntry
+) -> None:
+    """
+    Ставит повторные попытки, только если они имеют смысл: у записи
+    есть площадка, температуры нет, а дата сегодняшняя (у MET нет
+    истории — для старых записей температуру не получить никогда).
+    ±1 день — запас на разницу часовых поясов; точную проверку
+    делает temperature_for_entry.
+    """
+    if (
+        entry.playground_id is None
+        or entry.temperature_c is not None
+        or entry.id is None
+        or abs((entry.date - date_type.today()).days) > 1
+    ):
+        return
+
+    background_tasks.add_task(_retry_entry_temperature, entry.id)
+
+
 @router.post("/entries", response_model=WorkoutEntryRead)
 def create_workout_entry(
     data: WorkoutEntryCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> WorkoutEntry:
@@ -213,6 +301,8 @@ def create_workout_entry(
     _sync_personal_tags(current_user.id, data.tags, session)
     session.commit()
     session.refresh(entry)
+
+    _schedule_temperature_retry(background_tasks, entry)
 
     return entry
 
@@ -552,6 +642,7 @@ def _ensure_entry_owner(entry: WorkoutEntry, current_user: User) -> None:
 def update_workout_entry(
     entry_id: int,
     data: WorkoutEntryUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> WorkoutEntry:
@@ -651,6 +742,8 @@ def update_workout_entry(
     session.add(entry)
     session.commit()
     session.refresh(entry)
+
+    _schedule_temperature_retry(background_tasks, entry)
 
     return entry
 
