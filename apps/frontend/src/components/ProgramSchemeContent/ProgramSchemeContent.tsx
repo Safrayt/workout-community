@@ -19,6 +19,7 @@ import {
     hasSupersets,
     isAutoScheme,
 } from "../../utils/programAuto";
+import { formatWeight } from "../../utils/performedExercises";
 
 type ProgramSchemeContentProps = {
     scheme: ProgramScheme;
@@ -118,7 +119,7 @@ export default function ProgramSchemeContent({
                                                 }
 
                                                 const details = isAuto
-                                                    ? [formatTarget(item.target), item.load]
+                                                    ? [formatTarget(item.target), formatWeight(item.weightKg), item.load]
                                                           .filter(Boolean)
                                                           .join(" · ")
                                                     : item.load;

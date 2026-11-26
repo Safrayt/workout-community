@@ -1,3 +1,5 @@
+import type { NewPerformedExercise } from "./performedExercise";
+
 export type NewWorkoutEntryPhoto = {
 
     id: string;
@@ -60,6 +62,10 @@ export type NewWorkoutEntry = {
     title: string;
 
     description: string;
+
+    /** Выполненные упражнения (необязательно): при выборе схемы
+     *  подставляются из неё, пользователь может исправить числа. */
+    exercises: NewPerformedExercise[];
 
     photos: NewWorkoutEntryPhoto[];
 

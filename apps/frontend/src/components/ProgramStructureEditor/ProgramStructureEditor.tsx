@@ -1,39 +1,24 @@
-import { Fragment, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import Input from "../ui/Input/Input";
 import Textarea from "../ui/Textarea/Textarea";
 import Button from "../ui/Button/Button";
 import ExerciseSearchBox from "../ExerciseSearchBox/ExerciseSearchBox";
+import SchemeComposer from "../SchemeComposer/SchemeComposer";
 
 import "../../styles/components/program-structure-editor.css";
 
+import { getComposerProblems } from "../../utils/schemeComposer";
 import { generateLocalId } from "../../api/mappers/program";
 import { useExercises } from "../../context/ExerciseContext";
 import type {
     ProgramBlock,
     ProgramBlockItem,
-    ProgramBlockOrder,
-    ProgramItemTarget,
     ProgramScheme,
     ProgramSchemeMode,
     ProgramSection,
     ProgramStructure,
-    ProgramTargetKind,
 } from "../../types/program";
-import {
-    MAX_REST_SECONDS,
-    MAX_ROUNDS,
-    MAX_TARGET_REPS,
-    MAX_TARGET_SECONDS,
-    getAutoSchemeProblems,
-    getBlockSets,
-    getSetRounds,
-    hasEmomSet,
-    hasPerSetRounds,
-    hasSupersets,
-    isEmomSet,
-    syncEmomTogether,
-} from "../../utils/programAuto";
 
 // =====================================================================
 // Общие мелкие помощники для "добавить / удалить / переставить
@@ -121,321 +106,6 @@ function CollapseToggle({
 }
 
 // =====================================================================
-// Поля автоматических схем — числа вместо свободного текста. Только в
-// схемах с режимом «Автоматическая» (см. ProgramSchemeMode).
-// =====================================================================
-
-/** Подписанный выпадающий список в стиле остальных полей формы (общий
- *  ui/Select всегда добавляет пустой пункт, а здесь он не нужен). */
-function LabeledSelect({
-    label,
-    value,
-    options,
-    onChange,
-}: {
-    label: string;
-    value: string;
-    options: { value: string; label: string }[];
-    onChange: (value: string) => void;
-}) {
-    const id = useId();
-
-    return (
-        <div className="select">
-            <label className="select__label" htmlFor={id}>
-                {label}
-            </label>
-
-            <select
-                id={id}
-                className="select__field"
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-            >
-                {
-                    options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))
-                }
-            </select>
-        </div>
-    );
-}
-
-/** Целое число из поля ввода: пусто — undefined, иначе в границах. */
-function parseWholeNumber(
-    raw: string,
-    min: number,
-    max: number
-): number | undefined {
-    if (raw.trim() === "") {
-        return undefined;
-    }
-
-    const parsed = Math.floor(Number(raw));
-
-    if (Number.isNaN(parsed)) {
-        return undefined;
-    }
-
-    return Math.min(max, Math.max(min, parsed));
-}
-
-/** Отдых в секундах, вводится как «минуты + секунды». */
-function DurationField({
-    label,
-    value,
-    onChange,
-}: {
-    label: string;
-    value: number | undefined;
-    onChange: (seconds: number | undefined) => void;
-}) {
-    const minutes = value === undefined ? "" : String(Math.floor(value / 60));
-    const seconds = value === undefined ? "" : String(value % 60);
-
-    function update(nextMinutes: string, nextSeconds: string) {
-        if (nextMinutes.trim() === "" && nextSeconds.trim() === "") {
-            onChange(undefined);
-            return;
-        }
-
-        const total =
-            (parseWholeNumber(nextMinutes, 0, 60) ?? 0) * 60 +
-            (parseWholeNumber(nextSeconds, 0, 59) ?? 0);
-
-        onChange(Math.min(MAX_REST_SECONDS, total));
-    }
-
-    return (
-        <div className="program-structure-editor__duration">
-            <span className="program-structure-editor__field-label">
-                {label}
-            </span>
-
-            <div className="program-structure-editor__duration-inputs">
-                <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={60}
-                    className="input__field program-structure-editor__number"
-                    aria-label={`${label}: минуты`}
-                    placeholder="0"
-                    value={minutes}
-                    onChange={(event) => update(event.target.value, seconds)}
-                />
-
-                <span>мин</span>
-
-                <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={59}
-                    className="input__field program-structure-editor__number"
-                    aria-label={`${label}: секунды`}
-                    placeholder="0"
-                    value={seconds}
-                    onChange={(event) => update(minutes, event.target.value)}
-                />
-
-                <span>сек</span>
-            </div>
-        </div>
-    );
-}
-
-/**
- * Цель упражнения: повторения, секунды, «максимум», AMRAP или EMOM и
- * число. У «максимума» это примерный результат, с которого начнётся
- * отметка повторений после подхода. У AMRAP — секунды таймера, у EMOM —
- * секунды одного подхода; повторения за это время у обоих считаются
- * всегда, ориентир их числа задаётся рядом. Для секунд можно включить
- * «Считать повторения» — когда за время выполняются повторения
- * (подтягивания за 30 секунд), а не статическое удержание; тогда
- * задаётся ориентир повторений. Человеку во время выполнения он не
- * показывается: после подхода он отмечает и секунды, и повторения, а
- * ориентир подставляется как значение по умолчанию.
- */
-function TargetField({
-    index,
-    target,
-    onChange,
-    secondsFrom,
-}: {
-    index: number;
-    target: ProgramItemTarget | undefined;
-    onChange: (target: ProgramItemTarget) => void;
-
-    /** EMOM «все вместе»: секунды интервала задаются у первого
-     *  упражнения сета — здесь показываются его секунды без правки. */
-    secondsFrom?: { value: number | undefined };
-}) {
-    const kind: ProgramTargetKind = target?.kind ?? "reps";
-    const secondsLocked = secondsFrom !== undefined && kind === "emom";
-    const alwaysCountsReps = kind === "amrap" || kind === "emom";
-    const isTimer = kind === "seconds" || alwaysCountsReps;
-    const max = isTimer ? MAX_TARGET_SECONDS : MAX_TARGET_REPS;
-
-    // У AMRAP и EMOM повторения считаются всегда: чекбокс отмечен и не
-    // меняется.
-    const withReps =
-        alwaysCountsReps || (kind === "seconds" && target?.withReps === true);
-
-    return (
-        <div className="program-structure-editor__target">
-            <select
-                className="select__field program-structure-editor__target-kind"
-                aria-label={`Что задано в упражнении ${index + 1}`}
-                value={kind}
-                onChange={(event) => {
-                    const nextKind = event.target.value as ProgramTargetKind;
-
-                    // Повторения за время бывают только у секунд, AMRAP и
-                    // EMOM (у AMRAP и EMOM они считаются всегда).
-                    onChange({
-                        kind: nextKind,
-                        value: target?.value,
-                        ...(nextKind === "amrap" || nextKind === "emom"
-                            ? { withReps: true, reps: target?.reps }
-                            : nextKind === "seconds"
-                              ? {
-                                    withReps:
-                                        target?.kind === "seconds"
-                                            ? target.withReps
-                                            : false,
-                                    reps:
-                                        target?.kind === "seconds" &&
-                                        target.withReps
-                                            ? target.reps
-                                            : undefined,
-                                }
-                              : {}),
-                    });
-                }}
-            >
-                <option value="reps">Повторения</option>
-                <option value="seconds">Секунды</option>
-                <option value="max">Максимум</option>
-                <option value="amrap">AMRAP</option>
-                <option value="emom">EMOM</option>
-            </select>
-
-            <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={max}
-                className="input__field program-structure-editor__number"
-                aria-label={
-                    kind === "amrap"
-                        ? `Секунды таймера AMRAP в упражнении ${index + 1}`
-                        : kind === "emom"
-                          ? `Секунды одного подхода EMOM в упражнении ${index + 1}`
-                          : kind === "seconds"
-                          ? `Число секунд в упражнении ${index + 1}`
-                          : kind === "max"
-                          ? `Примерное число повторений в максимуме, упражнение ${index + 1}`
-                          : `Число повторений в упражнении ${index + 1}`
-                }
-                placeholder={
-                    isTimer
-                        ? "Секунд"
-                        : kind === "max"
-                          ? "Примерно повторений"
-                          : "Повторений"
-                }
-                value={
-                    secondsLocked ? (secondsFrom.value ?? "") : (target?.value ?? "")
-                }
-                disabled={secondsLocked}
-                onChange={(event) =>
-                    onChange({
-                        ...target,
-                        kind,
-                        value: parseWholeNumber(event.target.value, 1, max),
-                    })
-                }
-            />
-
-            <label
-                className={
-                    kind === "seconds"
-                        ? "program-structure-editor__check"
-                        : "program-structure-editor__check program-structure-editor__check--disabled"
-                }
-            >
-                <input
-                    type="checkbox"
-                    disabled={kind !== "seconds"}
-                    checked={withReps}
-                    onChange={(event) =>
-                        onChange({
-                            kind,
-                            value: target?.value,
-                            withReps: event.target.checked,
-                            reps: event.target.checked ? target?.reps : undefined,
-                        })
-                    }
-                />
-                Считать повторения
-            </label>
-
-            {
-                kind === "max" && (
-                    <span className="program-structure-editor__hint">
-                        Человеку во время выполнения покажется слово
-                        «Максимум». Число — примерный результат: после
-                        подхода отметка повторений начнётся с него.
-                    </span>
-                )
-            }
-
-            {
-                withReps && (
-                    <div className="program-structure-editor__target-reps">
-                        <input
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            max={MAX_TARGET_REPS}
-                            className="input__field program-structure-editor__number"
-                            aria-label={`Ориентир повторений в упражнении ${index + 1}`}
-                            placeholder="Повторений"
-                            value={target?.reps ?? ""}
-                            onChange={(event) =>
-                                onChange({
-                                    ...target,
-                                    kind,
-                                    reps: parseWholeNumber(
-                                        event.target.value,
-                                        1,
-                                        MAX_TARGET_REPS
-                                    ),
-                                })
-                            }
-                        />
-
-                        <span className="program-structure-editor__hint">
-                            {
-                                kind === "amrap"
-                                    ? "Примерный результат. Человек увидит таймер, а после подхода отметит, сколько повторений сделал, — отметка начнётся с этого числа."
-                                    : kind === "emom"
-                                      ? "Примерное число повторений за один подход. Перед стартом человек может его изменить, а во время выполнения — менять от подхода к подходу. Число подходов задаётся в настройках комплекса, отдых между подходами поставьте 0 — тогда таймер сам перезапускается. Несколько EMOM-упражнений в одном сете по умолчанию сменяют друг друга: у каждого свой интервал и свои повторения. Режим «все вместе» выбирается в настройках комплекса ниже: тогда все упражнения сета делаются в одном интервале, а секунды задаются у первого упражнения."
-                                      : "Ориентир, человеку во время выполнения не показывается: после подхода он отметит и секунды, и сколько повторений сделал."
-                            }
-                        </span>
-                    </div>
-                )
-            }
-        </div>
-    );
-}
-
-// =====================================================================
 // Упражнения (п.14-15 документа) — из базы упражнений (ссылкой) или
 // своим текстом, порядок фиксирует автор, система его не интерпретирует.
 // Упражнения из базы связаны с их страницами и дают мышцы для картинки
@@ -458,24 +128,9 @@ const LOAD_SUGGESTIONS = [
 
 function ExerciseListEditor({
     items,
-    isAuto,
-    perSetRounds,
-    defaultRounds,
-    emomTogether,
     onChange,
 }: {
     items: ProgramBlockItem[];
-    isAuto: boolean;
-
-    /** EMOM «все вместе»: у не первых упражнений EMOM-сетов секунды
-     *  берутся у первого упражнения. */
-    emomTogether: boolean;
-
-    /** У каждого сета своё число подходов (несколько сетов «по очереди»). */
-    perSetRounds: boolean;
-
-    /** Число подходов комплекса — по умолчанию для сетов без своего. */
-    defaultRounds: number | undefined;
     onChange: (items: ProgramBlockItem[]) => void;
 }) {
     const { exercises } = useExercises();
@@ -501,57 +156,6 @@ function ExerciseListEditor({
         );
     }
 
-    function updateTarget(index: number, target: ProgramItemTarget) {
-        onChange(
-            items.map((item, i) => (i === index ? { ...item, target } : item))
-        );
-    }
-
-    function updateRounds(index: number, rounds: number | undefined) {
-        onChange(
-            items.map((item, i) => (i === index ? { ...item, rounds } : item))
-        );
-    }
-
-    function updateGrouping(index: number, groupWithPrevious: boolean) {
-        onChange(
-            items.map((item, i) =>
-                i === index ? { ...item, groupWithPrevious } : item
-            )
-        );
-    }
-
-    // Номера сетов — только когда в комплексе есть суперсеты: иначе
-    // каждое упражнение и есть сет, и подписи «Сет 1…» только мешали бы.
-    // Индекс упражнения → индекс первого упражнения его EMOM-сета, если
-    // секунды у упражнения не свои, а общие на интервал.
-    const sharedSecondsFrom = new Map<number, number>();
-
-    if (emomTogether) {
-        const setIndexes: number[][] = [];
-
-        items.forEach((item, index) => {
-            if (index === 0 || !item.groupWithPrevious) {
-                setIndexes.push([index]);
-            } else {
-                setIndexes[setIndexes.length - 1].push(index);
-            }
-        });
-
-        setIndexes.forEach((indexes) => {
-            if (isEmomSet(indexes.map((index) => items[index]))) {
-                indexes.slice(1).forEach((index) => {
-                    sharedSecondsFrom.set(index, indexes[0]);
-                });
-            }
-        });
-    }
-
-    const showSets = isAuto && items.some(
-        (item, index) => index > 0 && item.groupWithPrevious
-    );
-    let setNumber = 0;
-
     function removeItem(index: number) {
         onChange(items.filter((_, i) => i !== index));
     }
@@ -567,32 +171,13 @@ function ExerciseListEditor({
             </span>
 
             {
-                items.map((item, index) => {
-                    const startsSet = index === 0 || !item.groupWithPrevious;
-
-                    if (startsSet) {
-                        setNumber += 1;
-                    }
-
-                    return (
-                    <Fragment key={index}>
-                    {
-                        showSets && startsSet && (
-                            <span className="program-structure-editor__set-label">
-                                Сет {setNumber}
-                            </span>
-                        )
-                    }
-
+                items.map((item, index) => (
                     <div
-                        className={
-                            showSets && !startsSet
-                                ? "program-structure-editor__exercise-row program-structure-editor__exercise-row--grouped"
-                                : "program-structure-editor__exercise-row"
-                        }
+                        key={index}
+                        className="program-structure-editor__exercise-row"
                     >
                         <span className="program-structure-editor__exercise-index">
-                            {index + 1}.
+                            {String(index + 1).padStart(2, "0")}
                         </span>
 
                         <div className="program-structure-editor__exercise-fields">
@@ -617,92 +202,16 @@ function ExerciseListEditor({
                                 )
                             }
 
-                            {
-                                isAuto ? (
-                                    <>
-                                        <div className="program-structure-editor__auto-row">
-                                            <TargetField
-                                                index={index}
-                                                target={item.target}
-                                                onChange={(target) =>
-                                                    updateTarget(index, target)
-                                                }
-                                                secondsFrom={
-                                                    sharedSecondsFrom.has(index)
-                                                        ? {
-                                                              value: items[
-                                                                  sharedSecondsFrom.get(
-                                                                      index
-                                                                  )!
-                                                              ].target?.value,
-                                                          }
-                                                        : undefined
-                                                }
-                                            />
-
-                                            {
-                                                perSetRounds && startsSet && (
-                                                    <label className="program-structure-editor__rounds">
-                                                        <span>Подходов</span>
-
-                                                        <input
-                                                            type="number"
-                                                            inputMode="numeric"
-                                                            min={1}
-                                                            max={MAX_ROUNDS}
-                                                            className="input__field program-structure-editor__number"
-                                                            aria-label={`Число подходов в сете с упражнением ${index + 1}`}
-                                                            value={item.rounds ?? defaultRounds ?? ""}
-                                                            onChange={(event) =>
-                                                                updateRounds(
-                                                                    index,
-                                                                    parseWholeNumber(event.target.value, 1, MAX_ROUNDS)
-                                                                )
-                                                            }
-                                                        />
-                                                    </label>
-                                                )
-                                            }
-                                        </div>
-
-                                        {
-                                            index > 0 && (
-                                                <label className="program-structure-editor__check">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={item.groupWithPrevious ?? false}
-                                                        onChange={(event) =>
-                                                            updateGrouping(index, event.target.checked)
-                                                        }
-                                                    />
-                                                    В одном сете с предыдущим
-                                                </label>
-                                            )
-                                        }
-
-                                        <Input
-                                            aria-label={`Примечание к упражнению ${index + 1}`}
-                                            maxLength={MAX_LOAD_LENGTH}
-                                            value={item.load ?? ""}
-                                            onChange={(event) =>
-                                                updateLoad(index, event.target.value)
-                                            }
-                                            placeholder="Примечание (необязательно), например: сумма на обе ноги"
-                                        />
-                                    </>
-                                ) : (
-                                    <Input
-                                        aria-label={`Нагрузка упражнения ${index + 1}`}
-                                        list={loadListId}
-                                        maxLength={MAX_LOAD_LENGTH}
-                                        value={item.load ?? ""}
-                                        onChange={(event) =>
-                                            updateLoad(index, event.target.value)
-                                        }
-                                        placeholder="Нагрузка: 20 повторений, максимум, 30 секунд…"
-                                    />
-                                )
-                            }
+                            <Input
+                                aria-label={`Нагрузка упражнения ${index + 1}`}
+                                list={loadListId}
+                                maxLength={MAX_LOAD_LENGTH}
+                                value={item.load ?? ""}
+                                onChange={(event) =>
+                                    updateLoad(index, event.target.value)
+                                }
+                                placeholder="Нагрузка: 20 повторений, максимум, 30 секунд…"
+                            />
                         </div>
 
                         <ReorderButtons
@@ -719,9 +228,7 @@ function ExerciseListEditor({
                             Удалить
                         </button>
                     </div>
-                    </Fragment>
-                    );
-                })
+                ))
             }
 
             <datalist id={loadListId}>
@@ -753,11 +260,11 @@ function ExerciseListEditor({
             </div>
 
             <p className="program-structure-editor__hint">
-                {
-                    isAuto
-                        ? "Упражнения из базы становятся ссылками, а их мышцы попадают на картинку схемы. Для каждого упражнения выберите, что задано — повторения или секунды, и укажите число: это ориентир, фактический результат человек отметит сам. У упражнения на секунды включите «Считать повторения», если за это время выполняются повторения (подтягивания за 30 секунд), а не удержание позы. Если упражнения образуют суперсет, отметьте «В одном сете с предыдущим»."
-                        : "Упражнения из базы становятся ссылками, а их мышцы попадают на картинку схемы. Если нужного упражнения в базе нет, добавьте своё — оно останется обычным текстом. В поле «Нагрузка» можно написать что угодно: сколько повторений или секунд, «максимум», «80% от максимума»."
-                }
+                Упражнения из базы становятся ссылками, а их мышцы попадают на
+                картинку схемы. Если нужного упражнения в базе нет, добавьте
+                своё — оно останется обычным текстом. В поле «Нагрузка» можно
+                написать что угодно: сколько повторений или секунд, «максимум»,
+                «80% от максимума».
             </p>
         </div>
     );
@@ -772,162 +279,11 @@ function ExerciseListEditor({
 // схем самой программы.
 // =====================================================================
 
-const ORDER_OPTIONS: { value: ProgramBlockOrder; label: string }[] = [
-    {
-        value: "sequential",
-        label: "По очереди — сет 1 несколько раз, затем сет 2",
-    },
-    {
-        value: "interleaved",
-        label: "По кругу — сет 1, сет 2 … и так несколько раз подряд",
-    },
-];
-
-const EMOM_MODE_OPTIONS = [
-    {
-        value: "sequence",
-        label: "По очереди — у каждого упражнения свой интервал",
-    },
-    {
-        value: "together",
-        label: "Все вместе — все упражнения за один интервал",
-    },
-];
-
-/** Числа комплекса автоматической схемы: сколько раз повторять и отдых. */
-function AutoBlockFields({
-    block,
-    onChange,
-}: {
-    block: ProgramBlock;
-    onChange: (block: ProgramBlock) => void;
-}) {
-    const setsCount = getBlockSets(block).length;
-    const supersets = hasSupersets(block);
-    const order = block.order ?? "sequential";
-    const perSet = hasPerSetRounds(block);
-
-    // Самое большое число повторений среди сетов: отдых между
-    // подходами нужен, если хотя бы где-то подход не один.
-    const maxRounds = Math.max(
-        ...getSetRounds(block).map((rounds) => rounds ?? 1)
-    );
-
-    const roundsAreCircles =
-        order === "interleaved" || (setsCount === 1 && supersets);
-
-    return (
-        <div className="program-structure-editor__auto-fields">
-            {
-                perSet ? (
-                    <p className="program-structure-editor__hint">
-                        Число подходов укажите у каждого{" "}
-                        {supersets ? "сета" : "упражнения"} выше — оно может
-                        быть разным.
-                    </p>
-                ) : (
-                    <Input
-                        label={roundsAreCircles ? "Число кругов" : "Число подходов"}
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={MAX_ROUNDS}
-                        value={block.rounds ?? ""}
-                        onChange={(event) =>
-                            onChange({
-                                ...block,
-                                rounds: parseWholeNumber(event.target.value, 1, MAX_ROUNDS),
-                            })
-                        }
-                    />
-                )
-            }
-
-            {
-                hasEmomSet(block) && (
-                    <LabeledSelect
-                        label="EMOM-упражнения в сете"
-                        value={block.emomTogether ? "together" : "sequence"}
-                        options={EMOM_MODE_OPTIONS}
-                        onChange={(value) =>
-                            onChange(
-                                syncEmomTogether({
-                                    ...block,
-                                    emomTogether: value === "together",
-                                })
-                            )
-                        }
-                    />
-                )
-            }
-
-            {
-                setsCount > 1 && (
-                    <LabeledSelect
-                        label="Порядок сетов"
-                        value={order}
-                        options={ORDER_OPTIONS}
-                        onChange={(value) =>
-                            onChange({ ...block, order: value as ProgramBlockOrder })
-                        }
-                    />
-                )
-            }
-
-            {
-                maxRounds > 1 && (
-                    <DurationField
-                        label={roundsAreCircles ? "Отдых между кругами" : "Отдых между подходами"}
-                        value={block.restBetweenRounds}
-                        onChange={(restBetweenRounds) =>
-                            onChange({ ...block, restBetweenRounds })
-                        }
-                    />
-                )
-            }
-
-            {
-                setsCount > 1 && (
-                    <DurationField
-                        label={supersets ? "Отдых между сетами" : "Отдых между упражнениями"}
-                        value={block.restBetweenSets}
-                        onChange={(restBetweenSets) =>
-                            onChange({ ...block, restBetweenSets })
-                        }
-                    />
-                )
-            }
-
-            {
-                supersets && (
-                    <DurationField
-                        label="Отдых внутри сета, между упражнениями (необязательно)"
-                        value={block.restWithinSet}
-                        onChange={(restWithinSet) =>
-                            onChange({ ...block, restWithinSet })
-                        }
-                    />
-                )
-            }
-
-            <DurationField
-                label="Отдых после комплекса, перед следующим (необязательно)"
-                value={block.restAfterBlock}
-                onChange={(restAfterBlock) =>
-                    onChange({ ...block, restAfterBlock })
-                }
-            />
-        </div>
-    );
-}
-
 function BlockEditor({
     block,
-    isAuto,
     onChange,
 }: {
     block: ProgramBlock;
-    isAuto: boolean;
     onChange: (block: ProgramBlock) => void;
 }) {
     return (
@@ -943,29 +299,17 @@ function BlockEditor({
 
             <ExerciseListEditor
                 items={block.items}
-                isAuto={isAuto}
-                perSetRounds={isAuto && hasPerSetRounds(block)}
-                defaultRounds={block.rounds}
-                emomTogether={block.emomTogether === true}
-                onChange={(items) =>
-                    onChange(syncEmomTogether({ ...block, items }))
-                }
+                onChange={(items) => onChange({ ...block, items })}
             />
 
-            {
-                isAuto ? (
-                    <AutoBlockFields block={block} onChange={onChange} />
-                ) : (
-                    <Input
-                        label="Схема / описание выполнения (необязательно)"
-                        value={block.scheme ?? ""}
-                        onChange={(event) =>
-                            onChange({ ...block, scheme: event.target.value })
-                        }
-                        placeholder="Например: 5 × 10 или 4 круга по 10+5+5"
-                    />
-                )
-            }
+            <Input
+                label="Схема / описание выполнения (необязательно)"
+                value={block.scheme ?? ""}
+                onChange={(event) =>
+                    onChange({ ...block, scheme: event.target.value })
+                }
+                placeholder="Например: 5 × 10 или 4 круга по 10+5+5"
+            />
 
             <Textarea
                 id={`block-note-${block.id}`}
@@ -977,29 +321,23 @@ function BlockEditor({
                 rows={2}
             />
 
-            {
-                !isAuto && (
-                    <Input
-                        label="Отдых (необязательно)"
-                        value={block.rest ?? ""}
-                        onChange={(event) =>
-                            onChange({ ...block, rest: event.target.value })
-                        }
-                        placeholder="Например: 60-90 секунд или полное восстановление"
-                    />
-                )
-            }
+            <Input
+                label="Отдых (необязательно)"
+                value={block.rest ?? ""}
+                onChange={(event) =>
+                    onChange({ ...block, rest: event.target.value })
+                }
+                placeholder="Например: 60-90 секунд или полное восстановление"
+            />
         </div>
     );
 }
 
 function BlockListEditor({
     blocks,
-    isAuto,
     onChange,
 }: {
     blocks: ProgramBlock[];
-    isAuto: boolean;
     onChange: (blocks: ProgramBlock[]) => void;
 }) {
     function updateBlock(index: number, block: ProgramBlock) {
@@ -1021,9 +359,6 @@ function BlockListEditor({
                 id: generateLocalId("block"),
                 title: "",
                 items: [],
-                // В автоматической схеме комплекс по умолчанию делается
-                // один раз — число повторений автор меняет сам.
-                ...(isAuto ? { rounds: 1 } : {}),
             },
         ]);
     }
@@ -1060,7 +395,6 @@ function BlockListEditor({
 
                         <BlockEditor
                             block={block}
-                            isAuto={isAuto}
                             onChange={(updated) => updateBlock(index, updated)}
                         />
                     </div>
@@ -1081,16 +415,72 @@ function BlockListEditor({
 // рендерить вовсе, пока она свёрнута.
 // =====================================================================
 
-const MODE_OPTIONS: { value: ProgramSchemeMode; label: string }[] = [
-    {
-        value: "free",
-        label: "Свободная — всё текстом, без таймеров",
-    },
+const MODE_CHOICES: {
+    value: ProgramSchemeMode;
+    title: string;
+    text: string;
+}[] = [
     {
         value: "auto",
-        label: "Автоматическая — для прохождения с таймерами",
+        title: "Автоматическая",
+        text: "Точные числа: по схеме можно проходить тренировку с таймерами и отмечать выполнение.",
+    },
+    {
+        value: "free",
+        title: "Свободная",
+        text: "Всё текстом, как вам удобно, без таймеров.",
     },
 ];
+
+/** Режим схемы — два крупных переключателя с пояснением. */
+function ModeToggle({
+    value,
+    onChange,
+}: {
+    value: ProgramSchemeMode;
+    onChange: (mode: ProgramSchemeMode) => void;
+}) {
+    const name = useId();
+
+    return (
+        <fieldset className="program-structure-editor__mode">
+            <legend className="program-structure-editor__field-label">
+                Режим схемы
+            </legend>
+
+            <div className="program-structure-editor__mode-options">
+                {
+                    MODE_CHOICES.map((choice) => (
+                        <label
+                            key={choice.value}
+                            className={
+                                choice.value === value
+                                    ? "program-structure-editor__mode-option program-structure-editor__mode-option--active"
+                                    : "program-structure-editor__mode-option"
+                            }
+                        >
+                            <input
+                                type="radio"
+                                name={name}
+                                value={choice.value}
+                                checked={choice.value === value}
+                                onChange={() => onChange(choice.value)}
+                            />
+
+                            <span className="program-structure-editor__mode-title">
+                                {choice.title}
+                            </span>
+
+                            <span className="program-structure-editor__mode-text">
+                                {choice.text}
+                            </span>
+                        </label>
+                    ))
+                }
+            </div>
+        </fieldset>
+    );
+}
 
 function SchemeEditor({
     scheme,
@@ -1100,7 +490,11 @@ function SchemeEditor({
     onChange: (scheme: ProgramScheme) => void;
 }) {
     const isAuto = scheme.mode === "auto";
-    const problems = getAutoSchemeProblems(scheme);
+
+    // В автоматической схеме конструктор оставляет пустые строки
+    // «выберите упражнение»: при сохранении они отбрасываются, а здесь
+    // о них напоминаем, чтобы схема не потеряла упражнений молча.
+    const problems = isAuto ? getComposerProblems(scheme.blocks) : [];
 
     function changeMode(mode: ProgramSchemeMode) {
         if (mode === "auto") {
@@ -1134,11 +528,9 @@ function SchemeEditor({
                 placeholder="Например: Тренировка A"
             />
 
-            <LabeledSelect
-                label="Режим схемы"
+            <ModeToggle
                 value={isAuto ? "auto" : "free"}
-                options={MODE_OPTIONS}
-                onChange={(value) => changeMode(value as ProgramSchemeMode)}
+                onChange={changeMode}
             />
 
             {
@@ -1189,11 +581,22 @@ function SchemeEditor({
                 rows={2}
             />
 
-            <BlockListEditor
-                blocks={scheme.blocks}
-                isAuto={isAuto}
-                onChange={(blocks) => onChange({ ...scheme, blocks })}
-            />
+            {
+                isAuto ? (
+                    // Автоматическую схему собирает конструктор — тот же,
+                    // что в записи дневника.
+                    <SchemeComposer
+                        value={scheme.blocks}
+                        showProblems={false}
+                        onChange={(blocks) => onChange({ ...scheme, blocks })}
+                    />
+                ) : (
+                    <BlockListEditor
+                        blocks={scheme.blocks}
+                        onChange={(blocks) => onChange({ ...scheme, blocks })}
+                    />
+                )
+            }
 
             <Textarea
                 id={`scheme-note-${scheme.id}`}
@@ -1399,11 +802,10 @@ function SectionItem({
 }
 
 /**
- * Конструктор одной автоматической схемы без названия, режима и
- * примечаний — для комплексов каталога (ComplexForm): название, описание
- * и примечание у комплекса свои. Те же комплексы-блоки, упражнения,
- * цели (повторения, секунды, максимум, AMRAP, EMOM), сеты и отдых, что у
- * схем программ. Что не заполнено — показывает списком.
+ * Конструктор схемы комплекса каталога (ComplexForm): тот же, что в
+ * записи дневника и в схемах программ (SchemeComposer). Название,
+ * описание и примечание у комплекса свои, поэтому здесь только сами
+ * комплексы-блоки. Что не заполнено — показывает списком.
  */
 export function AutoSchemeEditor({
     scheme,
@@ -1412,7 +814,7 @@ export function AutoSchemeEditor({
     scheme: ProgramScheme;
     onChange: (scheme: ProgramScheme) => void;
 }) {
-    const problems = getAutoSchemeProblems(scheme);
+    const problems = getComposerProblems(scheme.blocks);
 
     return (
         <div className="program-structure-editor__scheme">
@@ -1442,9 +844,9 @@ export function AutoSchemeEditor({
                 )
             }
 
-            <BlockListEditor
-                blocks={scheme.blocks}
-                isAuto
+            <SchemeComposer
+                value={scheme.blocks}
+                showProblems={false}
                 onChange={(blocks) => onChange({ ...scheme, blocks })}
             />
         </div>

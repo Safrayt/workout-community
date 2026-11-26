@@ -17,6 +17,7 @@ import WorkoutEntryActions from "../../components/WorkoutEntryActions/WorkoutEnt
 import WorkoutEntryNotFound from "../../components/WorkoutEntryNotFound/WorkoutEntryNotFound";
 import DiaryComments from "../../components/DiaryComments/DiaryComments";
 import WorkoutEntryComplexes from "../../components/WorkoutEntryComplexes/WorkoutEntryComplexes";
+import WorkoutEntryExercises from "../../components/WorkoutEntryExercises/WorkoutEntryExercises";
 import WorkoutEntryProgram from "../../components/WorkoutEntryProgram/WorkoutEntryProgram";
 
 import type {
@@ -198,6 +199,10 @@ export default function WorkoutEntryDetails() {
             programVersionId: entry.programVersionId,
             title: entry.title,
             description: entry.description ?? "",
+            exercises: (entry.exercises ?? []).map((exercise, index) => ({
+                ...exercise,
+                key: `saved-${index}`,
+            })),
             photos:
                 entry.photos?.map((photo) => ({
                     id: photo.id,
@@ -253,6 +258,11 @@ export default function WorkoutEntryDetails() {
             {/* Главный контент — текст записи (UX §11–13) */}
             <WorkoutEntryContent
                 description={entry.description}
+            />
+
+            {/* Выполненные упражнения с результатом каждого подхода */}
+            <WorkoutEntryExercises
+                exercises={entry.exercises}
             />
 
             {/* Галерея фотографий тренировки, если они есть */}

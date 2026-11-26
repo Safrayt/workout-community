@@ -10,36 +10,30 @@
     font-size: var(--font-size-sm);
 }
 
+/* Разделы, схемы и комплексы — одинаковые белые карточки, как в
+   конструкторе схемы (scheme-composer). Вложенность видна по отступу и
+   по заголовкам, а не по цвету. */
 .program-structure-editor__section,
 .program-structure-editor__scheme-wrapper,
 .program-structure-editor__block-wrapper {
     border: 1px solid var(--color-border);
-    border-left-width: 4px;
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
+    border-radius: var(--radius-lg, 14px);
+    background: var(--color-surface);
+    padding: var(--space-4);
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
 }
 
-/* Разделы, схемы и блоки различаются по цвету левой полосы и лёгкому
-   оттенку фона — так проще на глаз понять, на каком уровне вложенности
-   находишься, особенно когда разделов/схем несколько подряд. */
-.program-structure-editor__section {
-    background: #ebf8ff;
-    border-left-color: var(--color-accent);
-}
-
-.program-structure-editor__scheme-wrapper {
-    margin-left: var(--space-3);
-    background: #f0fff4;
-    border-left-color: var(--color-primary);
-}
-
+.program-structure-editor__scheme-wrapper,
 .program-structure-editor__block-wrapper {
     margin-left: var(--space-3);
-    background: #fffaf0;
-    border-left-color: var(--color-warning);
+}
+
+/* Внутри раздела схемы лежат на лёгком фоне, чтобы карточки не
+   сливались с карточкой раздела. */
+.program-structure-editor__section {
+    background: var(--color-background);
 }
 
 .program-structure-editor__scheme,
@@ -90,8 +84,8 @@
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     border-radius: var(--radius-sm);
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -107,8 +101,8 @@
     border: none;
     background: transparent;
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -128,7 +122,8 @@
     color: var(--color-danger, #c53030);
     background: var(--color-surface);
     border-radius: var(--radius-sm);
-    padding: 4px 10px;
+    min-height: 44px;
+    padding: 0 var(--space-3);
     font-size: var(--font-size-sm);
     cursor: pointer;
     white-space: nowrap;
@@ -148,7 +143,7 @@
 
 .program-structure-editor__exercise-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-2);
 }
 
@@ -187,10 +182,17 @@
     color: var(--color-text-secondary);
 }
 
+/* Номер упражнения — крупный, как в готовой схеме. */
 .program-structure-editor__exercise-index {
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    min-width: 1.5em;
+    align-self: flex-start;
+    min-width: 2.5rem;
+
+    color: var(--color-text);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 /* --- Автоматические схемы ------------------------------------------- */
@@ -313,4 +315,75 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
+}
+
+/* Режим схемы: две крупные кнопки-переключателя вместо выпадающего
+   списка — выбор виден сразу, с пояснением. */
+.program-structure-editor__mode {
+    margin: 0;
+    padding: 0;
+
+    border: none;
+}
+
+.program-structure-editor__mode-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-2);
+
+    margin-top: var(--space-1);
+}
+
+.program-structure-editor__mode-option {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    min-height: 44px;
+    padding: var(--space-3);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    cursor: pointer;
+}
+
+.program-structure-editor__mode-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.program-structure-editor__mode-option--active {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.program-structure-editor__mode-option:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.program-structure-editor__mode-title {
+    font-weight: 700;
+}
+
+.program-structure-editor__mode-text {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 480px) {
+    .program-structure-editor__scheme-wrapper,
+    .program-structure-editor__block-wrapper {
+        margin-left: 0;
+    }
+
+    .program-structure-editor__section,
+    .program-structure-editor__scheme-wrapper,
+    .program-structure-editor__block-wrapper {
+        padding: var(--space-3);
+    }
 }

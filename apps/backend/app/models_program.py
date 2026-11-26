@@ -104,6 +104,7 @@ MAX_ROUNDS = 50
 MAX_REST_SECONDS = 3600
 MAX_TARGET_REPS = 999
 MAX_TARGET_SECONDS = 3600
+MAX_WEIGHT_KG = 500
 
 
 class ProgramSchemeMode(str, enum.Enum):
@@ -223,12 +224,32 @@ class ProgramBlockExercise(SQLModel):
     # остальных упражнений сета не учитывается). Только для порядка
     # «по очереди» при нескольких сетах.
     rounds: Optional[int] = Field(default=None, ge=1, le=MAX_ROUNDS)
+    # Вес со знаком: плюс — утяжелитель (жилет, блин), минус — помощь,
+    # которая облегчает упражнение (резинка, гравитрон). Нет — без
+    # дополнительного веса. Подставляется в запись дневника, когда
+    # тренировка проходит по схеме.
+    weight_kg: Optional[float] = Field(
+        default=None, ge=-MAX_WEIGHT_KG, le=MAX_WEIGHT_KG
+    )
+
+    @field_validator("weight_kg")
+    @classmethod
+    def _round_weight(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+
+        return round(value, 2) or None
 
     @model_serializer(mode="wrap")
     def _serialize(self, handler):
         return _drop_defaults(
             handler(self),
-            {"target": None, "group_with_previous": False, "rounds": None},
+            {
+                "target": None,
+                "group_with_previous": False,
+                "rounds": None,
+                "weight_kg": None,
+            },
         )
 
     @field_validator("exercise_id", "text", "load")

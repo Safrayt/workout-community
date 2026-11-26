@@ -55,6 +55,7 @@ from app.models_diary import (
     PersonalTag,
     PersonalTagCreate,
     PersonalTagRead,
+    PerformedExercise,
     PersonalTagUpdate,
     TimeOfDay,
     WorkoutEntry,
@@ -180,6 +181,53 @@ def _lookup_entry_temperature(
         return None
 
 
+def _normalize_exercises(
+    items: List[PerformedExercise], session: Session
+) -> List[dict]:
+    """
+    Приводит присланные упражнения записи к виду для хранения: для
+    упражнения из базы название берётся оттуда (клиентскому не
+    доверяем, да и снимок должен быть настоящим), «своё» упражнение
+    должно иметь название, упражнения без подходов отбрасываются.
+    """
+    result: List[dict] = []
+
+    for item in items:
+        if not item.sets:
+            continue
+
+        name = item.name
+
+        if item.exercise_id is not None:
+            exercise = session.get(ExerciseDB, item.exercise_id)
+
+            if exercise is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Упражнение «{item.exercise_id}» не найдено",
+                )
+
+            name = exercise.name
+
+        if not name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="У упражнения должно быть название",
+            )
+
+        result.append(
+            {
+                "exercise_id": item.exercise_id,
+                "name": name,
+                "unit": item.unit.value,
+                "sets": list(item.sets),
+                "weight_kg": item.weight_kg,
+            }
+        )
+
+    return result
+
+
 # Повторные попытки узнать температуру в фоне, если при сохранении
 # записи MET не ответил: паузы перед попытками (секунды) и таймаут
 # каждой. Нужны потому, что с сервера MET бывает медленным (таймаут
@@ -266,7 +314,8 @@ def create_workout_entry(
 ) -> WorkoutEntry:
     _validate_tags(data.tags)
 
-    entry_data = data.model_dump()
+    entry_data = data.model_dump(exclude={"exercises"})
+    entry_data["exercises"] = _normalize_exercises(data.exercises, session)
 
     # Версия программы фиксируется сервером в момент создания записи
     # (см. UX-документ «Раздел Программы», п.6-7 MVP) — клиент выбирает
@@ -649,7 +698,12 @@ def update_workout_entry(
     entry = _get_workout_entry_or_404(entry_id, session)
     _ensure_entry_owner(entry, current_user)
 
-    updates = data.model_dump(exclude_unset=True, exclude={"clear_program"})
+    updates = data.model_dump(
+        exclude_unset=True, exclude={"clear_program", "exercises"}
+    )
+
+    if data.exercises is not None:
+        updates["exercises"] = _normalize_exercises(data.exercises, session)
 
     if "tags" in updates:
         _validate_tags(updates["tags"])

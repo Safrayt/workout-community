@@ -6,6 +6,7 @@ import {
     hasSupersets,
     isAutoScheme,
 } from "./programAuto";
+import { formatWeight } from "./performedExercises";
 
 // Экспортируем в 2x относительно логической ширины разметки — иначе
 // текст на скачанной картинке выглядит смазанным на ретина-экранах.
@@ -221,7 +222,9 @@ function buildBlockSegments(
         // автоматической схемы цель (повторения, секунды, «Максимум»,
         // AMRAP, EMOM) и нагрузка, у свободной — только нагрузка.
         const details = isAuto
-            ? [formatTarget(item.target), item.load].filter(Boolean).join(" · ")
+            ? [formatTarget(item.target), formatWeight(item.weightKg), item.load]
+                  .filter(Boolean)
+                  .join(" · ")
             : item.load;
 
         if (details) {

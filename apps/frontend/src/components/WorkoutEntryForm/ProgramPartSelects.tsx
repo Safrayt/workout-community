@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Select from "../ui/Select/Select";
 
 import { getProgramVersion } from "../../api/programs";
-import type { ProgramSection, ProgramStructure } from "../../types/program";
+import type {
+    ProgramScheme,
+    ProgramSection,
+    ProgramStructure,
+} from "../../types/program";
 
 /** Что меняется в записи при выборе раздела и схемы. */
 export type ProgramPartPatch = {
@@ -27,6 +31,10 @@ type ProgramPartSelectsProps = {
     legacyScheme: string;
 
     onChange: (patch: ProgramPartPatch) => void;
+
+    /** Выбранная схема найдена в структуре версии (после загрузки и при
+     *  каждой смене схемы): по ней форма подставляет упражнения. */
+    onSchemeResolved?: (scheme: ProgramScheme) => void;
 };
 
 type LoadState =
@@ -60,8 +68,30 @@ export default function ProgramPartSelects({
     legacySection,
     legacyScheme,
     onChange,
+    onSchemeResolved,
 }: ProgramPartSelectsProps) {
     const [state, setState] = useState<LoadState>({ status: "loading" });
+
+    const onSchemeResolvedRef = useRef(onSchemeResolved);
+
+    useEffect(() => {
+        onSchemeResolvedRef.current = onSchemeResolved;
+    });
+
+    useEffect(() => {
+        if (state.status !== "ready" || !schemeId) {
+            return;
+        }
+
+        for (const section of state.structure.sections) {
+            const scheme = section.schemes.find((item) => item.id === schemeId);
+
+            if (scheme) {
+                onSchemeResolvedRef.current?.(scheme);
+                return;
+            }
+        }
+    }, [state, schemeId]);
 
     useEffect(() => {
         if (!versionId) {

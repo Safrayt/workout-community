@@ -16,6 +16,7 @@ import {
     type ApiProgramScheme,
 } from "./program";
 import type { NewComplexCompletion } from "../../types/newComplexCompletion";
+import { stripPendingItems } from "../../utils/schemeComposer";
 
 // --- Схема ---------------------------------------------------------------
 
@@ -160,6 +161,9 @@ export function mapNewComplexToApi(
             ? {
                   auto_scheme: mapSchemeToApi({
                       ...complex.autoScheme,
+                      // Строки «выберите упражнение», которые автор так и
+                      // не заполнил, в схему не попадают.
+                      blocks: stripPendingItems(complex.autoScheme.blocks),
                       name: complex.name.trim(),
                       mode: "auto",
                   }),

@@ -1,0 +1,327 @@
+/* Конструктор схемы: оформлен как готовая схема (complex-scheme-view),
+   только строки и плашки можно править. */
+.scheme-composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.scheme-composer__block {
+    padding: var(--space-4);
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+}
+
+.scheme-composer__block-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+
+.scheme-composer__block-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 700;
+}
+
+.scheme-composer__chip {
+    padding: 2px var(--space-3);
+
+    background: var(--color-background);
+    border: 1px solid transparent;
+    border-radius: 999px;
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scheme-composer__chip--button {
+    min-height: 36px;
+
+    border-color: var(--color-border);
+    color: inherit;
+    cursor: pointer;
+}
+
+.scheme-composer__chip--button:hover,
+.scheme-composer__chip--button:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.scheme-composer__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.scheme-composer__item {
+    padding-top: var(--space-4);
+}
+
+.scheme-composer__row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.scheme-composer__number {
+    flex: 0 0 56px;
+
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.scheme-composer__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.scheme-composer__name {
+    margin: 0;
+    font-weight: 700;
+}
+
+.scheme-composer__sub {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-composer__pending {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+
+    width: 100%;
+}
+
+.scheme-composer__actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--space-1);
+    margin-left: auto;
+}
+
+.scheme-composer__icon-button,
+.scheme-composer__link-button {
+    min-height: 44px;
+    padding: 0 var(--space-2);
+
+    border: none;
+    background: none;
+    color: var(--color-primary-dark);
+    font: inherit;
+    cursor: pointer;
+}
+
+.scheme-composer__icon-button {
+    min-width: 44px;
+
+    color: var(--color-text-secondary);
+}
+
+.scheme-composer__icon-button--danger {
+    color: #d33;
+}
+
+.scheme-composer__icon-button:disabled,
+.scheme-composer__link-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Настройки комплекса и нагрузки: раскрываются под строкой. */
+.scheme-composer__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    margin: var(--space-3) 0 0 calc(56px + var(--space-3));
+    padding: var(--space-3);
+
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+}
+
+.scheme-composer__block-header + .scheme-composer__panel {
+    margin-left: 0;
+}
+
+.scheme-composer__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.scheme-composer__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.scheme-composer__field-label {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-composer__input {
+    min-height: 44px;
+    padding: 0 var(--space-2);
+
+    box-sizing: border-box;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: inherit;
+    font: inherit;
+}
+
+input.scheme-composer__input[type="number"] {
+    width: 6rem;
+}
+
+.scheme-composer__duration {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.scheme-composer__check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    min-height: 44px;
+}
+
+.scheme-composer__hint {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-composer__block-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+
+    border-top: 1px solid var(--color-border);
+}
+
+/* Заготовки */
+.scheme-composer__presets-title {
+    margin: 0 0 var(--space-2);
+
+    color: var(--color-text-secondary);
+}
+
+.scheme-composer__preset-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-2);
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.scheme-composer__preset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-3);
+
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scheme-composer__preset:hover,
+.scheme-composer__preset:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.scheme-composer__preset-title {
+    font-weight: 700;
+}
+
+.scheme-composer__preset-text {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.scheme-composer__problems {
+    margin: 0;
+    padding-left: var(--space-4);
+
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 480px) {
+    .scheme-composer__block {
+        padding: var(--space-3);
+    }
+
+    .scheme-composer__number {
+        flex-basis: 40px;
+    }
+
+    .scheme-composer__panel {
+        margin-left: 0;
+    }
+}
+
+/* «Настроить» ищут и нажимают часто — выглядит кнопкой, не ссылкой. */
+.scheme-composer__settings-button {
+    min-height: 44px;
+    padding: 0 var(--space-3);
+
+    border: 1px solid var(--color-primary);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-primary-dark);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scheme-composer__settings-button:hover,
+.scheme-composer__settings-button:focus-visible,
+.scheme-composer__settings-button[aria-expanded="true"] {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.scheme-composer__textarea {
+    min-height: 64px;
+    padding: var(--space-2);
+
+    resize: vertical;
+}

@@ -10,6 +10,8 @@ import type { PersonalTag } from "../../types/personalTag";
 import type { Comment } from "../../types/comment";
 import type { DiaryRecordType } from "../../types/diaryRecord";
 
+import type { PerformedExercise } from "../../types/performedExercise";
+
 import { resolveMediaUrl } from "../media";
 
 export type ApiPhoto = {
@@ -42,11 +44,32 @@ export type ApiWorkoutEntry = {
     description: string;
     tags: string[];
     temperature_c?: number | null;
+    exercises?: ApiPerformedExercise[];
     created_at: string;
     photos: ApiPhoto[];
     hide_from_feed: boolean;
     is_private: boolean;
 };
+
+export type ApiPerformedExercise = {
+    exercise_id: string | null;
+    name: string;
+    unit: "reps" | "seconds";
+    sets: number[];
+    weight_kg?: number | null;
+};
+
+function mapApiPerformedExercise(
+    exercise: ApiPerformedExercise
+): PerformedExercise {
+    return {
+        exerciseId: exercise.exercise_id ?? undefined,
+        name: exercise.name,
+        unit: exercise.unit,
+        sets: exercise.sets,
+        weightKg: exercise.weight_kg ?? undefined,
+    };
+}
 
 export function mapApiWorkoutEntryToEntry(
     apiEntry: ApiWorkoutEntry
@@ -79,6 +102,10 @@ export function mapApiWorkoutEntryToEntry(
             ? apiEntry.photos.map(mapApiPhoto)
             : undefined,
         temperatureC: apiEntry.temperature_c ?? undefined,
+        exercises:
+            apiEntry.exercises && apiEntry.exercises.length > 0
+                ? apiEntry.exercises.map(mapApiPerformedExercise)
+                : undefined,
         createdAt: apiEntry.created_at,
         hideFromFeed: apiEntry.hide_from_feed,
         isPrivate: apiEntry.is_private,
@@ -102,6 +129,16 @@ export function mapNewWorkoutEntryToApi(
         title: entry.title,
         description: entry.description,
         tags: entry.tags,
+        // Подходы без числа и упражнения без подходов не отправляем.
+        exercises: entry.exercises
+            .map((exercise) => ({
+                exercise_id: exercise.exerciseId ?? null,
+                name: exercise.name,
+                unit: exercise.unit,
+                sets: exercise.sets.filter((value) => value >= 1),
+                weight_kg: exercise.weightKg ?? null,
+            }))
+            .filter((exercise) => exercise.sets.length > 0),
         hide_from_feed: entry.hideFromFeed ?? false,
         is_private: entry.isPrivate ?? false,
     };

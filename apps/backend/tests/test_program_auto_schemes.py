@@ -737,3 +737,57 @@ def test_incomplete_free_scheme_is_published_as_before(client, author):
     response = _publish(client, author["token"], program["id"])
 
     assert response.status_code == 200, response.text
+
+
+def test_item_weight_is_saved_with_sign(client, author):
+    program = _create_program(client, author["token"])
+    block = _complete_block()
+    block["items"][0]["weight_kg"] = 10
+    block["items"][1]["weight_kg"] = -20.5
+
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    assert response.status_code == 200, response.text
+
+    saved = _draft_scheme(client, author["token"], program["id"])["blocks"][0]
+    # Плюс — утяжелитель, минус — помощь (резинка, гравитрон).
+    assert saved["items"][0]["weight_kg"] == 10
+    assert saved["items"][1]["weight_kg"] == -20.5
+
+
+def test_item_without_weight_has_no_weight_field(client, author):
+    program = _create_program(client, author["token"])
+    block = _complete_block()
+    block["items"][0]["weight_kg"] = 0
+
+    _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    saved = _draft_scheme(client, author["token"], program["id"])["blocks"][0]
+    assert "weight_kg" not in saved["items"][0]
+    assert "weight_kg" not in saved["items"][1]
+
+
+@pytest.mark.parametrize("weight", [501, -501])
+def test_item_weight_out_of_range_is_rejected(client, author, weight):
+    program = _create_program(client, author["token"])
+    block = _complete_block()
+    block["items"][0]["weight_kg"] = weight
+
+    response = _save_draft(
+        client,
+        author["token"],
+        program["id"],
+        _structure([block], mode="auto"),
+    )
+
+    assert response.status_code == 422

@@ -35,6 +35,7 @@ export function createEmptyWorkoutEntry(): NewWorkoutEntry {
         programSchemeId: "",
         title: "",
         description: "",
+        exercises: [],
         photos: [],
         tags: [],
         hideFromFeed: false,
@@ -109,6 +110,7 @@ export function isWorkoutDraftEmpty(entry: NewWorkoutEntry) {
         entry.programScheme.trim() === "" &&
         !entry.programSectionId &&
         !entry.programSchemeId &&
+        entry.exercises.length === 0 &&
         entry.photos.length === 0 &&
         entry.tags.length === 0
     );
@@ -141,6 +143,7 @@ export function normalizeWorkoutDraft(
         ...raw,
         date: typeof raw.date === "string" && raw.date !== "" ? raw.date : base.date,
         tags: Array.isArray(raw.tags) ? raw.tags : [],
+        exercises: Array.isArray(raw.exercises) ? raw.exercises : [],
         photos: Array.isArray(raw.photos)
             ? raw.photos.slice(0, MAX_WORKOUT_ENTRY_PHOTOS)
             : [],

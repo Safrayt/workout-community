@@ -7,6 +7,9 @@ import Button from "../ui/Button/Button";
 import WorkoutEntryPhotoUpload from "../WorkoutEntryPhotoUpload/WorkoutEntryPhotoUpload";
 import TagsField from "../TagsField/TagsField";
 import ProgramPartSelects from "./ProgramPartSelects";
+import WorkoutEntryExercisesField from "../WorkoutEntryExercisesField/WorkoutEntryExercisesField";
+import SchemeComposer from "../SchemeComposer/SchemeComposer";
+import CollapsibleSection from "../ui/CollapsibleSection/CollapsibleSection";
 
 import "../../styles/components/checkbox-grid.css";
 
@@ -42,6 +45,20 @@ import {
 import {
     usePrograms,
 } from "../../context/ProgramContext";
+
+import { useExercises } from "../../context/ExerciseContext";
+
+import type { ProgramBlock, ProgramScheme } from "../../types/program";
+
+import {
+    MAX_PERFORMED_EXERCISES,
+    buildPerformedFromScheme,
+} from "../../utils/performedExercises";
+import {
+    composerScheme,
+    getComposerProblems,
+    stripPendingItems,
+} from "../../utils/schemeComposer";
 
 import PlaygroundsMap from "../Map/LazyPlaygroundsMap";
 import SelectedPlaygroundPreview from "../SelectedPlaygroundPreview/SelectedPlaygroundPreview";
@@ -178,6 +195,111 @@ export default function WorkoutEntryForm({
     } = usePlaygrounds();
 
     const { programs } = usePrograms();
+
+    const { getExerciseById } = useExercises();
+
+    // Упражнения записи подставляются из выбранной схемы (считаем, что
+    // тренировка прошла по ней), пока человек их сам не правил.
+    // appliedSchemeRef — схема, из которой они уже подставлены (у
+    // существующей записи упражнения заданы ею, повторно не трогаем);
+    // autoFilledRef — список целиком из схемы и не правился вручную,
+    // поэтому при смене или сбросе схемы его можно заменить.
+    const appliedSchemeRef = useRef<string | undefined>(
+        initialValue.programVersionId
+            ? initialValue.programSchemeId
+            : undefined
+    );
+    const autoFilledRef = useRef(false);
+
+    // Блок свёрнут, пока в нём ничего нет; раскрывается, когда
+    // появляются упражнения (и дальше сам не закрывается).
+    const [exercisesOpen, setExercisesOpen] = useState(
+        initialValue.exercises.length > 0
+    );
+
+    useEffect(() => {
+        if (entry.exercises.length > 0) {
+            setExercisesOpen(true);
+        }
+    }, [entry.exercises.length]);
+
+    useEffect(() => {
+        if (entry.programSchemeId) {
+            return;
+        }
+
+        appliedSchemeRef.current = undefined;
+
+        if (autoFilledRef.current) {
+            autoFilledRef.current = false;
+            setEntry((current) => ({ ...current, exercises: [] }));
+        }
+    }, [entry.programSchemeId]);
+
+    // Конструктор схемы: схема собирается здесь, а в запись попадают
+    // только выполненные упражнения (см. applyComposedScheme).
+    const [composerOpen, setComposerOpen] = useState(false);
+    const [composerBlocks, setComposerBlocks] = useState<ProgramBlock[]>([]);
+
+    const composerBlocksReady = stripPendingItems(composerBlocks);
+    const composerCanApply =
+        composerBlocksReady.length > 0 &&
+        getComposerProblems(composerBlocks).length === 0;
+
+    function closeComposer() {
+        setComposerOpen(false);
+        setComposerBlocks([]);
+    }
+
+    /**
+     * Числа составленной схемы становятся выполненными упражнениями
+     * (как при выборе схемы программы: считаем, что всё выполнено
+     * так, поправить можно ниже). Если список пуст или подставлен
+     * автоматически, схема его заменяет, иначе — дописывается.
+     */
+    function applyComposedScheme() {
+        const composed = buildPerformedFromScheme(
+            composerScheme(composerBlocksReady),
+            (exerciseId) => getExerciseById(exerciseId)?.name
+        );
+
+        const replace = entry.exercises.length === 0 || autoFilledRef.current;
+
+        autoFilledRef.current = false;
+
+        updateField(
+            "exercises",
+            (replace ? composed : [...entry.exercises, ...composed]).slice(
+                0,
+                MAX_PERFORMED_EXERCISES
+            )
+        );
+
+        closeComposer();
+    }
+
+    function handleSchemeResolved(scheme: ProgramScheme) {
+        if (appliedSchemeRef.current === scheme.id) {
+            return;
+        }
+
+        appliedSchemeRef.current = scheme.id;
+
+        // Уже вписанное вручную не затираем.
+        if (entry.exercises.length > 0 && !autoFilledRef.current) {
+            return;
+        }
+
+        autoFilledRef.current = true;
+
+        updateField(
+            "exercises",
+            buildPerformedFromScheme(
+                scheme,
+                (exerciseId) => getExerciseById(exerciseId)?.name
+            )
+        );
+    }
 
     const { favorites } = useFavorites();
 
@@ -468,9 +590,78 @@ export default function WorkoutEntryForm({
                                     ...patch,
                                 }))
                             }
+                            onSchemeResolved={handleSchemeResolved}
                         />
                     )
                 }
+            </Section>
+
+            <Section title="Схема тренировки">
+                <p className="workout-entry-form__section-lead">
+                    Необязательно. Составьте схему или впишите упражнения
+                    и подходы: по ним считается ваш прогресс. Текст записи
+                    они не заменяют.
+                </p>
+
+                <CollapsibleSection
+                    title="Составить схему или указать упражнения"
+                    defaultOpen={exercisesOpen}
+                >
+                    {
+                        autoFilledRef.current && entry.exercises.length > 0 && (
+                            <p className="workout-entry-form__section-lead">
+                                Подставлено из выбранной схемы: считаем, что
+                                вы выполнили её так. Если было иначе —
+                                исправьте числа.
+                            </p>
+                        )
+                    }
+
+                    {composerOpen ? (
+                        <div className="workout-entry-form__composer">
+                            <SchemeComposer
+                                value={composerBlocks}
+                                onChange={setComposerBlocks}
+                            />
+
+                            <div className="workout-entry-form__composer-actions">
+                                <Button
+                                    type="button"
+                                    disabled={!composerCanApply}
+                                    onClick={applyComposedScheme}
+                                >
+                                    Указать результаты
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={closeComposer}
+                                >
+                                    Отмена
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="workout-entry-form__composer-open">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setComposerOpen(true)}
+                            >
+                                Составить схему
+                            </Button>
+                        </div>
+                    )}
+
+                    <WorkoutEntryExercisesField
+                        value={entry.exercises}
+                        onChange={(exercises) => {
+                            autoFilledRef.current = false;
+                            updateField("exercises", exercises);
+                        }}
+                    />
+                </CollapsibleSection>
             </Section>
 
             <Section title="Где тренировался?">

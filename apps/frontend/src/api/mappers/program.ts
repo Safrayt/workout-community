@@ -39,6 +39,7 @@ export type ApiProgramBlockItem = {
     target?: ApiProgramItemTarget | null;
     group_with_previous?: boolean;
     rounds?: number | null;
+    weight_kg?: number | null;
 };
 
 export type ApiProgramBlock = {
@@ -143,6 +144,7 @@ function mapApiItemsToItems(block: ApiProgramBlock): ProgramBlockItem[] {
             target: mapApiTargetToTarget(item.target),
             groupWithPrevious: item.group_with_previous || undefined,
             rounds: item.rounds ?? undefined,
+            weightKg: item.weight_kg || undefined,
         };
 
         if (item.exercise_id) {
@@ -171,6 +173,7 @@ function mapItemsToApiItems(items: ProgramBlockItem[]): ApiProgramBlockItem[] {
             target: mapTargetToApi(item.target),
             group_with_previous: item.groupWithPrevious ?? false,
             rounds: item.rounds ?? null,
+            weight_kg: item.weightKg || null,
         };
 
         if (item.kind === "exercise") {

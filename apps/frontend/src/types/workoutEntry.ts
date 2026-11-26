@@ -1,3 +1,5 @@
+import type { PerformedExercise } from "./performedExercise";
+
 export type TimeOfDay =
     | "morning"
     | "day"
@@ -56,6 +58,10 @@ export type WorkoutEntry = {
      *  Norway, только для записей с сегодняшней датой). Нет площадки
      *  или погоду определить не удалось — не указана. */
     temperatureC?: number;
+
+    /** Выполненные упражнения с результатом каждого подхода. Нет —
+     *  запись без разбора по упражнениям (например, только текст). */
+    exercises?: PerformedExercise[];
 
     createdAt: string;
 

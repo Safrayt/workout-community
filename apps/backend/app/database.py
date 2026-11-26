@@ -577,6 +577,13 @@ def _run_migrations() -> None:
             _add_column_if_missing(
                 connection, "workoutentry", "temperature_c", "FLOAT"
             )
+            # Выполненные упражнения записи (см. PerformedExercise).
+            _add_column_if_missing(
+                connection,
+                "workoutentry",
+                "exercises",
+                "JSON DEFAULT '[]'" if IS_SQLITE else "JSON NOT NULL DEFAULT '[]'",
+            )
 
 
 def create_db_and_tables() -> None:

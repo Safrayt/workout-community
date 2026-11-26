@@ -3,6 +3,7 @@ from datetime import date as date_type
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from pydantic import field_validator
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -29,6 +30,101 @@ class DiaryRecordType(str, enum.Enum):
 
     workout = "workout"
     note = "note"
+
+
+# --- Выполненные упражнения записи -------------------------------------------
+
+MAX_PERFORMED_EXERCISES = 30
+MAX_SETS_PER_EXERCISE = 100
+MAX_SET_VALUE = 9999
+MAX_PERFORMED_NAME_LENGTH = 120
+MAX_PERFORMED_WEIGHT_KG = 500
+
+
+class PerformedExerciseUnit(str, enum.Enum):
+    reps = "reps"
+    seconds = "seconds"
+
+
+class PerformedExercise(SQLModel):
+    """
+    Одно упражнение, выполненное в тренировке, с результатом каждого
+    подхода (например, 5, 4, 2). Хранится списком в записи дневника
+    (WorkoutEntry.exercises) и используется и при записи, и при чтении.
+
+    exercise_id — упражнение из базы упражнений (по нему считается
+    прогресс); без него это упражнение «своим текстом», оно только
+    показывается в записи. name — снимок названия: для упражнения из
+    базы сервер подставляет его сам. unit — что считают подходы:
+    повторения или секунды (для упражнений на время и удержаний; у AMRAP
+    и EMOM считаются повторения). Упражнения без подходов сервер не
+    сохраняет.
+
+    weight_kg — вес, с которым выполнено упражнение, со знаком:
+    положительный — утяжелитель (жилет, блин: +10), отрицательный —
+    помощь, которая облегчает упражнение (резинка, гравитрон: −20).
+    Нет значения (или 0) — без дополнительного веса. Один вес на всё
+    упражнение; если вес менялся по подходам, то же упражнение
+    записывают двумя строками.
+    """
+
+    exercise_id: Optional[str] = None
+    name: str = ""
+    unit: PerformedExerciseUnit = PerformedExerciseUnit.reps
+    sets: List[int] = []
+    weight_kg: Optional[float] = None
+
+    @field_validator("weight_kg")
+    @classmethod
+    def _check_weight(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+
+        if not -MAX_PERFORMED_WEIGHT_KG <= value <= MAX_PERFORMED_WEIGHT_KG:
+            raise ValueError(
+                "Вес — от "
+                f"−{MAX_PERFORMED_WEIGHT_KG} до {MAX_PERFORMED_WEIGHT_KG} кг"
+            )
+
+        value = round(value, 2)
+
+        return value or None
+
+    @field_validator("exercise_id", "name", mode="before")
+    @classmethod
+    def _strip(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("exercise_id")
+    @classmethod
+    def _blank_id_is_none(cls, value: Optional[str]) -> Optional[str]:
+        return value or None
+
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, value: str) -> str:
+        if len(value) > MAX_PERFORMED_NAME_LENGTH:
+            raise ValueError(
+                "Название упражнения не должно быть длиннее "
+                f"{MAX_PERFORMED_NAME_LENGTH} символов"
+            )
+
+        return value
+
+    @field_validator("sets")
+    @classmethod
+    def _check_sets(cls, value: List[int]) -> List[int]:
+        if len(value) > MAX_SETS_PER_EXERCISE:
+            raise ValueError(
+                f"Подходов в упражнении не больше {MAX_SETS_PER_EXERCISE}"
+            )
+
+        if any(not 1 <= number <= MAX_SET_VALUE for number in value):
+            raise ValueError(
+                f"Результат подхода — от 1 до {MAX_SET_VALUE}"
+            )
+
+        return value
 
 
 # --- Запись тренировки -----------------------------------------------------
@@ -106,6 +202,12 @@ class WorkoutEntry(WorkoutEntryBase, table=True):
     # Нет площадки или погоду не удалось определить — None.
     temperature_c: Optional[float] = None
 
+    # Выполненные упражнения с результатами подходов (см.
+    # PerformedExercise). Список словарей в JSON-колонке: прогресс по
+    # упражнению считается по записям пользователя, а число записей
+    # одного человека небольшое, так что отдельная таблица не нужна.
+    exercises: List[dict] = Field(default_factory=list, sa_column=Column(JSON))
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -132,6 +234,12 @@ class WorkoutEntryCreate(WorkoutEntryBase):
     program_section_id: Optional[str] = None
     program_scheme_id: Optional[str] = None
 
+    # Выполненные упражнения; клиент присылает только упражнение и
+    # подходы, остальное (названия) сервер приводит в порядок сам.
+    exercises: List[PerformedExercise] = Field(
+        default_factory=list, max_length=MAX_PERFORMED_EXERCISES
+    )
+
 
 class WorkoutEntryUpdate(SQLModel):
     """Все поля необязательны — обновляем только то, что передано."""
@@ -156,6 +264,12 @@ class WorkoutEntryUpdate(SQLModel):
     # при exclude_unset, поэтому отвязка программы — отдельный явный
     # флаг, а не program_id=null.
     clear_program: bool = False
+
+    # Не передано — упражнения не меняются; список (в том числе пустой)
+    # заменяет прежние.
+    exercises: Optional[List[PerformedExercise]] = Field(
+        default=None, max_length=MAX_PERFORMED_EXERCISES
+    )
 
 
 class WorkoutEntryPhoto(SQLModel, table=True):
@@ -184,6 +298,7 @@ class WorkoutEntryRead(WorkoutEntryBase):
     program_section_id: Optional[str] = None
     program_scheme_id: Optional[str] = None
     temperature_c: Optional[float] = None
+    exercises: List[PerformedExercise] = []
     created_at: UtcDatetime
     photos: List[WorkoutEntryPhotoRead] = []
 

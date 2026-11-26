@@ -59,6 +59,7 @@ import {
     getAutoSchemeProblems,
     isAutoScheme,
 } from "../../utils/programAuto";
+import { formatWeight } from "../../utils/performedExercises";
 import { renderRichText } from "../../utils/richText";
 import { playSignal, unlockSignal } from "../../utils/runSignal";
 
@@ -586,7 +587,12 @@ function WorkScreen({
                 ) : (
                     <div className="program-scheme-run__target">
                         <p className="program-scheme-run__target-value">
-                            {formatTarget(step.item.target)}
+                            {[
+                                formatTarget(step.item.target),
+                                formatWeight(step.item.weightKg),
+                            ]
+                                .filter(Boolean)
+                                .join(" · ")}
                         </p>
 
                         <p className="program-scheme-run__target-note">
